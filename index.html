@@ -1904,12 +1904,13 @@ const CHARS = [
   { id: 12, name: "ウガチ", title: "穿ちの刃", glyph: "穿", color: "#e8d860",
     ab: "<b>チョキ</b>で勝つと、相手の<b>守り</b>（盾・軽減・無敵）と<b>反射</b>（トゲ・反撃）を無視してダメージを与える。" },
   { id: 13, name: "ホムラ", title: "傷の炎", glyph: "炎", color: "#ff6a3a",
-    ab: "<b>受けたダメージの合計</b>だけ攻撃力アップ（最大HPぶん受けると+100%。上限+100%）。" },
+    ab: "<b>減っている体力</b>の割合だけ攻撃力アップ（体力が半分なら+50%、0に近いほど+100%）。回復すると下がる。" },
   { id: 14, name: "マサ", title: "不動の拳", glyph: "不", color: "#8ab4d8",
     ab: "<b>グー</b>で負けたとき、相手の<b>攻撃力アップ</b>（連勝・チャージ・カード・激昂など）を受けず、相手の基礎攻撃力ぶんのダメージだけ受ける。" },
 ];
 const FORCE_CH = 11, PIERCE_CH = 12, SCAR_CH = 13, STEADY_CH = 14; // ツツミ：パー勝ちでグー強制／ウガチ：チョキ勝ちで守り・反射無視／ホムラ：被ダメで攻撃アップ
-const scarBonus = (taken, max, cb) => Math.min(cb, cb * (taken || 0) / max);
+// ホムラ：減っている体力の割合ぶん攻撃力アップ（体力0に近いほど+100%。回復すると下がる）
+const scarBonus = (hp, max, cb) => Math.min(cb, cb * Math.max(0, max - hp) / max);
 const SEAL_CH = 10, SEAL_RATE = 0.85; // シズク：相手の「常時発動」の能力を封じるかわりに、体力と攻撃力が85%
 // 封じられる（いつでも働いている）能力。「グーで勝ったら」「あいこで」「殴られたら」などの条件で発動するものは封じない
 const SEAL_ABIL = new Set(["king", "gale", "regen", "mirage"]);  // 敵：王の連撃・疾風・再生・幻影
@@ -2877,7 +2878,7 @@ const CB = () => 1 + mz(BM(), "charBoost"); // 教皇：キャラ固有能力の
 const healMul = M => 1 + mz(M, "heal");
 const pRate = () => (S.charId === 5 ? 0.5 * CB() : 0.1) + mz(BM(), "streakAdd");
 const eRate = e => (has(e, "king") ? 0.3 : has(e, "gale") ? 0.5 : 0.1) * (1 - Math.min(0.9, mz(BM(), "enemyStreakCut")));
-const furyBonus = p => (S.charId === 7 ? Math.min(CB(), 0.2 * CB() * (p.losses || 0)) : S.charId === SCAR_CH ? scarBonus(p.taken, p.max, CB()) : 0);
+const furyBonus = p => (S.charId === 7 ? Math.min(CB(), 0.2 * CB() * (p.losses || 0)) : S.charId === SCAR_CH ? scarBonus(p.hp, p.max, CB()) : 0);
 const furyName = () => (S.charId === SCAR_CH ? "傷の炎" : "逆境");
 const atkMods = p => { const M = BM(); return mz(M, "atk") + (p.streak >= 2 ? mz(M, "streak2Atk") : 0) + (p.hp <= p.max / 2 ? mz(M, "lowHpAtk") : 0); };
 const pAtk = p => p.atk * (1 + furyBonus(p)) * Math.max(0.2, 1 + atkMods(p));
@@ -3213,7 +3214,6 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
     const ev = { k: "hurtP", amt: dmg, small, thunder: label === "雷鳴", def: def > 0 || m < 1, label: label === "トゲ" ? "トゲ" : undefined };
     if (c === 4 && kind !== "lose" && dmg === 0) { push(post, k, { k: "block", text: "不屈の体" }); lines.push(`<span class="p">不屈の体：${label || "ダメージ"}を受けない</span>`); }
     let gutsHit = false, judged = false;
-    if (c === SCAR_CH) p.taken = r2((p.taken || 0) + Math.min(p.hp, dmg)); // ホムラ：受けたダメージをためる
     if (nh <= 0 && c === 4 && h === G_ && !p.guts && res === "lose") { p.guts = true; nh = Math.min(p.hp, 1); gutsHit = true; }
     if (nh <= 0 && mz(M, "judgeOn") && !p.judged) { p.judged = true; nh = r2(Math.min(p.max, 1 + p.max * mz(M, "judgement") * healMul(M))); judged = true; }
     p.hp = r2(Math.max(0, nh));
@@ -3816,7 +3816,7 @@ function mkFighter(ch, cards, oppCh) {
   const k = ch === SEAL_CH ? SEAL_RATE : 1;  // シズクは体力・攻撃力85%
   const hp = half(PVP.hp * k * (1 + mz(M, "maxHp")));
   // ab：実際に働くキャラ能力。相手がシズクなら封じられて 0（なし）
-  return { ch, ab: oppCh === SEAL_CH && SEAL_PASSIVE_CH.has(ch) ? 0 : ch, hp, max: hp, atk: PVP.atk * k, taken: 0, streak: 0, inv: false, charge: false, guts: false, losses: 0, M, cards,
+  return { ch, ab: oppCh === SEAL_CH && SEAL_PASSIVE_CH.has(ch) ? 0 : ch, hp, max: hp, atk: PVP.atk * k, streak: 0, inv: false, charge: false, guts: false, losses: 0, M, cards,
     judged: false, firstHitUsed: false, afterDraw: false, foolWin: false, foolGuard: false };
 }
 // 両者の手の「塩」から作る共通の乱数（愚者・運命の輪などが両画面で同じ結果になる）
@@ -4019,7 +4019,7 @@ function startTimer() {
 // 対戦の1ラウンド。両方の画面が同じ手と同じ乱数から同じ結果を計算する
 const fCB = f => 1 + mz(f.M, "charBoost");
 // ガロウの逆境／ホムラの傷の炎（ホムラはシズクに封じられると無し）
-const fFury = f => (f.ch === 7 ? Math.min(fCB(f), 0.2 * fCB(f) * f.losses) : f.ab === SCAR_CH ? scarBonus(f.taken, f.max, fCB(f)) : 0);
+const fFury = f => (f.ch === 7 ? Math.min(fCB(f), 0.2 * fCB(f) * f.losses) : f.ab === SCAR_CH ? scarBonus(f.hp, f.max, fCB(f)) : 0);
 const fAtkOf = f => f.atk * (1 + fFury(f))
   * Math.max(0.2, 1 + mz(f.M, "atk") + (f.streak >= 2 ? mz(f.M, "streak2Atk") : 0) + (f.hp <= f.max / 2 ? mz(f.M, "lowHpAtk") : 0));
 // イワオ：いつでも−20%＋連勝ごとに10%。シズクに封じられると、いつでもの−20%だけが消える
@@ -4047,7 +4047,6 @@ function pvpResolve(F, hA, hB, mySide, rng) {
   const finishHit = (s, dmg, canGuts, isLoss = true) => {
     const f = F[s], before = f.hp;
     let nh = isLoss ? r2(f.hp - dmg) : gonFloor(f.ab, f.hp, dmg);
-    f.taken = r2(f.taken + (before - Math.max(0, nh))); // ホムラ用：受けたダメージの合計
     if (nh <= 0 && canGuts && f.ch === 4 && !f.guts) { f.guts = true; nh = Math.min(f.hp, 1); add(out.after, s, { k: "guts" }, true); out.lines.push(`<span class="p">${who(s)}は不屈で踏みとどまった！</span>`); }
     if (nh <= 0 && mz(f.M, "judgeOn") && !f.judged) { f.judged = true; nh = r2(Math.min(f.max, 1 + f.max * mz(f.M, "judgement") * (1 + mz(f.M, "heal")))); add(out.after, s, { k: "judge" }, true); out.lines.push(`<span class="p">${who(s)}は審判でHP${fmt(nh)}から立ち上がった！</span>`); }
     f.hp = r2(Math.max(0, nh));
@@ -4058,7 +4057,6 @@ function pvpResolve(F, hA, hB, mySide, rng) {
     const f = F[s], before = f.hp;
     f.hp = gonFloor(f.ab, f.hp, dmg);
     const real = r2(before - f.hp);
-    f.taken = r2(f.taken + real);
     if (f.ab === 4 && real < dmg) add(out.after, s, { k: "block", text: "不屈の体" });
     return real;
   };
