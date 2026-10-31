@@ -893,6 +893,7 @@ body.on-home .wrap { padding-top: 10px; }
   background: linear-gradient(#232a55f2, #12162ef2); border: 3px solid var(--line); border-radius: 10px; box-shadow: var(--hard), 0 10px 24px #000a; }
 .settings-pop .sp-title { font-family: var(--f-display); font-size: .9rem; color: var(--dim); }
 .settings-pop .btn { width: 100%; text-align: left; }
+.settings-pop .sp-restart { margin-top: 4px; text-align: center; }
 .sp-credit { margin: 4px 0 0; max-width: 220px; font-size: .62rem; line-height: 1.5; color: var(--dim); }
 /* 真ん中上：今のステージ（主役のひとつ） */
 .hm-head { position: absolute; left: 0; right: 0; top: 62px; z-index: 5; text-align: center; pointer-events: none; }
@@ -1274,6 +1275,7 @@ body.on-home .wrap { padding-top: 10px; }
     <button class="btn sm" id="tg-se" aria-pressed="true">効果音</button>
     <button class="btn sm" id="tg-bgm" aria-pressed="true">BGM</button>
     <button class="btn sm" id="tg-voice" aria-pressed="true" title="オンライン対戦のスタンプを声で読み上げる">ボイス</button>
+    <button class="btn sm sp-restart" id="tg-restart" title="サイトを読み込み直して、スタート画面に戻る（最新の版になる）">スタートに戻る</button>
     <p class="sp-credit">ボイス：VOICEVOX:玄野武宏、VOICEVOX:春日部つむぎ、VOICEVOX:雨晴はう、VOICEVOX:青山龍星、VOICEVOX:ずんだもん、VOICEVOX:冥鳴ひまり、VOICEVOX:白上虎太郎、VOICEVOX:ちび式じい、VOICEVOX:剣崎雌雄</p><!-- ホームを1画面に収めるため、クレジットは設定の中に -->
   </div>
 
@@ -4414,11 +4416,26 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
     btn.onclick = () => { $b("boot").classList.add("out"); window.JQ_BOOT?.begin(); setTimeout(() => $b("boot").remove(), 400); };
   }
   boot();
-  // スマホでアプリに戻ってきたとき（画面が見えるようになったとき）も確かめる。バトル中は邪魔しない
+  // ホーム画面に追加したアプリは、閉じても裏で止まっているだけで、開くと前の状態から再開する（更新が入らない）。
+  // そこで「閉じて（見えなくなって）から RELOAD_AFTER 秒以上たって開いた」ときは、最新を読み込み直す。
+  // バトル中・オンライン対戦の画面では、途中で消えると困るので読み直さない
+  const RELOAD_AFTER = 30;
+  let hiddenAt = 0;
+  const busy = () => !!document.querySelector("#scr-battle:not([hidden]), #scr-online:not([hidden])");
+  const freshReload = () => location.replace(location.pathname + "?r=" + Date.now()); // 毎回ちがうアドレスにして、保存された古いページを使わせない
   document.addEventListener("visibilitychange", async () => {
-    if (document.hidden || document.querySelector("#scr-battle:not([hidden])")) return;
-    const v = await newerVersion(); if (v) reloadTo(v);
+    if (document.hidden) { hiddenAt = Date.now(); return; }
+    if (busy()) return;
+    if (hiddenAt && Date.now() - hiddenAt >= RELOAD_AFTER * 1000) { freshReload(); return; }
+    const v = await newerVersion(); if (v) reloadTo(v);   // 短い間だけ離れていたときは、新しい版が出ているときだけ読み直す
   });
+  // 戻る・進むで保存されたページがそのまま出たときも、最新を読み込む
+  addEventListener("pageshow", ev => { if (ev.persisted && !busy()) freshReload(); });
+  // 設定の「スタートに戻る」：サイトを読み込み直してスタート画面へ（バトル中・オンライン中は確認してから）
+  $b("tg-restart").onclick = () => {
+    if (busy() && !confirm("いまの対戦は終わります。スタートに戻りますか？")) return;
+    freshReload();
+  };
 })();
 </script>
 
