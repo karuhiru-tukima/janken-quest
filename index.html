@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
+  // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
+  window.JQ_VER = "2026-11-01-0129";
   // 表示の切りかえ（Ctrl+M）：スマホ版・PC版を選んでいるときは、決まった幅の枠（view.html）の中で開く
   (function () {
     var mode = ""; try { mode = localStorage.getItem("jq-view") || ""; } catch (e) {}
@@ -1215,9 +1217,39 @@ body.on-home .wrap { padding-top: 10px; }
   padding: 1px 10px; border: 2px solid var(--line); border-radius: 4px; background: var(--gold); color: var(--line); font-family: var(--f-display); font-size: .72rem; }
 .slot.on .slabel { color: var(--gold); font-weight: 800; }
 .cd-detail { background: linear-gradient(#222a56, #161b3a) !important; box-shadow: inset 0 0 0 1px #f5b94280, 0 0 0 2px var(--line), 0 4px 0 2px var(--line), 0 8px 14px #0008 !important; border: 0 !important; }
-.cd-detail .ctile { box-shadow: inset 0 0 0 1px #f5b94280, 0 0 0 2px var(--line) !important; }</style>
+.cd-detail .ctile { box-shadow: inset 0 0 0 1px #f5b94280, 0 0 0 2px var(--line) !important; }
+/* ===== 起動画面（読み込み → タップしてはじめる）===== */
+.boot { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px;
+  background: radial-gradient(ellipse at 50% 35%, #2c3672, #121838 70%); transition: opacity .35s; }
+.boot.out { opacity: 0; pointer-events: none; }
+.boot-in { display: flex; flex-direction: column; align-items: center; gap: 18px; width: min(360px, 100%); text-align: center; }
+.boot-logo { font-family: var(--f-display); font-size: clamp(2.2rem, 11vw, 3.4rem); line-height: 1.1; color: var(--ink);
+  text-shadow: 3px 3px 0 var(--line), -2px -2px 0 var(--line), 2px -2px 0 var(--line), -2px 2px 0 var(--line); }
+.boot-logo span { display: block; color: var(--sakura); }
+.boot-hands { font-size: 2.4rem; letter-spacing: .3em; padding-left: .3em; animation: idle 2.4s ease-in-out infinite; }
+.boot-bar { width: 100%; height: 14px; border: 3px solid var(--line); border-radius: 4px; background: #0a0d22; overflow: hidden; box-shadow: var(--hard); }
+.boot-bar i { display: block; height: 100%; width: 0; background: linear-gradient(#ffd77a, #e8a83a); transition: width .2s; }
+.boot-msg { font-size: .85rem; color: var(--dim); min-height: 1.2em; }
+.boot-start { font-family: var(--f-display); font-size: 1.3rem; color: var(--ink); padding: 14px 28px; border: 3px solid var(--line); border-radius: 6px; cursor: pointer;
+  background: var(--bevel, none), linear-gradient(#5a6cc0, #3c4890 58%, #2a3268); box-shadow: inset 0 0 0 2px #a8bcff70, 0 5px 0 var(--line), 0 10px 16px #0009;
+  text-shadow: 2px 2px 0 var(--line); animation: bootBlink 1.6s ease-in-out infinite; }
+.boot-start:active { transform: translateY(4px); box-shadow: inset 0 0 0 2px #ffcf6a, 0 1px 0 var(--line); }
+@keyframes bootBlink { 50% { filter: brightness(1.25); } }
+.boot-ver { font-size: .7rem; color: #a9b0cf88; }
+</style>
 </head>
 <body>
+<!-- 起動画面：新しい版の確認と画像の読み込みが終わったら「タップしてはじめる」（ここで音も出せるようになる） -->
+<div class="boot" id="boot">
+  <div class="boot-in">
+    <div class="boot-logo">じゃんけん<span>クエスト</span></div>
+    <div class="boot-hands" aria-hidden="true">✊✌️✋</div>
+    <div class="boot-bar" id="boot-bar"><i id="boot-fill"></i></div>
+    <div class="boot-msg" id="boot-msg">よみこみ中…</div>
+    <button class="boot-start" id="boot-start" hidden>タップしてはじめる</button>
+    <div class="boot-ver" id="boot-ver"></div>
+  </div>
+</div>
 
 
 <div class="wrap" id="wrap">
@@ -1418,7 +1450,7 @@ body.on-home .wrap { padding-top: 10px; }
 <div id="flash"></div>
 <canvas id="fx"></canvas>
 
-<script src="art.js"></script>
+<script src="art.js?v=2026-11-01-0129"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -1459,7 +1491,7 @@ function playFrames(a, name, o = {}) {
   clearTimeout(a._ft); a._cur = name;
   const fr = a._fr, fps = o.fps || 5;
   fr.style.width = (a._w[name] || 128) + "px";
-  fr.style.backgroundImage = `url("${a._base}/${name}.png")`; fr.style.backgroundSize = `${n * 100}% 100%`;
+  fr.style.backgroundImage = `url("${a._base}/${name}.png?v=${window.JQ_VER}")`; fr.style.backgroundSize = `${n * 100}% 100%`;
   let i = 0;
   const step = () => {
     fr.style.backgroundPosition = n > 1 ? `${i / (n - 1) * 100}% 0` : "0 0";
@@ -1478,7 +1510,7 @@ function setupFrames(a, set, base, widths) {
   idle(a);
 }
 const hasImg = p => IMGS.has(p);
-const imgSrc = p => "img/" + p + ".png";
+const imgSrc = p => "img/" + p + ".png?v=" + window.JQ_VER;
 function applyPhoto(a) {
   const ak = a._kind === "p" ? `c${a._key}` : a._key;
   if (ANIMS[ak]) setupFrames(a, ANIMS[ak], `img/anim/${ak}`, ANIMW[ak]);
@@ -1496,7 +1528,7 @@ function applyUiImgs() {
     el.dataset.done = 1; el.innerHTML = `<img class="pxi uimg" src="${imgSrc(el.dataset.img)}" alt="${el.textContent.trim()}">`;
   });
 }
-fetch("img/list.json", { cache: "no-cache" }).then(r => (r.ok ? r.json() : [])).catch(() => []).then(list => {
+fetch("img/list.json?v=" + window.JQ_VER, { cache: "no-cache" }).then(r => (r.ok ? r.json() : [])).catch(() => []).then(list => {
   (Array.isArray(list) ? list : []).forEach(p => {
     // "anim/c8/G:2:160" の3つ目は1コマの表示幅（px、省略時128）。腕を前に出すコマは横に広い
     const m = /^anim\/([\w-]+)\/(\w+):(\d+)(?::(\d+))?$/.exec(String(p));
@@ -4331,8 +4363,53 @@ function start(data) {
   show(S.screen);
   EA.forEach(a => a && (a.style.visibility = "visible"));
 }
+// 起動画面（下の別スクリプト）から呼ぶもの：はじめるを押したら音を出せるようにして、今の画面の曲を流す
+window.JQ_BOOT = { begin() { audioInit(); bgm(songFor()); } };
 window.claude?.hot?.snapshot?.(() => ({ S }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+
+<script>
+/* ===== 起動：新しい版の確認 → 読み込み画面 → スタート画面 =====
+   公開するたびに、先頭の window.JQ_VER・version.json・art.js?v= を同じ値に上げる（bump-version.ps1 で一度に変わる） */
+(function () {
+  const APP_VERSION = window.JQ_VER, VER = APP_VERSION;
+  const $b = id => document.getElementById(id);
+  // 新しい版が公開されていたら、読み直す（同じ版で何度も読み直さないよう、1回だけ）
+  async function newerVersion() {
+    // 途中のサーバー（GitHub Pages など）に古い版の番号を返されないよう、毎回ちがうアドレスで問い合わせる
+    try { const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) return null; const v = (await r.json()).v; return v && v !== APP_VERSION ? v : null; } catch { return null; }
+  }
+  function reloadTo(v) {
+    const key = "jq-reloaded-" + v;
+    try { if (sessionStorage.getItem(key)) return false; sessionStorage.setItem(key, "1"); } catch {}
+    $b("boot-msg").textContent = "新しい版を読み込んでいます…";
+    location.replace(location.pathname + "?v=" + encodeURIComponent(v)); return true;
+  }
+  // 画像を先に読み込んで、進み具合をバーで見せる
+  const loadImg = src => new Promise(res => { const i = new Image(); i.onload = i.onerror = res; i.src = src; });
+  async function preload() {
+    let list = []; try { const r = await fetch("img/list.json?v=" + VER, { cache: "no-cache" }); if (r.ok) list = await r.json(); } catch {}
+    const srcs = ["icon-192.png", ...(Array.isArray(list) ? list : []).map(p => { const m = /^anim\/([\w-]+)\/(\w+):\d+/.exec(p); return (m ? `img/anim/${m[1]}/${m[2]}.png` : `img/${String(p).replace(/\.png$/, "")}.png`) + "?v=" + VER; })];
+    const tasks = [document.fonts ? document.fonts.ready : Promise.resolve(), ...srcs.map(loadImg)];
+    let done = 0; const step = () => { done++; $b("boot-fill").style.width = Math.round(done / tasks.length * 100) + "%"; };
+    await Promise.all(tasks.map(t => t.then(step)));
+  }
+  async function boot() {
+    $b("boot-ver").textContent = "ver " + APP_VERSION;
+    const v = await newerVersion(); if (v && reloadTo(v)) return;
+    await preload();
+    $b("boot-msg").textContent = ""; $b("boot-bar").hidden = true;
+    const btn = $b("boot-start"); btn.hidden = false; btn.focus({ preventScroll: true });
+    btn.onclick = () => { $b("boot").classList.add("out"); window.JQ_BOOT?.begin(); setTimeout(() => $b("boot").remove(), 400); };
+  }
+  boot();
+  // スマホでアプリに戻ってきたとき（画面が見えるようになったとき）も確かめる。バトル中は邪魔しない
+  document.addEventListener("visibilitychange", async () => {
+    if (document.hidden || document.querySelector("#scr-battle:not([hidden])")) return;
+    const v = await newerVersion(); if (v) reloadTo(v);
+  });
 })();
 </script>
 
