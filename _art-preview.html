@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ドット絵の見本 8</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap">
+<style>
+:root { --night: #151a33; --panel: #1f2747; --line: #3a4675; --ink: #f4ecdc; --dim: #a9b0cf; --gold: #ffd166; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--night); color: var(--ink); font-family: "M PLUS Rounded 1c", sans-serif; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; display: flex; flex-direction: column; gap: 22px; }
+h1, h2 { font-family: "DotGothic16", monospace; font-weight: 400; margin: 0; }
+h2 { color: var(--gold); font-size: 1.2rem; }
+.sub { color: var(--dim); font-size: .85rem; }
+.sec { background: var(--panel); border: 2px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.it { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: .72rem; width: 120px; text-align: center; }
+.it.s { width: 72px; }
+img, canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+.fig { position: relative; width: 110px; height: 125px; }
+.fig img { position: absolute; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div><h1>ドット絵の見本 8（ゲームと同じ art.js で描画）</h1>
+  <p class="sub">濃紺の輪郭・2.5頭身・髪は4色・服は2色のベタ影・顔は影なし。ゲーム内の表示もこの絵になります。</p></div>
+  <div class="sec"><h2>味方 9人</h2><div class="row" id="allies"></div></div>
+  <div class="sec"><h2>敵 49体（ボス含む）</h2><div class="row" id="enemies"></div></div>
+  <div class="sec"><h2>手・アイコン</h2><div class="row" id="icons"></div></div>
+  <div class="sec"><h2>タロット 78枚</h2><div class="row" id="cards"></div></div>
+</div>
+<script src="art.js"></script>
+<script>
+const A = JQArt;
+const NAMES = { 1: "テツ", 2: "キリ", 3: "ハル", 4: "ゴン", 5: "レン", 6: "ナギ", 7: "ガロウ", 8: "イワオ", 9: "カゲ" };
+// 体＋前の腕（休みの角度 35°）＋手を、ゲームと同じ位置関係で重ねる
+function figure(kind, key, flip) {
+  const a = A.actor(kind, key), d = document.createElement("div"); d.className = "fig"; if (flip) d.style.transform = "scaleX(-1)";
+  d.innerHTML = `<img src="${a.body}" style="left:0;top:0;width:110px;height:125px">
+    <div style="position:absolute;left:57.5px;top:65px;width:30px;height:17.5px;transform-origin:6.25px 8.75px;transform:rotate(35deg)">
+      <img src="${a.arm}" style="left:0;top:0;width:30px;height:17.5px"><img src="${a.hand[0]}" style="left:18px;top:-6px;width:30px;height:30px"></div>`;
+  return d;
+}
+const add = (box, el, label, cls = "") => { const d = document.createElement("div"); d.className = "it " + cls; d.appendChild(el); d.insertAdjacentHTML("beforeend", `<b>${label}</b>`); box.appendChild(d); };
+for (const id in NAMES) add(document.getElementById("allies"), figure("p", +id), NAMES[id]);
+for (const k of Object.keys(A.ENEMY)) add(document.getElementById("enemies"), figure("e", k, true), k);
+const img = (src, w) => { const i = new Image(); i.src = src; i.style.width = i.style.height = w + "px"; return i; };
+["グー", "チョキ", "パー"].forEach((n, h) => add(document.getElementById("icons"), img(A.handIcon(h), 64), n, "s"));
+for (const n of ["lock", "chat", "wave", "bow", "swords"]) add(document.getElementById("icons"), img(A.icon(n), 48), n, "s");
+for (const k of ["1", "5", "9"]) add(document.getElementById("icons"), img(A.actor("p", +k).face, 48), "顔 " + NAMES[k], "s");
+const MAJ = ["fool", "magician", "priestess", "empress", "emperor", "hierophant", "lovers", "chariot", "strength", "hermit", "wheel", "justice", "hanged", "death", "temperance", "devil", "tower", "star", "moon", "sun", "judgement", "world"];
+const ROMAN = ["0", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI"];
+const SUITC = { wand: "#ff9a4a", cup: "#6fd0c0", sword: "#9fc5ff", coin: "#ffd166" }, RG = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "P", "N", "Q", "K"];
+const card = (ds, label) => { const c = document.createElement("canvas"); Object.assign(c.dataset, ds); c.style.width = "96px"; c.style.height = "144px"; A.paintCard(c); add(document.getElementById("cards"), c, label, "s"); };
+MAJ.forEach((id, i) => card({ art: "star", id, kind: "major", r: i % 4, col: "#c48bff", label: ROMAN[i] }, id));
+for (const s in SUITC) for (let r = 0; r < 14; r++) card({ art: s, kind: "minor", suit: s, rank: r, r: r % 4, col: SUITC[s], label: RG[r] }, s + RG[r]);
+card({ art: "unknown", label: "" }, "未入手");
+</script>
+</body>
+</html>
