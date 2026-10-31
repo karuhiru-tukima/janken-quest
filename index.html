@@ -1143,8 +1143,15 @@ body.on-home .wrap { padding-top: 10px; }
 .bnav button { transition: color .15s; }
 @media (min-width: 1080px) {
   /* PC（上のメニュー）：選んでいるボタンが下にふくらむ */
-  .bnav button.on { width: auto; height: auto; margin: 0 0 -14px; padding: 8px 18px; flex: none !important; }
-  .bnav button.on .bi .pxi { width: 36px !important; height: 36px !important; }
+  .bnav button.on { width: auto; height: auto; margin: 0 0 -16px; padding: 10px 24px; flex: none !important; }
+  .bnav button.on .bi .pxi { width: 48px !important; height: 48px !important; }
+  /* PCは画面が広いので、上のメニューのボタンを大きめに */
+  .bnav { padding: 8px 20px; gap: 10px; }
+  .bnav button, .bnav button.center { max-width: 210px; font-size: 1.25rem; gap: 10px; padding: 6px 16px; }
+  .bnav .bi .pxi, .bnav button.center .bi .pxi { width: 42px; height: 42px; }
+  body.has-nav .wrap, body.on-home .wrap { padding-top: 100px; }
+  .cd-detail, .char-detail { top: 104px; }
+  .settings-pop { top: 90px; }
 }
 
 /* ===== 飾りの共通部品：メダル（丸い金の縁の台座）とリボン（両端が切れこんだ帯）===== */
@@ -1708,23 +1715,37 @@ $("tg-voice").onclick = () => {
 
 /* ---- キャラボイス：VOICEVOX で作った音声ファイル（voice/v{キャラ}_{スタンプ}.wav）を鳴らす ----
    ファイルが読めないときだけ、ブラウザの読み上げ（speakAs）に切り替える */
+/* スマホの消音モード（iPhoneのマナースイッチ）で鳴らないように、ふつうの音声再生ではなく効果音と同じしくみ（Web Audio）で鳴らす */
+try { if (navigator.audioSession) navigator.audioSession.type = "ambient"; } catch {}  // iPhone：消音モードに従う
 let curVoice = null;
+const VBUF = {};  // 読みこんだ声のデータ（ファイル名ごと）
+function voiceData(url) {
+  if (!VBUF[url]) VBUF[url] = fetch(url).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+    .then(b => new Promise((ok, ng) => AU.ctx.decodeAudioData(b, ok, ng)))
+    .catch(e => { delete VBUF[url]; throw e; });
+  return VBUF[url];
+}
 function stopVoice() {
-  if (curVoice) { try { curVoice.pause(); } catch {} curVoice = null; }
+  if (curVoice) { try { curVoice.stop(); } catch {} curVoice = null; }
   try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch {}
 }
 function playVoice(ch, k, text) {
   if (!AU.voice) return;
   stopVoice();
-  const a = new Audio(`voice/v${ch}_${k}.wav`);
-  a.volume = 0.95; curVoice = a;
-  let fell = false;
-  const fallback = () => { if (fell || curVoice !== a) return; fell = true; speakAs(ch, text); };
-  a.addEventListener("error", fallback);
-  a.play().catch(fallback);
+  audioInit();
+  if (!AU.ctx) return;
+  const tok = {}; curVoice = { stop() { tok.stop = true; } };
+  const me = curVoice;
+  voiceData(`voice/v${ch}_${k}.wav`).then(buf => {
+    if (tok.stop || curVoice !== me) return;
+    const s = AU.ctx.createBufferSource(), g = AU.ctx.createGain();
+    s.buffer = buf; g.gain.value = 0.95; s.connect(g); g.connect(AU.ctx.destination);
+    s.start(); curVoice = s;
+  }).catch(() => { if (curVoice === me) speakAs(ch, text); });
 }
 function preloadVoices(chs) {
-  for (const ch of chs) for (const k of Object.keys(STAMPS)) { const a = new Audio(); a.preload = "auto"; a.src = `voice/v${ch}_${k}.wav`; }
+  if (!AU.ctx) return;  // 音の準備（最初のタップ）ができてから読みこむ
+  for (const ch of chs) for (const k of Object.keys(STAMPS)) voiceData(`voice/v${ch}_${k}.wav`).catch(() => {});
 }
 
 /* ---- 予備のボイス（ブラウザの読み上げ機能）。キャラごとに声の高さ・速さ・声の種類を変える ---- */
