@@ -2368,7 +2368,10 @@ const lvCostOf = (x, M) => Math.round(30 * x.l * (1 + x.r * 0.5) * (1 - Math.min
 const synthCostOf = (x, M) => Math.round(250 * (x.r + 1) * (1 - Math.min(0.5, mz(M, "synthCost"))));
 const gachaCost = (n, M) => Math.round((n === 10 ? 900 : 100) * (1 - Math.min(0.5, mz(M, "gachaCost"))));
 const GACHA_W = [70, 23, 6, 1];
-const dropW = (w, rb) => [Math.max(30, 72 - 3 * w - rb * 100), 22 + 2 * w + rb * 100, 5 + 0.6 * w, 1 + 0.25 * w];
+// 普通のステージのドロップ：ワールド1〜4はノーマルだけ、5以降はノーマルかレア。エピック以上はボス戦（とガチャ）
+const dropW = (w, rb) => (w <= 4 ? [1, 0, 0, 0] : [Math.max(30, 72 - 3 * w - rb * 100), 22 + 2 * w + rb * 100, 0, 0]);
+// ボス戦のドロップ：ワールド1〜4はレア、5〜8はレアかエピック、9・10はエピックかレジェンド（カードのレア率アップで上のランクが出やすく）
+const bossRar = (w, rb) => (w <= 4 ? 1 : w <= 8 ? (Math.random() < 0.4 + rb ? 2 : 1) : (Math.random() < 0.3 + rb ? 3 : 2));
 function rollRar(wts) { let x = Math.random() * wts.reduce((a, b) => a + b, 0); for (let r = 0; r < 4; r++) { x -= wts[r]; if (x < 0) return r; } return 0; }
 const randCardId = () => CARDS[Math.floor(Math.random() * CARDS.length)].id;
 function newShop() {
@@ -2638,7 +2641,7 @@ function grantRewards(b, won) {
   if (won) {
     let n = boss ? 2 : 1; if (Math.random() < mz(M, "extraCard")) n++;
     for (let i = 0; i < n; i++) {
-      const c = randCardId(), r = rollRar(dropW(b.w, mz(M, "rareRate"))), isNew = !CS.seen.includes(c);
+      const c = randCardId(), r = boss ? bossRar(b.w, mz(M, "rareRate")) : rollRar(dropW(b.w, mz(M, "rareRate"))), isNew = !CS.seen.includes(c);
       addCard(CS, c, r); got.push({ c, r, isNew });
     }
   }
