@@ -4326,6 +4326,7 @@ function renderHome() {
   $("home-plate").innerHTML = eq.length ? cardChips(eq, rev) : `<span class="hm-none">なし</span>`;
   paintAll($("home-plate"));
   applyStageBg($("home-stage"), "bg/home");
+  requestAnimationFrame(fitHome); // 下のメニューに重ならない高さに合わせる
   homeSay(true); // ホームに来たとき（ほかの画面から戻ったとき）もひとこと話す
   clearInterval(homeTimer);
   // 放っておくと12秒ごとに話す（ボイスつき）
@@ -4336,6 +4337,17 @@ document.querySelectorAll(".hm-start, .hm-sub").forEach(b => {
   b.addEventListener("pointerdown", () => b.classList.add("pressed"));
   for (const ev of ["pointerup", "pointerleave", "pointercancel"]) b.addEventListener(ev, () => b.classList.remove("pressed"));
 });
+// スマホのホーム：下のメニューの実際の位置を測って、その上（せり上がる札のぶんも空ける）でホームが終わるようにする。
+// iPhone のホーム画面アプリなどは、画面の高さや下の余白（ホームバー）が端末ごとに違うので、計算ではなく実測で合わせる
+function fitHome() {
+  const hm = document.querySelector(".hm");
+  if (!hm || S.screen !== "home" || innerWidth >= 1080) { hm?.style.removeProperty("height"); return; }
+  const navTop = $("bnav").getBoundingClientRect().top, top = hm.getBoundingClientRect().top;
+  hm.style.setProperty("height", Math.max(420, Math.floor(navTop - top - 34)) + "px", "important");
+}
+addEventListener("resize", fitHome);
+visualViewport?.addEventListener("resize", fitHome);
+addEventListener("orientationchange", () => setTimeout(fitHome, 300));
 $("h-lobby").onclick = () => show("stage");
 $("h-online").onclick = () => show("online");
 // 能力：キャラの特殊能力と、装備中のカードの効果をまとめて見る
