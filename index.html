@@ -7,6 +7,16 @@
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
   window.JQ_VER = "2026-11-01-0129";
+  // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
+  // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
+  (function () {
+    if (window.self !== window.top || /[?&](r|v)=/.test(location.search)) return;
+    try {
+      if (sessionStorage.getItem("jq-fresh")) return;
+      sessionStorage.setItem("jq-fresh", "1");
+      location.replace(location.pathname + "?r=" + Date.now());
+    } catch (e) {}
+  })();
   // 表示の切りかえ（Ctrl+M）：スマホ版・PC版を選んでいるときは、決まった幅の枠（view.html）の中で開く
   (function () {
     var mode = ""; try { mode = localStorage.getItem("jq-view") || ""; } catch (e) {}
@@ -259,6 +269,7 @@ details.rules ul { margin: 8px 0 2px; padding-left: 1.2em; color: var(--dim); fo
 .actor .spr, .actor .hand, .arm.front .armimg { max-width: none; } /* 全体の img { max-width:100% } で細く潰れないように */
 .actor.photo .spr { left: -22px; bottom: -4px; width: 128px; height: 160px; }
 .actor.photo .armimg { visibility: hidden; }
+.actor.photo .arm.front { display: none; } /* 立ち絵（画像）のキャラは、腕の先の手を出さない（出した手は頭の上の吹き出しで見せる） */
 .actor.photo .arm.front { left: 42px; bottom: 70px; }   /* 肩の位置（全身画の上から45%あたり） */
 .actor.photo .hand { left: 4px; }
 /* コマ送りアニメ版：体も手もコマの絵で動かすので、画像と腕は隠す */
@@ -1459,7 +1470,10 @@ body.on-home .wrap { padding-top: 10px; }
 <div id="flash"></div>
 <canvas id="fx"></canvas>
 
-<script src="art.js?v=2026-11-01-0129"></script>
+<script>
+  // ドット絵の描画（art.js）は毎回ちがうアドレスで読み、古い保存を使わない（版の番号を上げ忘れても最新になる）
+  document.write('<script src="art.js?r=' + Date.now() + '"><\/script>');
+</script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
