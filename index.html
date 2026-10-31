@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-01-0129";
+  window.JQ_VER = "2026-11-01-0439";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -642,6 +642,8 @@ body.has-nav .wrap { padding-bottom: 96px; }
 .eprev .bosstag { font-size: .66rem; background: var(--sakura); color: var(--night); border-radius: 4px; padding: 0 6px; font-weight: 800; }
 .eprev .abil { font-size: .8rem; color: var(--ink); margin-top: 2px; }
 .eprev .abil b { color: var(--sakura); }
+s.sealed { opacity: .55; text-decoration-color: #c8a0f0; text-decoration-thickness: 2px; }
+.sealtag { display: inline-block; font-size: .7rem; padding: 0 6px; border-radius: 4px; background: #5a3a8a; color: #f0e6ff; border: 1px solid #c8a0f0; }
 .info-modal .cgrid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 /* バトル中のカードマーク */
 .cmarks { display: inline-flex; gap: 5px; align-items: center; flex-wrap: wrap; }
@@ -993,6 +995,13 @@ body.on-home .wrap { padding-top: 10px; }
 .cdt-ab { margin: 8px 0 4px; line-height: 1.6; }
 .cdt-body .sub { margin: 0; }
 .chars .card { padding: 8px 10px; }
+/* スマホ：選んだキャラの詳細を画面の上に止めておく（下のキャラを選んでも、上に戻らずに能力が見える） */
+@media (max-width: 1079px) {
+  .char-detail { position: sticky; top: calc(6px + env(safe-area-inset-top, 0px)); z-index: 5; padding: 8px 10px; gap: 10px; }
+  .char-detail .cdt-fig, .char-detail .cdt-fig img { width: 64px; height: 80px; }
+  .char-detail .cdt-name { font-size: 1.15rem; }
+  .char-detail .cdt-ab { margin: 4px 0 2px; line-height: 1.45; font-size: .88rem; }
+}
 .chars .card .badge { width: 44px; height: 44px; }
 
 @media (min-width: 1080px) {
@@ -1296,7 +1305,7 @@ body.on-home .wrap { padding-top: 10px; }
     <button class="btn sm" id="tg-bgm" aria-pressed="true">BGM</button>
     <button class="btn sm" id="tg-voice" aria-pressed="true" title="オンライン対戦のスタンプを声で読み上げる">ボイス</button>
     <button class="btn sm sp-restart" id="tg-restart" title="サイトを読み込み直して、スタート画面に戻る（最新の版になる）">スタートに戻る</button>
-    <p class="sp-credit">ボイス：VOICEVOX:玄野武宏、VOICEVOX:春日部つむぎ、VOICEVOX:雨晴はう、VOICEVOX:青山龍星、VOICEVOX:ずんだもん、VOICEVOX:冥鳴ひまり、VOICEVOX:白上虎太郎、VOICEVOX:ちび式じい、VOICEVOX:剣崎雌雄</p><!-- ホームを1画面に収めるため、クレジットは設定の中に -->
+    <p class="sp-credit">ボイス：VOICEVOX:玄野武宏、VOICEVOX:九州そら、VOICEVOX:雨晴はう、VOICEVOX:白上虎太郎、VOICEVOX:春日部つむぎ、VOICEVOX:冥鳴ひまり、VOICEVOX:青山龍星、VOICEVOX:麒ヶ島宗麟、VOICEVOX:剣崎雌雄、VOICEVOX:櫻歌ミコ、VOICEVOX:四国めたん、VOICEVOX:黒沢冴白、VOICEVOX:中部つるぎ</p><!-- ホームを1画面に収めるため、クレジットは設定の中に -->
   </div>
 
   <!-- ホーム -->
@@ -1330,7 +1339,7 @@ body.on-home .wrap { padding-top: 10px; }
   <!-- キャラ選択 -->
   <section class="screen" id="scr-char" hidden>
     <div style="display:flex;flex-direction:column;gap:12px">
-      <div><h2>キャラを選ぶ</h2><p class="sub">基本の体力・攻撃力は全員同じで、ワールドが進むほど上がる。違うのは特殊能力だけ。</p></div>
+      <div><h2>キャラを選ぶ</h2><p class="sub">基本の体力・攻撃力は全員同じで（シズクだけ85%）、ワールドが進むほど上がる。違うのは特殊能力だけ。</p></div>
       <div class="char-split"><div class="chars" id="chars"></div><aside class="char-detail" id="char-detail" aria-live="polite"></aside></div>
       <div class="row spread"><span class="sub" id="char-pick">選択中：なし</span><button class="btn primary" id="to-stage" disabled>決定してホームへ</button></div>
     </div>
@@ -1403,7 +1412,7 @@ body.on-home .wrap { padding-top: 10px; }
       </div>
       <div class="on-status" id="on-status" role="status"></div>
       <div class="row"><button class="btn" id="on-cancel" disabled>探すのをやめる</button><button class="btn" id="on-back">ロビー（対戦）へ戻る</button></div>
-      <p class="credit">スタンプのボイス：VOICEVOX:玄野武宏、VOICEVOX:春日部つむぎ、VOICEVOX:雨晴はう、VOICEVOX:青山龍星、VOICEVOX:ずんだもん、VOICEVOX:冥鳴ひまり、VOICEVOX:白上虎太郎、VOICEVOX:ちび式じい、VOICEVOX:剣崎雌雄</p>
+      <p class="credit">スタンプのボイス：VOICEVOX:玄野武宏、VOICEVOX:九州そら、VOICEVOX:雨晴はう、VOICEVOX:白上虎太郎、VOICEVOX:春日部つむぎ、VOICEVOX:冥鳴ひまり、VOICEVOX:青山龍星、VOICEVOX:麒ヶ島宗麟、VOICEVOX:剣崎雌雄、VOICEVOX:櫻歌ミコ、VOICEVOX:四国めたん、VOICEVOX:黒沢冴白、VOICEVOX:中部つるぎ</p>
     </div>
   </section>
 
@@ -1738,7 +1747,7 @@ function playVoice(ch, k, text) {
   if (!AU.ctx) return;
   const tok = {}; curVoice = { stop() { tok.stop = true; } };
   const me = curVoice;
-  voiceData(`voice/v${ch}_${k}.wav`).then(buf => {
+  voiceData(`voice/v${ch}_${k}.wav?v=${window.JQ_VER}`).then(buf => {
     if (tok.stop || curVoice !== me) return;
     const s = AU.ctx.createBufferSource(), g = AU.ctx.createGain();
     s.buffer = buf; g.gain.value = 0.95; s.connect(g); g.connect(AU.ctx.destination);
@@ -1747,7 +1756,7 @@ function playVoice(ch, k, text) {
 }
 function preloadVoices(chs) {
   if (!AU.ctx) return;  // 音の準備（最初のタップ）ができてから読みこむ
-  for (const ch of chs) for (const k of Object.keys(STAMPS)) voiceData(`voice/v${ch}_${k}.wav`).catch(() => {});
+  for (const ch of chs) for (const k of Object.keys(STAMPS)) voiceData(`voice/v${ch}_${k}.wav?v=${window.JQ_VER}`).catch(() => {});
 }
 
 /* ---- 予備のボイス（ブラウザの読み上げ機能）。キャラごとに声の高さ・速さ・声の種類を変える ---- */
@@ -1756,6 +1765,9 @@ const VOICE = {
   1: { g: "m", pitch: 0.85, rate: 0.95, v: 0 }, 2: { g: "f", pitch: 1.15, rate: 1.15, v: 0 }, 3: { g: "f", pitch: 1.3, rate: 0.9, v: 1 },
   4: { g: "m", pitch: 0.6, rate: 1.1, v: 0 }, 5: { g: "f", pitch: 1.6, rate: 1.3, v: 2 }, 6: { g: "f", pitch: 1.0, rate: 0.8, v: 1 },
   7: { g: "m", pitch: 0.7, rate: 1.15, v: 0 }, 8: { g: "m", pitch: 0.45, rate: 0.8, v: 0 }, 9: { g: "m", pitch: 1.0, rate: 0.85, v: 0 },
+  10: { g: "f", pitch: 1.2, rate: 0.9, v: 0 },
+  11: { g: "f", pitch: 1.4, rate: 1.0, v: 1 }, 12: { g: "m", pitch: 0.9, rate: 1.05, v: 0 }, 13: { g: "f", pitch: 0.9, rate: 1.05, v: 0 },
+  14: { g: "m", pitch: 0.55, rate: 0.85, v: 0 },
 };
 const MALE_VOICE = /ichiro|keita|otoya|daichi|naoki|takumi|kenji|male|男/i;
 let jaVoices = [], jaMale = [], jaFemale = [];
@@ -1885,7 +1897,26 @@ const CHARS = [
     ab: "いつでも受けるダメージ<b>−20%</b>。連勝するたび<b>10%</b>ずつ軽減が増える（最大70%）。連勝が切れる一撃にも効く。" },
   { id: 9, name: "カゲ", title: "返しの刃", glyph: "返", color: "#7fd6d6",
     ab: "ダメージを受けると、<b>基礎攻撃力の35%</b>のダメージを相手に返す（カードなどの強化はのらない）。" },
+  { id: 10, name: "シズク", title: "封じの札", glyph: "封", color: "#c8a0f0",
+    ab: "相手の<b>常に働く能力</b>を封じる（条件で発動する能力は封じない）。かわりに<b>体力・攻撃力85%</b>。" },
+  { id: 11, name: "ツツミ", title: "包みの掌", glyph: "包", color: "#f6b8d8",
+    ab: "<b>パー</b>で勝つと、次のターン相手は<b>グーしか出せない</b>（強制されたグーに勝っても、続けては強制できない）。" },
+  { id: 12, name: "ウガチ", title: "穿ちの刃", glyph: "穿", color: "#e8d860",
+    ab: "<b>チョキ</b>で勝つと、相手の<b>守り</b>（盾・軽減・無敵）と<b>反射</b>（トゲ・反撃）を無視してダメージを与える。" },
+  { id: 13, name: "ホムラ", title: "傷の炎", glyph: "炎", color: "#ff6a3a",
+    ab: "<b>受けたダメージの合計</b>だけ攻撃力アップ（最大HPぶん受けると+100%。上限+100%）。" },
+  { id: 14, name: "マサ", title: "不動の拳", glyph: "不", color: "#8ab4d8",
+    ab: "<b>グー</b>で負けたとき、相手の<b>攻撃力アップ</b>（連勝・チャージ・カード・激昂など）を受けず、相手の基礎攻撃力ぶんのダメージだけ受ける。" },
 ];
+const FORCE_CH = 11, PIERCE_CH = 12, SCAR_CH = 13, STEADY_CH = 14; // ツツミ：パー勝ちでグー強制／ウガチ：チョキ勝ちで守り・反射無視／ホムラ：被ダメで攻撃アップ
+const scarBonus = (taken, max, cb) => Math.min(cb, cb * (taken || 0) / max);
+const SEAL_CH = 10, SEAL_RATE = 0.85; // シズク：相手の「常時発動」の能力を封じるかわりに、体力と攻撃力が85%
+// 封じられる（いつでも働いている）能力。「グーで勝ったら」「あいこで」「殴られたら」などの条件で発動するものは封じない
+const SEAL_ABIL = new Set(["king", "gale", "regen", "mirage"]);  // 敵：王の連撃・疾風・再生・幻影
+const SEAL_PASSIVE_CH = new Set([4, 5, 8, 13]);                  // 味方：ゴンの不屈の体・レンの連勝倍率・イワオの軽減・ホムラの傷の炎
+const sealedAbil = a => S.charId === SEAL_CH && SEAL_ABIL.has(a);
+// 敵の能力の説明（封じたものは打ち消し線と「封印中」）
+const abilText = a => (sealedAbil(a) ? `<s class="sealed">${ABIL[a]}</s> <span class="sealtag">封印中</span>` : ABIL[a]);
 
 const ABIL = {
   rock: "<b>岩肌</b>：あいこで攻撃力の35%ダメージ",
@@ -2221,7 +2252,7 @@ const MINOR_REV = {
     [["coin", .12, .35], ["reflect", .03, .10]], [["coin", .25, .70], ["atk", -.05, -.05]],
   ],
 };
-const REV_CHARS = new Set([5, 6, 7, 9]); // レン・ナギ・ガロウ・カゲは逆位置で装備
+const REV_CHARS = new Set([5, 6, 7, 8, 9, 10, 13]); // レン・ナギ・ガロウ・イワオ・カゲ・シズク・ホムラは逆位置で装備
 const isRev = ch => REV_CHARS.has(ch);
 // 効果の文章（逆位置はここから自動で作る）
 const FT_UP = {
@@ -2690,7 +2721,7 @@ function renderStages() {
     const got = w.stages.filter((_, i) => S.cleared.includes(key(w.no, i))).length;
     const ps = pStats(w.no);
     const tag = MODE_LABEL[w.mode] ? `<span class="tag ${w.mode}">${MODE_LABEL[w.mode]}</span>` : "";
-    sec.innerHTML = `<div class="world-head"><h3>ワールド${w.no}　${w.name}${tag}</h3><span class="sub">自分 HP${ps.max}・ATK${fmt(ps.atk)}　${got}/5</span></div><div class="stages"></div>`;
+    sec.innerHTML = `<div class="world-head"><h3>ワールド${w.no}　${w.name}${tag}</h3><span class="sub">自分 HP${S.charId === SEAL_CH ? half(ps.max * SEAL_RATE) : ps.max}・ATK${fmt(ps.atk * (S.charId === SEAL_CH ? SEAL_RATE : 1))}　${got}/5</span></div><div class="stages"></div>`;
     const grid = sec.querySelector(".stages");
     w.stages.forEach((list, i) => {
       const k = key(w.no, i), boss = isBossStage(w.no, i);
@@ -2777,12 +2808,13 @@ async function startBattle(w, i) {
   const ps = pStats(w);
   const cards = eqList(S.charId).map(x => ({ c: x.c, r: x.r, l: x.l, rev: isRev(S.charId) }));
   const M = computeMods(cards, false);
-  const maxHp = half(ps.max * (1 + mz(M, "maxHp")));
+  const sealK = S.charId === SEAL_CH ? SEAL_RATE : 1;
+  const maxHp = half(ps.max * sealK * (1 + mz(M, "maxHp")));
   const b = S.battle = {
     w, i, turn: 1, over: false, busy: true, total: list.length, kills: 0, coins: 0, M, cards,
     queue: list.map(([tk, hits, atk]) => ({ tk, hp: half(hits * ps.atk), atk: atk ?? W.atk })),
     slots: Array(slotsOf(W)).fill(null),
-    p: { hp: maxHp, max: maxHp, atk: ps.atk, streak: 0, inv: false, charge: false, guts: false, losses: 0,
+    p: { hp: maxHp, max: maxHp, atk: ps.atk * sealK, streak: 0, inv: false, charge: false, guts: false, losses: 0,
       judged: false, firstHitUsed: false, afterDraw: false, foolWin: false, foolGuard: false },
     lastP: null, rep: 0,
     log: [`<span class="y">ステージ${key(w, i)} 開始！ 敵は${list.length}体</span>`].concat(cards.length ? [`<span class="p">装備：${cards.map(x => `${CARD[x.c].name}Lv${x.l}`).join("・")}</span>`] : []),
@@ -2835,14 +2867,15 @@ async function enterEnemy(b, k) {
   renderBattle();
 }
 
-const has = (e, a) => e.abil.includes(a);
+const has = (e, a) => !sealedAbil(a) && e.abil.includes(a); // シズクのときは常時発動の能力が封じられる
 const enemyAtk = e => e.atk * (has(e, "rage") && !e.calm && e.hp <= e.max / 2 ? 1.5 : 1) * (e.bonded ? 1.5 : 1);
 const BM = () => (S.battle && S.battle.M) || {};
 const CB = () => 1 + mz(BM(), "charBoost"); // 教皇：キャラ固有能力の数値アップ
 const healMul = M => 1 + mz(M, "heal");
 const pRate = () => (S.charId === 5 ? 0.5 * CB() : 0.1) + mz(BM(), "streakAdd");
 const eRate = e => (has(e, "king") ? 0.3 : has(e, "gale") ? 0.5 : 0.1) * (1 - Math.min(0.9, mz(BM(), "enemyStreakCut")));
-const furyBonus = p => (S.charId === 7 ? Math.min(CB(), 0.2 * CB() * (p.losses || 0)) : 0);
+const furyBonus = p => (S.charId === 7 ? Math.min(CB(), 0.2 * CB() * (p.losses || 0)) : S.charId === SCAR_CH ? scarBonus(p.taken, p.max, CB()) : 0);
+const furyName = () => (S.charId === SCAR_CH ? "傷の炎" : "逆境");
 const atkMods = p => { const M = BM(); return mz(M, "atk") + (p.streak >= 2 ? mz(M, "streak2Atk") : 0) + (p.hp <= p.max / 2 ? mz(M, "lowHpAtk") : 0); };
 const pAtk = p => p.atk * (1 + furyBonus(p)) * Math.max(0.2, 1 + atkMods(p));
 // イワオ：常に20%＋連勝数×10%（最大70%）
@@ -2855,6 +2888,8 @@ function prepTurn(b) {
   const chance = readChance(b);
   b.next = b.slots.map(e => {
     if (!e) return null;
+    // ツツミにパーで負けた敵は、このターンはグーしか出せない
+    if (e.forceG) return { h: G_, read: false, forced: true, uid: e.uid, seen: true };
     let t = Math.random() < chance ? { h: beats(b.lastP), read: true } : { h: pickEnemy(b, e), read: false, beat: e.ai.t === "beatLast" && b.lastP !== null };
     if ((t.read || t.beat) && Math.random() < mz(M, "jam")) t = { h: Math.floor(Math.random() * 3), read: false, jam: true };
     return { ...t, uid: e.uid, seen: Math.random() < mz(M, "predict") };
@@ -3003,6 +3038,7 @@ async function play(h) {
   // 敵の手はターンのはじめに決めてある（同じ手を続けていると読まれる）
   if (!b.next || b.slots.some((e, k) => e && (!b.next[k] || b.next[k].uid !== e.uid))) prepTurn(b);
   const throws = b.next; b.next = null;
+  b.slots.forEach((e, k) => { if (e) { e.forcedNow = !!(throws[k] && throws[k].forced); e.forceG = false; } }); // 強制は1ターンだけ
   b.rep = h === b.lastP ? b.rep + 1 : 1;
   b.lastP = h;
 
@@ -3174,6 +3210,7 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
     const ev = { k: "hurtP", amt: dmg, small, thunder: label === "雷鳴", def: def > 0 || m < 1, label: label === "トゲ" ? "トゲ" : undefined };
     if (c === 4 && kind !== "lose" && dmg === 0) { push(post, k, { k: "block", text: "不屈の体" }); lines.push(`<span class="p">不屈の体：${label || "ダメージ"}を受けない</span>`); }
     let gutsHit = false, judged = false;
+    if (c === SCAR_CH) p.taken = r2((p.taken || 0) + Math.min(p.hp, dmg)); // ホムラ：受けたダメージをためる
     if (nh <= 0 && c === 4 && h === G_ && !p.guts && res === "lose") { p.guts = true; nh = Math.min(p.hp, 1); gutsHit = true; }
     if (nh <= 0 && mz(M, "judgeOn") && !p.judged) { p.judged = true; nh = r2(Math.min(p.max, 1 + p.max * mz(M, "judgement") * healMul(M))); judged = true; }
     p.hp = r2(Math.max(0, nh));
@@ -3191,6 +3228,7 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
     const N = p.streak - 1, mult = 1 + N * pRate();
     const charged = p.charge; if (charged) p.charge = false;
     const foolWin = p.foolWin; p.foolWin = false;
+    const pierce = c === PIERCE_CH && h === C_; // ウガチ：チョキの勝ちは盾とトゲを無視
     for (const { e, k } of group) {
       if (p.hp <= 0) break;
       const before = e.hp;
@@ -3202,18 +3240,21 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
       let nt2 = N > 0 ? `（${p.streak}連勝 ×${fmt(mult)}）` : "";
       if (bonus > 1.001) nt2 += `（カード ×${fmt(bonus)}）`;
       if (charged) nt2 += `（チャージ ×${fmt(3 + mz(M, "charBoost"))}）`;
-      if (furyBonus(p) > 0) nt2 += `（逆境 +${Math.round(furyBonus(p) * 100)}%）`;
+      if (furyBonus(p) > 0) nt2 += `（${furyName()} +${Math.round(furyBonus(p) * 100)}%）`;
       e.streak = 0;
       if (has(e, "mirage") && Math.random() < 0.25) {
         push(imp, k, { k: "evade" });
         lines.push(`<span class="y">${T0}${nt}${HN[h]}で勝ち！…が、${e.name}は幻影でかわした</span>`);
         continue;
       }
-      if (e.shield) { dmg *= 0.5; e.shield = false; cut = true; nt2 += "（盾で半減）"; }
+      if (pierce) { if (e.shield) nt2 += "（盾を貫通）"; }
+      else if (e.shield) { dmg *= 0.5; e.shield = false; cut = true; nt2 += "（盾で半減）"; }
       dmg = r2(dmg); e.hp = r2(Math.max(0, e.hp - dmg));
       push(imp, k, { k: "hitE", amt: dmg, crit: charged || foolWin || N >= 2, cut });
       lines.push(`<span class="g">${T0}${nt}${HN[h]}で勝ち！ ${e.name}に${fmt(dmg)}ダメージ${nt2}</span>`);
-      if (has(e, "spike") && p.hp > 0) {
+      // ツツミ：パーで勝った敵は次のターングーしか出せない（強制されたグーに勝ったときは続けない）
+      if (c === FORCE_CH && h === P_ && e.hp > 0 && !e.forcedNow) { e.forceG = true; push(post, k, { k: "forceG", onE: true }); lines.push(`<span class="p">包みの掌：${e.name}は次のターン、グーしか出せない</span>`); }
+      if (has(e, "spike") && p.hp > 0 && !pierce) {
         const { ev, dmg: sd } = hurtPlayer(e, k, e.atk * 0.3, "トゲ", true, 0, "abil");
         push(post, k, ev);
         lines.push(`<span class="r">${e.name}のトゲ！ ${fmt(sd)}ダメージ</span>`);
@@ -3272,9 +3313,10 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
       e.streak++;
       if (p.hp <= 0) continue;
       const N = e.streak - 1, mult = 1 + N * eRate(e);
-      const note2 = N > 0 ? `（敵${e.streak}連勝 ×${fmt(mult)}）` : "";
+      const steady = c === STEADY_CH && h === G_; // マサ：グーの負けは敵の強化（連勝・激昂・絆）を受けない
+      const note2 = steady ? "（不動：強化を受けない）" : N > 0 ? `（敵${e.streak}連勝 ×${fmt(mult)}）` : "";
       if (blocked) { push(imp, k, { k: "block" }); lines.push(`<span class="p">${T0}${nt}${HN[h]}で負け…でも無敵で${e.name}の攻撃は0！</span>`); continue; }
-      const { ev, dmg } = hurtPlayer(e, k, enemyAtk(e) * mult, "", false, def, "lose");
+      const { ev, dmg } = hurtPlayer(e, k, steady ? e.atk : enemyAtk(e) * mult, "", false, def, "lose");
       ev.crit = N >= 2;
       push(imp, k, ev);
       lines.push(`<span class="r">${T0}${nt}${HN[h]}で負け ${e.name}から${fmt(dmg)}ダメージ${note2}${def > 0 ? `（岩の守り −${Math.round(def * 100)}%）` : ""}</span>`);
@@ -3397,6 +3439,12 @@ function fx(ev, E, Pp) {
       sfx("buff"); burst(pp, { n: 16, colors: ["#c9b6ff", "#fff"], speed: 4, shape: "star", grav: 0 });
       floatText(P, ev.text, "pink");
       break;
+    case "forceG": { // ツツミ：相手は次グーしか出せない（onE：ステージの敵に付く）
+      const A = ev.onE ? E : P, c0 = ev.onE ? ep : pp;
+      sfx("buff"); ring(c0, "#f6b8d8", { r: 28, grow: -0.4, life: 26, w: 5 });
+      floatText(A, "次はグーだけ", "pink");
+      break;
+    }
     case "streak":
       sfx("streak");
       floatText(P, ev.calm ? `凪 ${ev.n}連勝` : `${ev.n}連勝！`, "gold");
@@ -3473,7 +3521,7 @@ function renderBattle() {
     if (!e) { el.className = "panel gone"; el.dataset.uid = ""; setHTML(el, `<div class="trait">${b.queue.length ? "次の敵を待っている…" : "—"}</div>`); continue; }
     if (el.dataset.uid !== e.uid) {
       el.dataset.uid = e.uid; el.dataset.h = "";
-      const abil = e.abil.map(a => ABIL[a]).join(" ／ ");
+      const abil = e.abil.map(abilText).join(" ／ ");
       el.innerHTML = `<div class="ptop"><span class="nm"><span class="ic">${enemyFace(e.tk)}</span><span>${e.name}</span></span><span class="hpnum"></span></div>
         <div class="hp"><b></b><i></i></div><div class="chips"></div>
         <div class="trait">クセ：${e.hint}${abil ? "<br>" + abil : ""}</div>`;
@@ -3501,7 +3549,7 @@ function renderBattle() {
   if (c.id === 1) pc += chip("無敵", "c-inv", p.inv);
   if (c.id === 2) pc += chip("チャージ", "c-charge", p.charge);
   if (c.id === 4) pc += chip(p.guts ? "不屈（使用済）" : "不屈（残1）", "c-guts", !p.guts);
-  if (c.id === 7) pc += chip(`逆境 +${Math.round(furyBonus(p) * 100)}%`, "c-rage", furyBonus(p) > 0);
+  if (c.id === 7 || c.id === SCAR_CH) pc += chip(`${furyName()} +${Math.round(furyBonus(p) * 100)}%`, "c-rage", furyBonus(p) > 0);
   if (c.id === 8) pc += chip(`防御 ${Math.round(pDef(p) * 100)}%`, "c-def", pDef(p) > 0);
   if (c.id === 9) pc += chip(`返しの刃 ${fmt(p.atk * KAGE_RATE)}`, "c-def");
   if (p.judged === false && mz(b.M, "judgeOn")) pc += chip("審判（残1）", "c-guts");
@@ -3519,7 +3567,7 @@ function renderBattle() {
   }
 
   // 手ボタン
-  const boostHand = { 1: G_, 2: C_, 3: P_, 4: G_ }[c.id];
+  const boostHand = { 1: G_, 2: C_, 3: P_, 4: G_, 11: P_, 12: C_, 14: G_ }[c.id];
   for (let i = 0; i < 3; i++) {
     const btn = $("h" + i);
     btn.classList.toggle("boost", boostHand === i);
@@ -3529,7 +3577,7 @@ function renderBattle() {
     if (w) { if (showW) w.textContent = `読まれ ${Math.round(chance * 100)}%`; else w.remove(); }
   }
   const hints = [];
-  if (!b.busy && b.next) b.slots.forEach((e, k) => { const t = b.next[k]; if (e && t && t.seen && t.uid === e.uid) hints.push(`予感：${e.name}は${HN[t.h]}を出しそう`); });
+  if (!b.busy && b.next) b.slots.forEach((e, k) => { const t = b.next[k]; if (e && t && t.seen && t.uid === e.uid) hints.push(t.forced ? `${e.name}はグーしか出せない（包みの掌）` : `予感：${e.name}は${HN[t.h]}を出しそう`); });
   if (chance > 0) hints.push(`${HN[b.lastP]}が${b.rep}回連続。次も${HN[b.lastP]}だと${Math.round(chance * 100)}%の確率で読まれる`);
   $("rep-hint").textContent = hints.join("　");
 
@@ -3759,11 +3807,13 @@ function cleanCards(v) {
   }
   return out;
 }
-function mkFighter(ch, cards) {
+function mkFighter(ch, cards, oppCh) {
   // 正位置か逆位置かは、送られてきた値ではなく相手のキャラから決める
   const M = computeMods(cards.map(([c, r, l]) => ({ c, r, l, rev: isRev(ch) })), true);
-  const hp = half(PVP.hp * (1 + mz(M, "maxHp")));
-  return { ch, hp, max: hp, atk: PVP.atk, streak: 0, inv: false, charge: false, guts: false, losses: 0, M, cards,
+  const k = ch === SEAL_CH ? SEAL_RATE : 1;  // シズクは体力・攻撃力85%
+  const hp = half(PVP.hp * k * (1 + mz(M, "maxHp")));
+  // ab：実際に働くキャラ能力。相手がシズクなら封じられて 0（なし）
+  return { ch, ab: oppCh === SEAL_CH && SEAL_PASSIVE_CH.has(ch) ? 0 : ch, hp, max: hp, atk: PVP.atk * k, taken: 0, streak: 0, inv: false, charge: false, guts: false, losses: 0, M, cards,
     judged: false, firstHitUsed: false, afterDraw: false, foolWin: false, foolGuard: false };
 }
 // 両者の手の「塩」から作る共通の乱数（愚者・運命の輪などが両画面で同じ結果になる）
@@ -3778,7 +3828,7 @@ async function newGame(g) {
   const on = ON;
   Object.assign(ON, { g, want: g, r: 1, pick: null, salt: null, commit: null, myReveal: null, lastReveal: null, oppCommit: null,
     revealed: false, resolving: false, busy: true, over: false, oppGone: false });
-  ON.F = { [ON.side]: mkFighter(S.charId, ON.myCards), [oth(ON.side)]: mkFighter(ON.oppCh, ON.oppCards) };
+  ON.F = { [ON.side]: mkFighter(S.charId, ON.myCards, ON.oppCh), [oth(ON.side)]: mkFighter(ON.oppCh, ON.oppCards, S.charId) };
   ON.log = [`<span class="y">第${g}戦 開始！ ${esc(ON.myNick)} vs ${esc(ON.oppNick)}</span>`];
   NET.named.presence({ g, r: 1, c: null, rv: null, last: null, want: g }).catch(() => {});
   $("result").hidden = true;
@@ -3847,6 +3897,11 @@ const STAMP_LINES = {
   7: { hello: "よろしく…食らいつくぜ", thanks: "ありがとよ。次は負けねえ", next: "次は{h}だ。覚悟しな" },
   8: { hello: "よろしくお願いいたす", thanks: "かたじけない", next: "次は{h}でござる" },
   9: { hello: "……参る", thanks: "ありがとうございました。御免", next: "次は{h}……かもしれぬ" },
+  10: { hello: "よろしくお願いします。お手柔らかに", thanks: "ありがとうございました。良きご縁でした", next: "次は{h}を出します" },
+  11: { hello: "よろしくね。ふんわりいこう", thanks: "ありがとう！楽しかったよ", next: "次は{h}だよ" },
+  12: { hello: "よろしく。守りごと穿つ", thanks: "ありがとう。いい手合わせだった", next: "次は{h}でいく" },
+  13: { hello: "よろしく。痛いほど燃えるよ", thanks: "ありがとう。熱い勝負だった", next: "次は{h}だ" },
+  14: { hello: "よろしく。どっしりいこう", thanks: "ありがとう。いい勝負だった", next: "次は{h}だ" },
 };
 function stampLine(ch, k) {
   const L = STAMP_LINES[ch]; if (!L) return STAMPS[k].text;
@@ -3908,6 +3963,7 @@ function onOpp(p) {
 async function onlinePick(h) {
   if (!ON || ON.over || ON.busy || ON.pick !== null || !NET.named) return;
   const on = ON;
+  if (ON.F[ON.side].forceG) h = G_; // 包みの掌でグーしか出せない
   ON.pick = h; ON.salt = randHex(8);
   if (PA) PA.querySelectorAll(".stampbubble").forEach(retractStamp); // 手を選んだら自分のスタンプは引っ込む
   ring(center($("h" + h)), "#ff9a4a", { r: 20, grow: 2.5, life: 18, w: 3 });
@@ -3951,16 +4007,20 @@ function startTimer() {
     if (!ON || ON.over) { clearInterval(onTick); onTick = 0; return; }
     if (ON.busy || ON.pick !== null) return;
     const left = Math.ceil((ON.deadline - Date.now()) / 1000);
-    $("rep-hint").textContent = left > 0 ? `あと${left}秒で手を選んでください（時間切れはランダム）` : "";
+    const forced = ON.F && ON.F[ON.side].forceG;
+    $("rep-hint").textContent = left > 0 ? (forced ? `包みの掌：グーしか出せない（あと${left}秒）` : `あと${left}秒で手を選んでください（時間切れはランダム）`) : "";
     if (left <= 0) onlinePick(Math.floor(Math.random() * 3));
   }, 250);
 }
 
 // 対戦の1ラウンド。両方の画面が同じ手と同じ乱数から同じ結果を計算する
 const fCB = f => 1 + mz(f.M, "charBoost");
-const fAtkOf = f => f.atk * (1 + (f.ch === 7 ? Math.min(fCB(f), 0.2 * fCB(f) * f.losses) : 0))
+// ガロウの逆境／ホムラの傷の炎（ホムラはシズクに封じられると無し）
+const fFury = f => (f.ch === 7 ? Math.min(fCB(f), 0.2 * fCB(f) * f.losses) : f.ab === SCAR_CH ? scarBonus(f.taken, f.max, fCB(f)) : 0);
+const fAtkOf = f => f.atk * (1 + fFury(f))
   * Math.max(0.2, 1 + mz(f.M, "atk") + (f.streak >= 2 ? mz(f.M, "streak2Atk") : 0) + (f.hp <= f.max / 2 ? mz(f.M, "lowHpAtk") : 0));
-const fDefOf = f => (f.ch === 8 ? Math.min(0.7 * fCB(f), (0.2 + 0.1 * f.streak) * fCB(f)) : 0);
+// イワオ：いつでも−20%＋連勝ごとに10%。シズクに封じられると、いつでもの−20%だけが消える
+const fDefOf = f => (f.ch === 8 ? Math.min(0.7 * fCB(f), ((f.ab === 8 ? 0.2 : 0) + 0.1 * f.streak) * fCB(f)) : 0);
 function pvpResolve(F, hA, hB, mySide, rng) {
   const res = outcome(hA, hB), H = { A: hA, B: hB };
   const out = { res, pre: [], imp: [], after: [], lines: [] };
@@ -3983,7 +4043,8 @@ function pvpResolve(F, hA, hB, mySide, rng) {
   // isLoss=false はじゃんけんの負け以外（チャージ解放・あいこの一撃など）。ゴンはそれでは体力1より下がらない。実際に減った量を返す
   const finishHit = (s, dmg, canGuts, isLoss = true) => {
     const f = F[s], before = f.hp;
-    let nh = isLoss ? r2(f.hp - dmg) : gonFloor(f.ch, f.hp, dmg);
+    let nh = isLoss ? r2(f.hp - dmg) : gonFloor(f.ab, f.hp, dmg);
+    f.taken = r2(f.taken + (before - Math.max(0, nh))); // ホムラ用：受けたダメージの合計
     if (nh <= 0 && canGuts && f.ch === 4 && !f.guts) { f.guts = true; nh = Math.min(f.hp, 1); add(out.after, s, { k: "guts" }, true); out.lines.push(`<span class="p">${who(s)}は不屈で踏みとどまった！</span>`); }
     if (nh <= 0 && mz(f.M, "judgeOn") && !f.judged) { f.judged = true; nh = r2(Math.min(f.max, 1 + f.max * mz(f.M, "judgement") * (1 + mz(f.M, "heal")))); add(out.after, s, { k: "judge" }, true); out.lines.push(`<span class="p">${who(s)}は審判でHP${fmt(nh)}から立ち上がった！</span>`); }
     f.hp = r2(Math.max(0, nh));
@@ -3992,11 +4053,14 @@ function pvpResolve(F, hA, hB, mySide, rng) {
   // じゃんけんの負け以外で受けるダメージ（反撃・反射）。ゴンは体力1より下がらず、受けなかったら「不屈の体」
   const minorHit = (s, dmg) => {
     const f = F[s], before = f.hp;
-    f.hp = gonFloor(f.ch, f.hp, dmg);
+    f.hp = gonFloor(f.ab, f.hp, dmg);
     const real = r2(before - f.hp);
-    if (f.ch === 4 && real < dmg) add(out.after, s, { k: "block", text: "不屈の体" });
+    f.taken = r2(f.taken + real);
+    if (f.ab === 4 && real < dmg) add(out.after, s, { k: "block", text: "不屈の体" });
     return real;
   };
+  // ツツミのグー強制は1ラウンドだけ（このラウンドが強制だったかを覚えて、続けて強制しない）
+  for (const s of ["A", "B"]) { F[s].forcedNow = !!F[s].forceG; F[s].forceG = false; }
   // 愚者：ラウンドのはじめに判定
   for (const s of ["A", "B"]) {
     const f = F[s];
@@ -4019,7 +4083,7 @@ function pvpResolve(F, hA, hB, mySide, rng) {
       if (mz(f.M, "drawHit") <= 0 || o.hp <= 0 || f.hp <= 0) continue;
       const { dmg: d0 } = hurt(oth(s), fAtkOf(f) * mz(f.M, "drawHit"), "abil");
       const d = finishHit(oth(s), d0, false, false);
-      if (d < d0 && o.ch === 4) add(out.after, oth(s), { k: "block", text: "不屈の体" });
+      if (d < d0 && o.ab === 4) add(out.after, oth(s), { k: "block", text: "不屈の体" });
       add(out.after, oth(s), { k: "hurtP", amt: d, small: true, label: "あいこの一撃" });
       out.lines.push(`<span class="p">${who(s)}のあいこの一撃：${fmt(d)}ダメージ</span>`);
     }
@@ -4029,7 +4093,7 @@ function pvpResolve(F, hA, hB, mySide, rng) {
       f.charge = false;
       const { dmg: d0 } = hurt(oth(s), fAtkOf(f) * 0.5 * fCB(f) * (1 - fDefOf(o)), "abil");
       const d = finishHit(oth(s), d0, false, false);
-      if (d < d0 && o.ch === 4) add(out.after, oth(s), { k: "block", text: "不屈の体" });
+      if (d < d0 && o.ab === 4) add(out.after, oth(s), { k: "block", text: "不屈の体" });
       add(out.after, oth(s), { k: "hurtP", amt: d, small: true, label: "チャージ" });
       out.lines.push(`<span class="p">${who(s)}のチャージ解放：${fmt(d)}ダメージ</span>`);
       if (o.ch === 9 && d > 0) { const cd = minorHit(s, r2(o.atk * KAGE_RATE)); add(out.after, oth(s), { k: "counter", amt: cd }); }
@@ -4040,24 +4104,28 @@ function pvpResolve(F, hA, hB, mySide, rng) {
     fw.streak++; fl.streak = 0;
     if (fl.ch === 7) { fl.losses++; if (fl.losses <= 5) add(out.after, L, { k: "fury", v: Math.min(fCB(fl), 0.2 * fCB(fl) * fl.losses) }); }
     if (fl.charge) { fl.charge = false; add(out.after, L, { k: "fizzle" }); }
-    const N = fw.streak - 1, mult = 1 + N * ((fw.ch === 5 ? 0.5 * fCB(fw) : 0.1) + mz(M, "streakAdd"));
+    const N = fw.streak - 1, mult = 1 + N * ((fw.ab === 5 ? 0.5 * fCB(fw) : 0.1) + mz(M, "streakAdd"));
     const bonus = 1 + mz(M, "winMul") + mz(M, "hand" + "GCP"[hw]) + (fw.afterDraw ? mz(M, "afterDrawWin") : 0) + (N >= 2 ? mz(M, "critAtk") : 0) + (fw.streak >= 2 ? mz(M, "worldDmg") : 0)
       + (fw.revenge ? mz(M, "revenge") : 0);
     fw.revenge = false; fl.revenge = true;
     const charged = fw.charge; if (charged) fw.charge = false;
     const foolWin = fw.foolWin; fw.foolWin = false;
-    let raw = fAtkOf(fw) * mult * (charged ? 3 + mz(M, "charBoost") : 1) * bonus * (foolWin ? 1.3 : 1) + mz(M, "towerAtk") * fw.atk;
-    const tag = (N > 0 ? `（${fw.streak}連勝 ×${fmt(mult)}）` : "") + (charged ? "（チャージ）" : "") + (bonus > 1.001 ? `（カード ×${fmt(bonus)}）` : "");
-    if (fl.inv) {
+    // マサ：グーで負けたときは、相手の攻撃力アップ（連勝・チャージ・カード・逆境など）を受けず基礎攻撃力だけ
+    const steady = fl.ch === STEADY_CH && hl === G_;
+    let raw = steady ? fw.atk : fAtkOf(fw) * mult * (charged ? 3 + mz(M, "charBoost") : 1) * bonus * (foolWin ? 1.3 : 1) + mz(M, "towerAtk") * fw.atk;
+    // ウガチ：チョキで勝つと、守り（無敵・岩の守り・カードの軽減）も反射（返しの刃・カードの反射）も無視
+    const pierce = fw.ch === PIERCE_CH && hw === C_;
+    const tag = steady ? "（不動：強化を受けない）" : (N > 0 ? `（${fw.streak}連勝 ×${fmt(mult)}）` : "") + (charged ? "（チャージ）" : "") + (bonus > 1.001 ? `（カード ×${fmt(bonus)}）` : "") + (pierce ? "（穿ち：守り無視）" : "");
+    if (fl.inv && !pierce) {
       fl.inv = false; add(out.imp, L, { k: "block" });
       out.lines.push(`<span class="p">ラウンド${ON.r} ${who(W)}の${HN[hw]}が勝ち…でも${who(L)}は無敵で0ダメージ</span>`);
     } else {
-      const { dmg, soft } = hurt(L, raw * (1 - def), "lose");
+      const { dmg, soft } = pierce ? { dmg: r2(raw), soft: false } : hurt(L, raw * (1 - def), "lose");
       finishHit(L, dmg, hl === G_);
-      add(out.imp, L, { k: "hurtP", amt: dmg, crit: charged || foolWin || N >= 2, def: def > 0 || soft }, true);
+      add(out.imp, L, { k: "hurtP", amt: dmg, crit: charged || foolWin || N >= 2 || pierce, def: !pierce && (def > 0 || soft) }, true);
       out.lines.push(`<span class="${W === mySide ? "g" : "r"}">ラウンド${ON.r} ${who(W)}の${HN[hw]}が勝ち！ ${who(L)}に${fmt(dmg)}ダメージ${tag}</span>`);
-      if (fl.ch === 9 && dmg > 0) { const cd = minorHit(W, r2(fl.atk * KAGE_RATE)); add(out.after, L, { k: "counter", amt: cd }); out.lines.push(`<span class="p">${who(L)}の返しの刃：${fmt(cd)}反撃</span>`); }
-      if (mz(fl.M, "reflect") > 0 && dmg > 0) { const rd = minorHit(W, r2(dmg * mz(fl.M, "reflect"))); add(out.after, L, { k: "counter", amt: rd }); out.lines.push(`<span class="p">${who(L)}のカードが${fmt(rd)}ダメージを返した</span>`); }
+      if (!pierce && fl.ch === 9 && dmg > 0) { const cd = minorHit(W, r2(fl.atk * KAGE_RATE)); add(out.after, L, { k: "counter", amt: cd }); out.lines.push(`<span class="p">${who(L)}の返しの刃：${fmt(cd)}反撃</span>`); }
+      if (!pierce && mz(fl.M, "reflect") > 0 && dmg > 0) { const rd = minorHit(W, r2(dmg * mz(fl.M, "reflect"))); add(out.after, L, { k: "counter", amt: rd }); out.lines.push(`<span class="p">${who(L)}のカードが${fmt(rd)}ダメージを返した</span>`); }
       if (fl.hp > 0 && mz(fl.M, "loseHeal") > 0) healS(L, mz(fl.M, "loseHeal"));
     }
     if (fw.streak >= 2) add(out.after, W, { k: "streak", n: fw.streak });
@@ -4065,6 +4133,7 @@ function pvpResolve(F, hA, hB, mySide, rng) {
     if (fw.ch === 2 && hw === C_) { fw.charge = true; add(out.after, W, { k: "charge" }); }
     if (fw.ch === 3 && hw === P_) { const heal = r2(Math.min(fw.max - fw.hp, fAtkOf(fl) * HARU_RATE * fCB(fw) * (1 + mz(M, "heal")))); if (heal > 0 && fw.hp > 0) { fw.hp = r2(fw.hp + heal); add(out.after, W, { k: "heal", amt: heal }); } }
     if (fw.ch === 8) add(out.after, W, { k: "def", v: fDefOf(fw) });
+    if (fw.ch === FORCE_CH && hw === P_ && !fl.forcedNow && fl.hp > 0) { fl.forceG = true; add(out.after, L, { k: "forceG" }); out.lines.push(`<span class="p">${who(W)}の包みの掌：${who(L)}は次のラウンド、グーしか出せない</span>`); }
     const hp = (fw.streak >= 2 ? mz(M, "streakHeal") + mz(M, "worldHeal") : 0) + mz(M, "winHeal");
     if (hp > 0) healS(W, hp);
     fw.afterDraw = false; fl.afterDraw = false;
@@ -4077,6 +4146,9 @@ function pvpResolve(F, hA, hB, mySide, rng) {
 async function runRound(myH, oppH, oppSalt) {
   const on = ON, my = ON.side;
   ON.busy = true; renderOnline();
+  // ツツミに強制された側はグー（両方の画面で同じように置きかえる）
+  if (ON.F[my].forceG) myH = G_;
+  if (ON.F[oth(my)].forceG) oppH = G_;
   const hA = my === "A" ? myH : oppH, hB = my === "A" ? oppH : myH;
   const sA = my === "A" ? ON.salt : oppSalt, sB = my === "A" ? oppSalt : ON.salt;
   const out = pvpResolve(ON.F, hA, hB, my, seededRng(`${ON.g}|${ON.r}|${sA}|${sB}`));
@@ -4176,6 +4248,9 @@ function oppLeft() {
 
 function fighterChips(f) {
   let s = chip(`${f.streak}連勝`, "c-streak", f.streak > 0);
+  if (!f.ab) s += chip(`${{ 4: "不屈の体", 5: "連撃", 8: "常時−20%", 13: "傷の炎" }[f.ch]} 封印中`, "c-read");
+  if (f.forceG) s += chip("次はグーだけ", "c-read");
+  if (f.ab === SCAR_CH) { const v = fFury(f); s += chip(`傷の炎 +${Math.round(v * 100)}%`, "c-rage", v > 0); }
   if (f.ch === 1) s += chip("無敵", "c-inv", f.inv);
   if (f.ch === 2) s += chip("チャージ", "c-charge", f.charge);
   if (f.ch === 4) s += chip(f.guts ? "不屈（使用済）" : "不屈（残1）", "c-guts", !f.guts);
@@ -4218,10 +4293,10 @@ function renderOnline() {
   if (!EA[0] || !st.contains(EA[0])) { EA[0] = makeActor("e", { ...co, face: true, uid: "opp" }, 0); EA[0].style.visibility = "visible"; st.appendChild(EA[0]); }
   for (const [a, f] of [[PA, me], [EA[0], op]]) {
     a.classList.toggle("inv", f.inv); a.classList.toggle("charged", f.charge);
-    a.classList.toggle("hard", fDefOf(f) > 0); a.classList.toggle("fury", f.ch === 7 && f.losses > 0);
+    a.classList.toggle("hard", fDefOf(f) > 0); a.classList.toggle("fury", fFury(f) > 0);
   }
 
-  const boostHand = { 1: G_, 2: C_, 3: P_, 4: G_ }[cm.id];
+  const boostHand = { 1: G_, 2: C_, 3: P_, 4: G_, 11: P_, 12: C_, 14: G_ }[cm.id];
   for (let i = 0; i < 3; i++) {
     const btn = $("h" + i);
     btn.classList.toggle("boost", boostHand === i);
@@ -4229,10 +4304,13 @@ function renderOnline() {
   }
   if (ON.pick !== null && !ON.busy && !ON.over) $("rep-hint").textContent = `${HN[ON.pick]}を出しました。相手を待っています…`;
   else if (ON.busy || ON.over) $("rep-hint").textContent = "";
+  else if (me.forceG) $("rep-hint").textContent = "包みの掌：このラウンドはグーしか出せない";
+  else if (op.forceG) $("rep-hint").textContent = "包みの掌：相手はこのラウンド、グーしか出せない";
 
   const n = ON.newLog || 0; ON.newLog = 0;
   $("log").innerHTML = ON.log.map((l, i) => `<p class="${i < n ? "new" : ""}">${l}</p>`).join("");
   setHandsDisabled(ON.busy || ON.over || ON.pick !== null);
+  if (me.forceG && !ON.busy && !ON.over && ON.pick === null) { $("h1").disabled = true; $("h2").disabled = true; } // グーだけ押せる
   $("b-quit").disabled = false;
 }
 
@@ -4269,7 +4347,7 @@ function closeInfo() { $("info").hidden = true; }
 $("info-close").onclick = closeInfo;
 $("info").addEventListener("click", ev => { if (ev.target === $("info")) closeInfo(); });
 
-const abilHTML = abil => abil.map(a => ABIL[a]).join("<br>");
+const abilHTML = abil => abil.map(abilText).join("<br>");
 function enemyPrevHTML(t, extra = "") {
   return `<div class="eprev${t.boss ? " boss" : ""}"><span class="ic">${enemyFace(t.tk)}</span><div style="min-width:0">
     <div class="nm"><span>${t.name}</span>${t.boss ? `<span class="bosstag">BOSS</span>` : ""}<span class="sub">${extra}</span></div>
@@ -4305,7 +4383,7 @@ $("b-info").onclick = openBattleInfo;
 // ステージ選択：出撃前に敵の並びとボスの特性を見る
 function openStagePreview(w, i) {
   const W = WORLDS[w - 1], list = W.stages[i], ps = pStats(w), boss = isBossStage(w, i);
-  let h = `<p class="sub">敵は${list.length}体。1体倒すと次の敵があらわれ、こちらは最大体力の半分を回復する。${MODE_LABEL[W.mode] ? `このワールドは「${MODE_LABEL[W.mode]}」。` : ""}自分は HP${ps.max}・ATK${fmt(ps.atk)}（カード補正の前）。</p>`;
+  let h = `<p class="sub">敵は${list.length}体。1体倒すと次の敵があらわれ、こちらは最大体力の半分を回復する。${MODE_LABEL[W.mode] ? `このワールドは「${MODE_LABEL[W.mode]}」。` : ""}自分は HP${S.charId === SEAL_CH ? half(ps.max * SEAL_RATE) : ps.max}・ATK${fmt(ps.atk * (S.charId === SEAL_CH ? SEAL_RATE : 1))}（カード補正の前）。</p>`;
   const bosses = list.filter(([t]) => TPL[t].boss);
   if (bosses.length) h += `<div class="info-sec"><h3>ボスの特性</h3>${bosses.map(([t, hits, atk]) => enemyPrevHTML(TPL[t], `HP ${half(hits * ps.atk)}・ATK ${fmt(atk ?? W.atk)}`)).join("")}</div>`;
   h += `<div class="info-sec"><h3>出てくる順番</h3>${list.map(([t, hits, atk], n) => enemyPrevHTML(TPL[t], `${n + 1}体目・HP ${half(hits * ps.atk)}・ATK ${fmt(atk ?? W.atk)}`)).join("")}</div>`;
@@ -4327,6 +4405,11 @@ const HOME_LINES = {
   7: ["負けるほど燃えてくる…", "逆境こそ俺の舞台だ", "まだだ、まだ牙は折れてない"],
   8: ["連勝の守りは岩より固い", "焦らずいこう", "守りを固めてから攻めるのさ"],
   9: ["打たれたら、打ち返す", "一撃もらえば、必ず一太刀返す", "影は、いつも背後にいる"],
+  10: ["その力、札で封じます", "ずるい技は、なしですよ", "力は少し落ちるけど、そのぶん公平に"],
+  11: ["パーで包んで、グーしか出させない", "次の手、もう決まってるよね？", "ふんわり包んで、きっちり勝つ"],
+  12: ["チョキで穿てば、盾も意味がない", "守りなんて、まとめて貫く", "トゲも反撃も、届かせない"],
+  13: ["傷が増えるほど、燃えてくる", "痛みは全部、力に変える", "まだまだ、もっと打ってこい"],
+  14: ["グーで構えれば、勢いには流されない", "どんな強化も、この拳には効かん", "動かざること、山のごとし"],
 };
 let homeTimer = 0;
 // voiced=true のときはボイス（voice/v{キャラ}_home{番号}.wav）も鳴らす
@@ -4462,7 +4545,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
     await preload();
     $b("boot-msg").textContent = ""; $b("boot-bar").hidden = true;
     const btn = $b("boot-start"); btn.hidden = false; btn.focus({ preventScroll: true });
-    btn.onclick = () => { $b("boot").classList.add("out"); window.JQ_BOOT?.begin(); setTimeout(() => $b("boot").remove(), 400); };
+    btn.onclick = () => { $b("boot").classList.add("out"); window.JQ_BOOT?.begin(); setTimeout(() => $b("boot")?.remove(), 400); };
   }
   boot();
   // ホーム画面に追加したアプリは、閉じても裏で止まっているだけで、開くと前の状態から再開する（更新が入らない）。
