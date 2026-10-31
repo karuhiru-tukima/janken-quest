@@ -61,6 +61,8 @@
 body { margin: 0; }
 img { max-width: 100%; }
 html, body { height: 100%; }
+/* スマホ：ボタンを素早く2回押しても画面が拡大・縮小しないように（指2本での拡大はそのまま使える） */
+html, body, * { touch-action: manipulation; }
 body {
   background: var(--night);
   background-image: radial-gradient(circle at 20% -10%, #2a2f5e 0, transparent 55%), radial-gradient(circle at 110% 30%, #3a2245 0, transparent 45%);
