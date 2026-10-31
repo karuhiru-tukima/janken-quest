@@ -218,6 +218,40 @@ const ALLY = {
     hair: p => { const H = "#2f6a6e"; p.ell(20, 13.5, 11.8, 11, H, (v, x, y) => y < 13.3 || x < 10.6 || x > 29.4); p.rect(8.5, 8.5, 23, 2, "#7fd6d6"); p.rect(17, 8.5, 6, 2, "#c8ccd8"); p.stroke([[13, 4], [11, 9]], "#3e8488", H, 2); },
     front: p => { p.ell(20, 20, 10.4, 5.5, "#2f6a6e", (v, x, y) => y >= 18.6); p.stroke([[13, 21], [27, 21]], "#24575a", "#2f6a6e"); },
     mouth: () => {} },
+  10: { /* シズク：封じの札を持つ巫女 */ hairColor: "#2a2440", cloth: "#f4f2ee", pants: "#c8303a", sleeve: "#e6e2dc", shoes: "#3a2a2a", trim: "#c8303a",
+    face: { brow: "normal", eye: "#7a4ab0", shape: "tare" },
+    back: p => { const H = "#2a2440"; p.rect(9, 10, 22, 22, H); p.rect(17.5, 30, 5, 1.6, "#f4f2ee");
+      p.rect(31, 18, 4, 7, "#f4ecc8"); p.line(32, 20, 34, 20, "#c8303a"); p.line(33, 21.5, 33, 24, "#c8303a"); },
+    body: p => { p.tri(16, 23, 24, 23, 20, 28, "#c8303a"); p.tri(17, 23, 23, 23, 20, 26.5, "#f4f2ee"); p.rect(14, 31, 12, 2, "#c8303a"); p.stroke([[17, 34], [16.5, 41]], "#9a2028", "#c8303a"); },
+    hair: p => { const H = "#2a2440"; capH(p, H); bangs(p, H, [[10, 16, 12, 14], [15, 21, 18, 13.5], [20, 26, 23, 14], [25, 30, 28.5, 13]]);
+      p.rect(9, 10, 2.4, 14, H); p.rect(28.6, 10, 2.4, 14, H); p.rect(27, 6.5, 4, 2, "#c8303a"); p.rect(28, 8.5, 2, 1.5, "#f4f2ee"); },
+    mouth: p => p.hrect(38, 42, 4, 1, OUT) },
+  11: { /* ツツミ：大きな布で包む子 */ hairColor: "#f6a8c8", cloth: "#fff0f6", pants: "#e88ab0", sleeve: "#f6dde8", shoes: "#c86a90", trim: "#f6b8d8",
+    face: { brow: "kind", eye: "#d0508a", shape: "big" },
+    back: p => { p.ell(20, 33, 13, 9, "#f6b8d8"); p.ell(20, 33, 11, 7, "#ffd8ea"); },
+    body: p => { p.rect(14, 23, 12, 3, "#f6b8d8"); p.ell(20, 24.5, 2.2, 1.6, "#e88ab0"); p.stroke([[17, 28], [17, 33]], "#e8c0d4", "#fff0f6"); },
+    hair: p => { const H = "#f6a8c8"; capH(p, H); bangs(p, H, [[10, 16, 12, 14], [15, 22, 18, 13.5], [21, 30, 27, 14]]);
+      p.ell(9.5, 13, 3, 4.5, H); p.ell(30.5, 13, 3, 4.5, H); p.ell(29, 5.5, 2.4, 1.8, "#ffffff"); p.ell(31.5, 5.5, 2.4, 1.8, "#ffffff"); } },
+  12: { /* ウガチ：錐のような細い刃 */ hairColor: "#e8d860", cloth: "#3a3a5a", pants: "#2a2a40", belt: "#e8d860", shoes: "#2a2a3a", trim: "#e8d860",
+    face: { brow: "sharp", eye: "#e0b020", shape: "cat" },
+    back: p => { p.line(9, 30, 3, 10, "#e0e4f0"); p.tri(1.8, 10.5, 4.2, 10.5, 3, 5.5, "#ffffff"); p.rect(7.5, 29, 3, 2, "#e8d860"); },
+    body: p => { p.tri(14, 23, 26, 23, 20, 30, "#4a4a72"); p.stroke([[20, 24], [20, 33]], "#e8d860", "#3a3a5a"); },
+    hair: p => { const H = "#e8d860"; capH(p, H); for (let i = 0; i < 5; i++) p.tri(10 + i * 4.4, 8, 14 + i * 4.4, 8, 12 + i * 4.4 + 2, 0.5 + (i % 2) * 2, H);
+      bangs(p, H, [[11, 17, 13, 14.5], [17, 24, 21, 13.5], [24, 30, 28, 14.5]]); },
+    mouth: p => p.hrect(37, 42, 6, 1, OUT) },
+  13: { /* ホムラ：包帯と炎 */ hairColor: "#ff6a3a", cloth: "#3a2420", pants: "#5a3020", belt: "#ff9a4a", shoes: "#2a1a18", handSkin: "#f4ecdc",
+    face: { brow: "angry", eye: "#ff8a2a", shape: "fierce" }, tips: [12, 16, 20, 24, 28],
+    back: p => { p.tri(10, 30, 4, 24, 6, 36, "#ff9a4a"); p.tri(30, 30, 36, 24, 34, 36, "#ff9a4a"); },
+    body: p => { p.rect(14, 26, 12, 1.5, "#f4ecdc"); p.rect(14, 29, 12, 1.5, "#f4ecdc"); p.stroke([[16, 24], [24, 33]], "#2a1a18", "#3a2420"); },
+    hair: p => { const H = "#ff6a3a"; capH(p, H); for (let i = 0; i < 6; i++) p.tri(8.5 + i * 4, 8, 13 + i * 4, 8, 10 + i * 4 + (i < 3 ? -1.5 : 2), -0.5 + (i % 2) * 2.5, i % 2 ? "#ffb03a" : H);
+      bangs(p, H, [[11, 16, 12, 14], [16, 22, 19, 13.5], [22, 29, 27, 14]]); p.rect(9, 9.5, 22, 1.8, "#f4ecdc"); },
+    front: p => { p.line(23, 18.5, 26, 21.5, "#f4ecdc", 1); },
+    mouth: p => { p.hrect(37, 42, 6, 1, OUT); p.dot(41, 43, "#ffffff"); } },
+  14: { /* マサ：どっしり構える大男（籠手） */ wide: true, hairColor: "#2a3a4a", cloth: "#4a6a8a", pants: "#2a3a4a", belt: "#c8a050", shoes: "#2a2a30", handSkin: "#8a9ab0", trim: "#c8a050",
+    face: { brow: "thick", eye: "#3a5a7a", shape: "square" }, tips: [14, 18, 22, 26],
+    body: p => { p.rect(15, 23, 10, 2.5, "#8ab4d8"); p.stroke([[20, 25], [20, 33]], "#3a5a7a", "#4a6a8a"); p.ell(13.5, 25, 3.4, 2.4, "#8a9ab0"); p.ell(26.5, 25, 3.4, 2.4, "#8a9ab0"); },
+    hair: p => { const H = "#2a3a4a"; capH(p, H, 10.5, 7); p.rect(9.3, 9, 1.8, 4, H); p.rect(28.9, 9, 1.8, 4, H); p.ell(20, 2.5, 3, 2.5, H); p.rect(18.5, 4.5, 3, 1.2, "#c8a050"); },
+    mouth: p => p.hrect(37, 42, 6, 1, OUT) },
 };
 
 /* ---------- 敵：動物・妖怪の頭＋共通の体 ---------- */
