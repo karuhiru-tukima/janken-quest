@@ -496,6 +496,20 @@ details.rules ul { margin: 8px 0 2px; padding-left: 1.2em; color: var(--dim); fo
   display: flex; flex-direction: column; gap: 8px; animation: popUp .18s ease-out;
 }
 @keyframes popUp { from { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(.96); } }
+/* スマホ：上の帯の中の小さなボタン（能力を見る・にげると同じ大きさ）。一覧は右上から下に開く */
+.stampbar.in-top { display: flex; position: static; }
+.bar-top:has(.stampbar.in-top) { position: relative; } /* 一覧は上の帯の幅いっぱいに、帯のすぐ下に開く（画面からはみ出さない） */
+/* 上の「能力を見る・にげる」と同じ見た目（.btn と同じ板・縁・影・字体）。開いている間だけ金色 */
+.stampbar.in-top .stamp-toggle { width: auto; gap: 6px; padding: 10px 14px; font-family: var(--f-display); font-weight: 400; font-size: 14px; line-height: inherit; color: var(--ink);
+  border: 3px solid var(--line); border-radius: 4px; background: var(--bevel), var(--panel-2);
+  box-shadow: inset 0 0 0 1px #ffffff1f, var(--hard); text-shadow: 2px 2px 0 #0007; }
+.stampbar.in-top .stamp-toggle:hover { transform: none; filter: brightness(1.15); }
+.stampbar.in-top .stamp-toggle:active { transform: translateY(3px); box-shadow: inset 0 0 0 1px #ffffff1f, 0 1px 0 var(--line); }
+.stampbar.in-top .stamp-toggle[aria-expanded="true"] { background: var(--bevel), linear-gradient(#ffd77a, #f5b942 55%, #d68c2a); color: var(--line); text-shadow: none; }
+.stampbar.in-top .stamp-toggle.sent { background: var(--bevel), var(--panel-2); border-color: var(--line); color: var(--matcha); }
+.stampbar.in-top .stamp-toggle .st-ico .pxi { width: 18px; height: 18px; }
+.stampbar.in-top .stamp-pop { left: 0; right: 0; transform: none; top: calc(100% + 8px); width: auto; max-width: 420px; margin-inline: auto; animation: popDown .18s ease-out; }
+@keyframes popDown { from { opacity: 0; transform: translateY(-8px) scale(.97); } }
 .sp-head { display: flex; justify-content: space-between; align-items: center; font-size: 1rem; }
 .sp-close { border: 0; background: none; color: var(--dim); font-size: 1.4rem; line-height: 1; padding: 0 4px; }
 .sp-note { font-size: .74rem; color: var(--dim); }
@@ -3709,11 +3723,23 @@ const STAMPS = {
   hello: { ico: "wave", text: "よろしく！" }, thanks: { ico: "bow", text: "ありがとうございました！" },
   nextG: { ico: 0, text: "次はグーを出す！" }, nextC: { ico: 1, text: "次はチョキを出す！" }, nextP: { ico: 2, text: "次はパーを出す！" },
 };
+// スマホ（PC幅より狭い）では、スタンプのボタンを上の帯（能力を見る・にげるの並び）へ移して短い文字にする。PCは手のボタンの横のまま
+const stampMQ = matchMedia("(max-width: 1079px)");
+const stampCompact = () => stampMQ.matches;
+function placeStampBar() {
+  const bar = $("stampbar"), top = document.querySelector("#scr-battle .bar-top .row");
+  if (stampCompact()) { if (top && bar.parentElement !== top) top.prepend(bar); }
+  else if (bar.parentElement !== $("rep-hint").parentElement) $("rep-hint").before(bar);
+  bar.classList.toggle("in-top", stampCompact());
+  setStampCooldown($("stamp-toggle").classList.contains("sent"));
+}
+stampMQ.addEventListener("change", placeStampBar);
+placeStampBar();
 function setStampCooldown(on) {
   document.querySelectorAll(".stamp").forEach(b => { b.disabled = on; });
   $("sp-cool").hidden = !on;
   $("stamp-toggle").classList.toggle("sent", on);
-  $("stamp-toggle-txt").textContent = on ? "送りました ✓" : "スタンプを送る";
+  $("stamp-toggle-txt").textContent = stampCompact() ? (on ? "送った ✓" : "スタンプ") : (on ? "送りました ✓" : "スタンプを送る");
 }
 function sendStamp(k) {
   if (!ON || !NET.named || !STAMPS[k] || ON.oppGone || ON.over) return; // 送れるのはバトル中だけ
