@@ -524,6 +524,11 @@ details.rules ul { margin: 8px 0 2px; padding-left: 1.2em; color: var(--dim); fo
 .stampbar.in-top .stamp-toggle.sent { background: var(--bevel), var(--panel-2); border-color: var(--line); color: var(--matcha); }
 .stampbar.in-top .stamp-toggle .st-ico .pxi { width: 18px; height: 18px; }
 .stampbar.in-top .stamp-pop { left: 0; right: 0; transform: none; top: calc(100% + 8px); width: auto; max-width: 420px; margin-inline: auto; animation: popDown .18s ease-out; }
+/* PC：一覧はボタンのすぐ下に開く（右端に寄せて画面からはみ出さない） */
+@media (min-width: 1080px) {
+  .stampbar.in-top { position: relative; }
+  .stampbar.in-top .stamp-pop { left: auto; right: 0; width: 420px; margin: 0; }
+}
 @keyframes popDown { from { opacity: 0; transform: translateY(-8px) scale(.97); } }
 .sp-head { display: flex; justify-content: space-between; align-items: center; font-size: 1rem; }
 .sp-close { border: 0; background: none; color: var(--dim); font-size: 1.4rem; line-height: 1; padding: 0 4px; }
@@ -653,9 +658,6 @@ s.sealed { opacity: .55; text-decoration-color: #c8a0f0; text-decoration-thickne
 .cmark .cfig.rev .cart { filter: drop-shadow(0 0 3px var(--sakura)); }
 .cmark .revtag, .cmark .cfig::before { display: none; }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; transition: none !important; }
-}
 /* =========================================================
    画面サイズ別のレイアウト
    スマホ（〜599px）：1列で縦に積む。ボタン大きめ、余白少なめ
@@ -1525,14 +1527,22 @@ const IMGS = new Set();
 const ANIMS = {}, ANIMW = {};
 // コマの時間：「演出：速い」では短くするが、動きを減らす設定で速くなってしまわないよう reduce は使わない
 const FT = ms => ms * (FAST ? 0.55 : 1);
+// コマの画像は先に読み込んでおき、読み込み終わってから切りかえる（読み込み中に一瞬キャラが消えないように）
+const FRIMG = {};
+const frameUrl = (a, name) => `${a._base}/${name}.png?v=${window.JQ_VER}`;
+function frameImg(url) { let im = FRIMG[url]; if (!im) { im = FRIMG[url] = new Image(); im.src = url; } return im; }
 function playFrames(a, name, o = {}) {
   if (!a || !a._fr) return;
   const n = a._set[name];
   if (!n) { if (name !== "idle") idle(a); return; }
   clearTimeout(a._ft); a._cur = name;
+  const url = frameUrl(a, name), im = frameImg(url), tok = a._ftok = {};
+  if (!im.complete) { im.addEventListener("load", () => { if (a._ftok === tok) playFrames(a, name, o); }, { once: true }); return; } // 今のコマを出したまま待つ
+  if (!im.naturalWidth) { if (name !== "idle") idle(a); return; } // 読めなかったら待機のまま
   const fr = a._fr, fps = o.fps || 5;
   fr.style.width = (a._w[name] || 128) + "px";
-  fr.style.backgroundImage = `url("${a._base}/${name}.png?v=${window.JQ_VER}")`; fr.style.backgroundSize = `${n * 100}% 100%`;
+  fr.style.backgroundImage = `url("${url}")`; fr.style.backgroundSize = `${n * 100}% 100%`;
+  a.classList.add("framed");
   let i = 0;
   const step = () => {
     fr.style.backgroundPosition = n > 1 ? `${i / (n - 1) * 100}% 0` : "0 0";
@@ -1545,9 +1555,10 @@ function playFrames(a, name, o = {}) {
 const idle = a => playFrames(a, "idle", { loop: true, fps: 1.5 }); // 待機はゆっくり（1コマ約0.67秒）
 function setupFrames(a, set, base, widths) {
   if (a._fr) return;
-  a.classList.add("framed"); a._set = set; a._base = base; a._w = widths || {};
+  a._set = set; a._base = base; a._w = widths || {}; // "framed"（立ち絵を隠す）は最初のコマが出せたときに付ける
   a._fr = document.createElement("div"); a._fr.className = "sprf";
   a.querySelector(".spr").after(a._fr);
+  Object.keys(set).forEach(name => frameImg(frameUrl(a, name))); // このキャラの動きを全部先に読み込む
   idle(a);
 }
 const hasImg = p => IMGS.has(p);
@@ -1592,12 +1603,14 @@ const outcome = (p, e) => [ "draw", "lose", "win" ][(p - e + 3) % 3];
 const r2 = x => Math.round(x * 100) / 100;
 const fmt = x => String(Math.round(x * 10) / 10);
 const half = x => Math.max(0.5, Math.round(x * 2) / 2);
-const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+// OSの「アニメーションを減らす」設定はゲームの演出には使わない（Windowsで効果をオフにしているPCだけ、演出が消えて極端に速くなっていた）
+const reduce = false;
 const $ = id => document.getElementById(id);
 
 const prefs = (() => { try { return JSON.parse(localStorage.getItem("jq-sound") || "{}"); } catch { return {}; } })();
 let FAST = !!prefs.fast;
-const T = ms => ms * (FAST ? 0.55 : 1) * (reduce ? 0.15 : 1);
+// 演出の時間。「演出：速い」だけで短くする（OSの「アニメーションを減らす」設定ではテンポを変えない。PCで極端に速くなっていたため）
+const T = ms => ms * (FAST ? 0.55 : 1);
 const wait = ms => new Promise(r => setTimeout(r, T(ms)));
 const play_ = (el, frames, ms, easing = "ease-out", fill = "none") => el.animate(frames, { duration: Math.max(1, T(ms)), easing, fill });
 // 見えていないタブではアニメーションが止まるので、長さ＋少しで必ず先へ進む
@@ -1671,6 +1684,10 @@ const SFX = {
   streak() { tone({ f: 660, f2: 1320, d: 0.15, v: 0.08 }); },
   warning() { for (let i = 0; i < 4; i++) tone({ f: i % 2 ? 466 : 349, d: 0.22, type: "sawtooth", v: 0.16, t: i * 0.26 }); },
   start() { seq([[72, 0, .08], [79, .09, .08], [84, .18, .18]], "square", 0.13); },
+  // タイトル（起動）のジングル：上がっていく和音＋きらきら
+  title() { seq([[67, 0, .1], [72, .1, .1], [76, .2, .1], [79, .3, .12], [84, .44, .55]], "square", 0.12);
+    seq([[60, .44, .55], [64, .44, .55], [67, .44, .55]], "triangle", 0.1);
+    [96, 100, 103, 108].forEach((m, i) => tone({ f: mf(m), t: 0.62 + i * 0.07, d: 0.12, type: "sine", v: 0.05 })); },
   coin() { seq([[84, 0, .05], [91, .05, .14]], "square", 0.09); },
   unlock() { seq([[72, 0, .06], [76, .06, .06], [79, .12, .06], [84, .18, .06], [88, .24, .2]], "square", 0.12); },
   ko() { noise({ d: 0.7, v: 0.35, lp: 1500 }); tone({ f: 700, f2: 40, d: 0.8, v: 0.2 }); },
@@ -1741,7 +1758,7 @@ function stopVoice() {
   try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch {}
 }
 function playVoice(ch, k, text) {
-  if (!AU.voice) return;
+  if (!AU.voice || !window.JQ_BOOT?.started) return; // タイトル画面（「はじめる」を押す前）では話さない
   stopVoice();
   audioInit();
   if (!AU.ctx) return;
@@ -3863,8 +3880,9 @@ const STAMPS = {
   nextG: { ico: 0, text: "次はグーを出す！" }, nextC: { ico: 1, text: "次はチョキを出す！" }, nextP: { ico: 2, text: "次はパーを出す！" },
 };
 // スマホ（PC幅より狭い）では、スタンプのボタンを上の帯（能力を見る・にげるの並び）へ移して短い文字にする。PCは手のボタンの横のまま
-const stampMQ = matchMedia("(max-width: 1079px)");
-const stampCompact = () => stampMQ.matches;
+// スタンプのボタンは、スマホもPCも上の帯（「能力を見る」などと同じ並び）に置く
+const stampMQ = matchMedia("all");
+const stampCompact = () => true;
 function placeStampBar() {
   const bar = $("stampbar"), top = document.querySelector("#scr-battle .bar-top .row");
   if (stampCompact()) { if (top && bar.parentElement !== top) top.prepend(bar); }
@@ -4514,7 +4532,12 @@ function start(data) {
   EA.forEach(a => a && (a.style.visibility = "visible"));
 }
 // 起動画面（下の別スクリプト）から呼ぶもの：はじめるを押したら音を出せるようにして、今の画面の曲を流す
-window.JQ_BOOT = { started: false, begin() { if (this.started) return; this.started = true; audioInit(); bgm(songFor()); } };
+window.JQ_BOOT = {
+  started: false, titled: false,
+  // タイトルが出たとき：音を出してよい状態ならジングルを鳴らす（スマホなどは画面に触るまで音を出せないので、その場合は「はじめる」で鳴らす）
+  title() { try { audioInit(); if (AU.ctx && AU.ctx.state === "running") { sfx("title"); this.titled = true; } } catch {} },
+  begin() { if (this.started) return; this.started = true; audioInit(); sfx(this.titled ? "start" : "title"); bgm(songFor()); },
+};
 // 起動画面が出なかったとき（古い版が残っている等）でも、最初に画面を触った時点で音を出してBGMを流す
 document.addEventListener("pointerdown", () => window.JQ_BOOT.begin(), { once: true, capture: true });
 window.claude?.hot?.snapshot?.(() => ({ S }));
@@ -4554,6 +4577,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
     await preload();
     $b("boot-msg").textContent = ""; $b("boot-bar").hidden = true;
     const btn = $b("boot-start"); btn.hidden = false; btn.focus({ preventScroll: true });
+    window.JQ_BOOT?.title();
     btn.onclick = () => { $b("boot").classList.add("out"); window.JQ_BOOT?.begin(); setTimeout(() => $b("boot")?.remove(), 400); };
   }
   boot();
