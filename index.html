@@ -4300,8 +4300,10 @@ function renderOnline() {
   while (box.children.length > 1) box.lastChild.remove();
   let el = box.children[0];
   if (!el) { el = document.createElement("div"); box.appendChild(el); }
-  if (el.dataset.uid !== "opp") {
-    el.dataset.uid = "opp"; el.dataset.h = "";
+  // 相手ごとに作り直す（"opp" だけで見ていたので、続けて別の人と戦うと最初の相手の名前・キャラが残っていた）
+  const oppKey = `opp:${ON.opp}:${op.ch}:${ON.oppNick}`;
+  if (el.dataset.uid !== oppKey) {
+    el.dataset.uid = oppKey; el.dataset.h = "";
     el.innerHTML = `<div class="ptop"><span class="nm">${badge(co)}<span>${esc(ON.oppNick)}（${co.name}）</span></span><span class="hpnum"></span></div>
       <div class="hp"><b></b><i></i></div><div class="chips"></div><div class="trait">${co.ab}</div>`;
   }
