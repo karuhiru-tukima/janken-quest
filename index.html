@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-01-0439";
+  window.JQ_VER = "2026-11-01-2346";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -377,7 +377,7 @@ details.rules ul { margin: 8px 0 2px; padding-left: 1.2em; color: var(--dim); fo
 .tab { border: 2px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 14px; font-weight: 700; font-size: .85rem; }
 .tab:hover { border-color: var(--dim); }
 .tab.on { background: var(--gold); border-color: var(--gold); color: var(--night); }
-.coins { font-family: var(--f-display); color: var(--gold); font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.coins { font-family: var(--f-display); color: var(--gold); font-size: 1.3rem; font-variant-numeric: tabular-nums; }
 .cgrid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
 .ctile {
   display: grid; grid-template-columns: 80px 1fr; gap: 12px; align-items: start; position: relative;
@@ -900,11 +900,11 @@ body.on-home .wrap { padding-top: 10px; }
 .hm-name span { font-size: .68rem; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hm-res { display: flex; gap: 6px; align-items: center; flex: none; }
 /* コイン：小さな所持数だけ。枠や強い色は付けない */
-.hm-coin { display: flex; align-items: center; gap: 4px; padding: 2px 9px 2px 5px; border-radius: 999px; background: #0a0d2299; font-family: var(--f-display); color: #e8d8a8; font-size: .85rem; }
-.hm-coin .pxi { width: 16px; height: 16px; }
+.hm-coin { display: flex; align-items: center; gap: 4px; padding: 3px 11px 3px 6px; border-radius: 999px; background: #0a0d2299; font-family: var(--f-display); color: #e8d8a8; font-size: 1.02rem; }
+.hm-coin .pxi { width: 20px; height: 20px; }
 /* 設定：小さな歯車 */
-.gear { width: 32px; height: 32px; display: grid; place-items: center; padding: 0; background: #0a0d2299; border: 2px solid #ffffff22; border-radius: 8px; cursor: pointer; }
-.gear .pxi { width: 20px; height: 20px; opacity: .8; transition: transform .2s, opacity .2s; }
+.gear { width: 38px; height: 38px; display: grid; place-items: center; padding: 0; background: #0a0d2299; border: 2px solid #ffffff22; border-radius: 8px; cursor: pointer; }
+.gear .pxi { width: 24px; height: 24px; opacity: .8; transition: transform .2s, opacity .2s; }
 .gear:hover .pxi, .gear[aria-expanded="true"] .pxi { opacity: 1; transform: rotate(45deg); }
 .settings-pop { position: fixed; top: 52px; right: 12px; z-index: 40; display: flex; flex-direction: column; gap: 6px; min-width: 150px; padding: 10px;
   background: linear-gradient(#232a55f2, #12162ef2); border: 3px solid var(--line); border-radius: 10px; box-shadow: var(--hard), 0 10px 24px #000a; }
@@ -2127,29 +2127,77 @@ const SUITS = {
 const RANKS = ["エース", "2", "3", "4", "5", "6", "7", "8", "9", "10", "ペイジ", "ナイト", "クイーン", "キング"];
 const RANK_GLYPH = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "P", "N", "Q", "K"];
 // 効果は [項目, Lv1の値, Lv20の値, 表示]。表示 "%"=百分率, "d"=小数, "n"=整数
+// 大アルカナ：[id, 名前, 絵, 正位置の効果, 正位置の文, 逆位置の効果, 逆位置の文]
+// 下がる側（代償）の数値はレベルで重くならないよう固定にしてある
 const MAJOR_DEF = [
-  ["fool", "愚者", [["fool", .08, .25]], "毎ターン{0}の確率で「回復・次の勝ち×1.3・次の負け半減」のどれかが起きる", "eye"],
-  ["magician", "魔術師", [["winMul", .10, .50]], "勝ったときのダメージ ×(1+{0})", "star"],
-  ["priestess", "女教皇", [["predict", .10, .40]], "{0}の確率で敵の次の手が見える（オンライン無効）", "moon"],
-  ["empress", "女帝", [["heal", .10, .50]], "回復量 +{0}", "heart"],
-  ["emperor", "皇帝", [["dmgTaken", -.10, -.35]], "受けるダメージ −{0}", "crown"],
-  ["hierophant", "教皇", [["charBoost", .10, .50]], "キャラ固有能力の数値 +{0}", "crown"],
-  ["lovers", "恋人", [["streakHeal", .03, .10]], "2連勝以上で勝つたび最大HPの{0}回復", "heart"],
-  ["chariot", "戦車", [["streakAdd", .05, .20, "d"]], "連勝倍率の伸び +{0}", "wheel"],
-  ["strength", "力", [["atk", .05, .25]], "攻撃力 +{0}", "sun"],
-  ["hermit", "隠者", [["readResist", .20, .80]], "同じ手を読まれる確率 −{0}（オンライン無効）", "eye"],
-  ["wheel", "運命の輪", [["luck", .05, .20]], "負けたとき{0}の確率でダメージ0", "wheel"],
-  ["justice", "正義", [["atk", .04, .15], ["dmgTaken", -.04, -.15]], "攻撃力 +{0}、受けるダメージ −{1}", "scale"],
-  ["hanged", "吊された男", [["loseTaken", .20, .45]], "負けたときのダメージ −{0}", "eye"],
-  ["death", "死神", [["dispel", .10, .35]], "勝つと{0}の確率で敵の強化（盾・激昂・怒り・再生・連勝）を解除（オンライン無効）", "skull"],
-  ["temperance", "節制", [["heal", .06, .25], ["atk", .03, .12]], "回復量 +{0}、攻撃力 +{1}", "scale"],
-  ["devil", "悪魔", [["atk", .15, .45], ["dmgTaken", .10, .10]], "攻撃力 +{0}、ただし受けるダメージ +{1}", "skull"],
-  ["tower", "塔", [["towerAtk", .20, .80]], "勝つと基礎攻撃力の{0}を追加ダメージ", "tower"],
-  ["star", "星", [["regen", .03, .10]], "ターン終わりに最大HPの{0}回復", "star"],
-  ["moon", "月", [["jam", .15, .50]], "{0}の確率で敵の読みを外させる（オンライン無効）", "moon"],
-  ["sun", "太陽", [["atk", .04, .15], ["heal", .06, .25]], "攻撃力 +{0}、回復量 +{1}", "sun"],
-  ["judgement", "審判", [["judgement", 0, .30]], "1ステージ（1試合）に1回、倒れる攻撃をHP1で耐え、さらに最大HPの{0}回復", "crown"],
-  ["world", "世界", [["worldHeal", .02, .06], ["worldDmg", .04, .15], ["worldCoin", 1, 5, "n"]], "2連勝以上で勝つと最大HP{0}回復・ダメージ+{1}・コイン+{2}", "wheel"],
+  ["fool", "愚者", "eye",
+    [["foolWin", .20, .50], ["foolHeal", .04, .10], ["foolGuard", .50, .50, "c"]],
+    "各ターンのはじめ、3分の1の確率で「次の勝ちのダメージ+{0}」「最大HPの{1}回復」「次に受けるダメージ−{2}」のどれかが起きる",
+    [["foolRWin", .40, .90], ["foolRTaken", .25, .25, "c"]],
+    "各ターンのはじめ、3分の1の確率で「次の勝ちのダメージ+{0}」か「次に受けるダメージ+{1}」のどちらかが起きる"],
+  ["magician", "魔術師", "star",
+    [["atk", .05, .25]], "基礎攻撃力 +{0}",
+    [["atk", .30, .60], ["drawCost", .03, .03, "c"]], "基礎攻撃力 +{0}。ただし、あいこになると最大HPの{1}を失う"],
+  ["priestess", "女教皇", "moon",
+    [["priGrow", .02, .05], ["priCap", .12, .30]], "1ターンごとに攻撃力 +{0}。最大 +{1}までたまる",
+    [["priRev", .20, .50]], "開始時に攻撃力 +{0}。1ターンごとに少しずつ減り、5ターンでなくなる"],
+  ["empress", "女帝", "heart",
+    [["regen", .03, .07]], "ターンの終わりに最大HPの{0}回復",
+    [["empDmg", .30, .70], ["empCost", .06, .06, "c"]], "勝つと最大HPの{1}を使って、与えるダメージ +{0}（HPが足りないときは使わない）"],
+  ["emperor", "皇帝", "crown",
+    [["startShield", .15, .30], ["shieldAtk", .05, .15]], "開始時に最大HPの{0}の盾を得る。盾が残っている間、攻撃力 +{1}",
+    [["atk", .20, .45], ["bareTaken", .15, .15, "c"]], "攻撃力 +{0}。ただし盾がないときに負けると、受けるダメージ +{1}"],
+  ["hierophant", "教皇", "crown",
+    [["charBoost", .10, .30]], "キャラ固有能力の効果量 +{0}（発動の条件や回数は変わらない）",
+    [["echo", .30, .60]], "キャラ固有能力が働いた次のターン、その力がもう一度だけ弱く（{0}）働く"],
+  ["lovers", "恋人", "heart",
+    [["loseTaken", .10, .35]], "負けたときに受けるダメージ −{0}",
+    [["winMul", .10, .35]], "勝ったときに与えるダメージ +{0}"],
+  ["chariot", "戦車", "wheel",
+    [["maxHp", .10, .25], ["atk", .05, .15]], "最大HP +{0}、攻撃力 +{1}",
+    [["chaWin", .05, .12], ["chaShield", .05, .10]], "勝つたび攻撃力 +{0}（3回まで）。負けるとたまった分が消え、最大HPの{1}の盾を得る"],
+  ["strength", "力", "sun",
+    [["winMul", .08, .25]], "勝ったときに与えるダメージ +{0}",
+    [["lowHpDmg", .20, .50]], "HPが半分以下のとき、勝って与えるダメージ +{0}"],
+  ["hermit", "隠者", "eye",
+    [["startShield", .20, .40]], "開始時に最大HPの{0}の盾を得る",
+    [["hermStack", .15, .30]], "負けるたび、次に勝ったときのダメージ +{0}（3回までたまる。勝つと使い切る）"],
+  ["wheel", "運命の輪", "wheel",
+    [["streakAdd", .05, .15]], "連勝ボーナスが、1連勝ごとにさらに +{0}",
+    [["lossStack", .10, .25]], "負けるたび攻撃力 +{0}（3回まで）。勝つと元に戻る"],
+  ["justice", "正義", "scale",
+    [["atk", .04, .15], ["dmgTaken", -.04, -.15]], "攻撃力 +{0}、受けるダメージ −{1}",
+    [["reflect", .10, .35], ["loseTaken", .10, .30]], "受けたダメージの{0}を相手に返す。負けたときのダメージ −{1}"],
+  ["hanged", "吊された男", "eye",
+    [["loseTaken", .20, .45], ["hangStore", .50, .50, "c"]], "負けたときのダメージ −{0}。軽くした分の{1}を、次に勝ったときに上乗せする",
+    [["hangWin", .25, .60], ["hangCost", .04, .04, "c"]], "毎ターン最大HPの{1}を使い、勝ったときのダメージ +{0}（HPが足りないときは使わない）"],
+  ["death", "死神", "skull",
+    [["atk", .20, .50], ["deathCost", .15, .15, "c"]], "開始時に最大HPの{1}を失う。かわりに攻撃力 +{0}",
+    [["deathLate", .30, .70], ["deathEarly", .15, .15, "c"]], "1〜6ターン目は攻撃力 −{1}。7ターン目から攻撃力 +{0}"],
+  ["temperance", "節制", "scale",
+    [["regen", .015, .04], ["atk", .03, .10]], "ターンの終わりに最大HPの{0}回復、攻撃力 +{1}",
+    [["drawHeal", .03, .08], ["tempStore", 1, 1, "c"]], "あいこのたび最大HPの{0}回復。次に勝つと、たまった回復量と同じだけダメージを上乗せ"],
+  ["devil", "悪魔", "skull",
+    [["devilWin", .20, .50]], "毎ターン、グー・チョキ・パーのどれかを宣言（画面に出る）。その手で勝つと、次の勝ちのダメージ +{0}。ステージでは敵が宣言の手を出しやすい",
+    [["devilRev", .40, 1.0], ["devilTaken", .25, .25, "c"]], "毎ターン手を宣言。宣言と違う手で勝つと、次の勝ちのダメージ +{0}。ただし次のターンは受けるダメージ +{1}"],
+  ["tower", "塔", "tower",
+    [["towerUp", .20, .50]], "HPがはじめて半分以下になったとき、攻撃力 +{0}（その試合のあいだずっと）",
+    [["towerShield", .20, .50], ["towerDown", .25, .25, "c"]], "HPがはじめて半分以下になったとき、最大HPの{0}の盾を得る。かわりに攻撃力 −{1}"],
+  ["star", "星", "star",
+    [["starStack", .05, .15]], "勝つたび攻撃力 +{0}（3回まで）。負けると元に戻る",
+    [["starRev", .15, .35]], "負けるたび攻撃力 +{0}（3回まで）。勝つと元に戻る"],
+  ["moon", "月", "moon",
+    [["moonGrow", .03, .08], ["moonCap", .15, .40]], "負けずにいる間、1ターンごとに攻撃力 +{0}（最大 +{1}）。負けると元に戻る",
+    [["moonRev", .10, .25]], "負けるたび、次に勝ったときのダメージ +{0}（3回まで）。勝つと元に戻る"],
+  ["sun", "太陽", "sun",
+    [["sunStack", .03, .08]], "勝つたび攻撃力 +{0}（3回まで。負けても消えない）",
+    [["sunRev", .05, .12]], "勝てなかったターン（負け・あいこ）ごとに攻撃力 +{0}（3回まで）。勝つと元に戻る"],
+  ["judgement", "審判", "crown",
+    [["winHeal", .03, .08]], "勝つたび最大HPの{0}回復",
+    [["lowHpAtk", .10, .30], ["lowHpDef", .20, .50]], "HPが半分以下で攻撃力 +{0}。HP30%以下で受けるダメージ −{1}"],
+  ["world", "世界", "wheel",
+    [["worldUp", .10, .30]], "HPが多いほど攻撃力アップ（HP満タンで +{0}、HPが減ると下がる）",
+    [["judgement", .05, .15]], "1ステージ（1試合）に1回、倒れる攻撃をHP1で耐え、最大HPの{0}回復"],
 ];
 const MINOR_DEF = {
   wand: [
@@ -2217,33 +2265,9 @@ const MINOR_DEF = {
     [[["coin", .12, .45]], "もらえるコイン +{0}"],
   ],
 };
-const OFFLINE_ONLY = new Set(["predict", "jam", "readResist", "dispel", "enemyStreakCut"]);
-// ---- 逆位置の効果（レン・ナギ・ガロウ・カゲが装備すると逆位置になる）----
-// 逆位置は「弱い正位置」ではなく別の戦い方：負けの次・あいこ・受けたダメージ・低HPで力を出すものが中心
-const MAJOR_REV = {
-  fool: [["luck", .10, .30], ["dmgTaken", .08, .08]],
-  magician: [["revenge", .25, .80], ["winMul", -.05, -.05]],
-  priestess: [["drawHit", .20, .70]],
-  empress: [["lowHpAtk", .15, .50], ["heal", -.10, -.10]],
-  emperor: [["atk", .10, .35], ["dmgTaken", .08, .08]],
-  hierophant: [["charBoost", .15, .60], ["maxHp", -.10, -.10]],
-  lovers: [["streakAdd", .06, .25, "d"], ["dmgTaken", .05, .05]],
-  chariot: [["revenge", .20, .70]],
-  strength: [["reflect", .15, .50]],
-  hermit: [["drawHeal", .03, .10], ["drawHit", .10, .35]],
-  wheel: [["critAtk", .20, .70]],
-  justice: [["reflect", .10, .35], ["loseTaken", .10, .30]],
-  hanged: [["revenge", .30, .90], ["loseTaken", -.10, -.10]],
-  death: [["lowHpAtk", .20, .60], ["lowHpDef", .10, .30]],
-  temperance: [["drawHit", .25, .80], ["atk", -.05, -.05]],
-  devil: [["dmgTaken", -.15, -.40], ["atk", -.10, -.10]],
-  tower: [["reflect", .20, .60], ["maxHp", -.10, -.10]],
-  star: [["loseHeal", .04, .12]],
-  moon: [["drawHeal", .04, .12]],
-  sun: [["streak2Atk", .10, .40]],
-  judgement: [["lowHpDef", .20, .50], ["lowHpAtk", .10, .30]],
-  world: [["revenge", .15, .45], ["drawHit", .10, .30], ["reflect", .05, .15]],
-};
+const OFFLINE_ONLY = new Set(["predict", "jam", "readResist", "enemyStreakCut"]);
+// ---- 逆位置（レン・ナギ・ガロウ・イワオ・カゲ・シズク・ホムラが装備すると逆位置になる）----
+// 大アルカナの逆位置は MAJOR_DEF に直接書いてある。小アルカナの逆位置は下の表
 const MINOR_REV = {
   wand: [
     [["revenge", .10, .40]], [["streakAdd", .04, .14, "d"], ["dmgTaken", .03, .03]], [["drawHit", .10, .40]], [["lowHpAtk", .08, .30]],
@@ -2298,8 +2322,8 @@ function fieldText(f, v, u) {
   return `${FT_UP[f] || f} ${v >= 0 ? "+" : "−"}${x}`;
 }
 const CARDS = [], CARD = {};
-MAJOR_DEF.forEach(([id, name, fx, text, art], no) => {
-  const c = { id, name, kind: "major", no, fx, rv: MAJOR_REV[id], text, art, color: `hsl(${(no * 37) % 360},75%,68%)` };
+MAJOR_DEF.forEach(([id, name, art, fx, text, rv, rvText], no) => {
+  const c = { id, name, kind: "major", no, fx, rv, text, rvText, art, color: `hsl(${(no * 37) % 360},75%,68%)` };
   CARDS.push(c); CARD[id] = c;
 });
 for (const [suit, list] of Object.entries(MINOR_DEF)) list.forEach(([fx, text], rank) => {
@@ -2312,12 +2336,12 @@ const kindLabel = c => (c.kind === "major" ? `大アルカナ ${ROMAN[c.no]}` : 
 const fmtFx = (v, unit) => (unit === "n" ? String(Math.round(v)) : unit === "d" ? v.toFixed(2) : `${Math.round(Math.abs(v) * 1000) / 10}%`);
 function cardVals(c, l, r, rev) {
   const boost = c.kind === "major" ? [1, 1, 1.1, 1.2][r] : 1;
-  return (rev ? c.rv : c.fx).map(([f, v1, v20, unit]) => [fxVal(v1, v20, l) * (unit === "n" ? 1 : boost), unit, f]);
+  return (rev ? c.rv : c.fx).map(([f, v1, v20, unit]) => [fxVal(v1, v20, l) * (unit === "n" || unit === "c" ? 1 : boost), unit, f]);
 }
 function cardText(c, l, r, rev) {
   const vals = cardVals(c, l, r, rev);
-  if (rev) return vals.map(([v, u, f]) => fieldText(f, v, u)).join("、");
-  return c.text.replace(/\{(\d)\}/g, (_, i) => fmtFx(vals[i][0], vals[i][1]));
+  if (rev && !c.rvText) return vals.map(([v, u, f]) => fieldText(f, v, u)).join("、");
+  return (rev ? c.rvText : c.text).replace(/\{(\d)\}/g, (_, i) => fmtFx(vals[i][0], vals[i][1]));
 }
 function awakenText(c, r) {
   if (r < 2) return "";
@@ -2331,12 +2355,163 @@ function computeMods(list, online) {
   for (const x of list) {
     const c = CARD[x.c]; if (!c) continue;
     cardVals(c, x.l, x.r, x.rev).forEach(([v, , f]) => add(f, v));
-    if (c.id === "judgement" && !x.rev) add("judgeOn", 1);
+    if (c.id === "world" && x.rev) add("judgeOn", 1);
     if (c.kind === "minor" && x.r >= 2) { const [f, v] = SUITS[c.suit].perk; add(f, v * (x.r === 3 ? 2 : 1)); }
   }
   return M;
 }
 const mz = (M, f) => (M && M[f]) || 0;
+
+/* ---- 大アルカナの動き（ステージとオンラインで共通）----
+   f は戦う人（hp・max・atk・streak）。たまった数や盾は f.ms に持つ。
+   rnd は乱数（オンラインは両方の画面で同じ結果になる乱数）、say(文字) は画面に出す短い表示 */
+const ARC_MAX = 3; // 「3回まで」の重ねがけ
+function arcInit(f, M, rnd) {
+  const ms = f.ms = { tn: 1, shd: 0, cha: 0, herm: 0, loss: 0, star: 0, starR: 0, moon: 0, moonR: 0, sun: 0, sunR: 0,
+    hang: 0, hangReady: false, temp: 0, devil: 0, devilH: null, vuln: false, vulnNext: false, echo: null, echoNext: null,
+    tower: false, fWin: 0, fGuard: 0, fTaken: 0 };
+  ms.shd = r2(f.max * mz(M, "startShield"));
+  if (mz(M, "deathCost") > 0) f.hp = r2(Math.max(1, f.hp - f.max * mz(M, "deathCost")));
+  if (mz(M, "devilWin") || mz(M, "devilRev")) ms.devilH = Math.floor(rnd() * 3);
+}
+const arcHeal = (f, M, pct) => {
+  const amt = r2(Math.min(f.max - f.hp, f.max * pct * (1 + mz(M, "heal"))));
+  if (amt > 0 && f.hp > 0) f.hp = r2(f.hp + amt);
+  return Math.max(0, amt);
+};
+// 攻撃力に足す分（%）
+function arcAtk(f, M) {
+  const ms = f.ms; if (!ms) return 0;
+  let a = Math.min(mz(M, "priCap"), mz(M, "priGrow") * (ms.tn - 1));
+  if (mz(M, "priRev")) a += mz(M, "priRev") * Math.max(0, 1 - (ms.tn - 1) / 5);
+  if (ms.shd > 0) a += mz(M, "shieldAtk");
+  a += mz(M, "chaWin") * ms.cha + mz(M, "lossStack") * ms.loss + mz(M, "starStack") * ms.star + mz(M, "starRev") * ms.starR
+    + mz(M, "sunStack") * ms.sun + mz(M, "sunRev") * ms.sunR + Math.min(mz(M, "moonCap"), mz(M, "moonGrow") * ms.moon);
+  if (mz(M, "deathLate")) a += ms.tn >= 7 ? mz(M, "deathLate") : -mz(M, "deathEarly");
+  if (ms.tower) a += mz(M, "towerUp") - mz(M, "towerDown");
+  a += mz(M, "worldUp") * Math.max(0, f.hp) / f.max;
+  return a;
+}
+// ターンのはじめ（愚者・吊された男の逆・教皇の逆の回復）
+function arcTurnStart(f, M, rnd, say) {
+  const ms = f.ms; if (!ms || f.hp <= 0) return;
+  ms.vuln = ms.vulnNext; ms.vulnNext = false; ms.echo = ms.echoNext; ms.echoNext = null;
+  if (ms.echo) say(`教皇：${{ power: "能力の余韻（攻撃）", guard: "能力の余韻（守り）", heal: "能力の余韻（回復）" }[ms.echo]}`);
+  if (ms.echo === "heal") { const amt = arcHeal(f, M, 0.15 * mz(M, "echo")); if (amt > 0) say(null, amt); }
+  if (mz(M, "foolWin") && rnd() < 1 / 3) {
+    const t = Math.floor(rnd() * 3);
+    if (t === 0) { ms.fWin = mz(M, "foolWin"); say(`愚者：次の勝ち+${Math.round(ms.fWin * 100)}%`); }
+    else if (t === 1) { const amt = arcHeal(f, M, mz(M, "foolHeal")); say("愚者：回復", amt); }
+    else { ms.fGuard = mz(M, "foolGuard"); say("愚者：次の被ダメ半減"); }
+  }
+  if (mz(M, "foolRWin") && rnd() < 1 / 3) {
+    if (rnd() < 0.5) { ms.fWin = mz(M, "foolRWin"); say(`愚者：次の勝ち+${Math.round(ms.fWin * 100)}%`); }
+    else { ms.fTaken = mz(M, "foolRTaken"); say(`愚者：次の被ダメ+${Math.round(ms.fTaken * 100)}%`); }
+  }
+  if (mz(M, "hangWin")) {
+    const cost = r2(f.max * mz(M, "hangCost"));
+    if (f.hp > cost) { f.hp = r2(f.hp - cost); ms.hangReady = true; say(`吊された男：HP−${fmt(cost)}`); } else ms.hangReady = false;
+  }
+}
+// 勝ったとき：ダメージに足す倍率 add と、上乗せするダメージ flat。ためていた分はここで使い切る
+function arcWin(f, M, say) {
+  const ms = f.ms; if (!ms) return { add: 0, flat: 0 };
+  let add = 0, flat = 0;
+  if (ms.fWin) { add += ms.fWin; ms.fWin = 0; }
+  if (mz(M, "empDmg")) {
+    const cost = r2(f.max * mz(M, "empCost"));
+    if (f.hp > cost) { f.hp = r2(f.hp - cost); add += mz(M, "empDmg"); say(`女帝：HP−${fmt(cost)}で強打`); }
+  }
+  if (f.hp <= f.max / 2) add += mz(M, "lowHpDmg");
+  add += mz(M, "hermStack") * ms.herm + mz(M, "moonRev") * ms.moonR; ms.herm = 0; ms.moonR = 0;
+  if (ms.hangReady) { add += mz(M, "hangWin"); ms.hangReady = false; }
+  if (ms.devil) { add += ms.devil; ms.devil = 0; }
+  if (ms.echo === "power") add += mz(M, "echo");
+  flat = r2(ms.hang + ms.temp * mz(M, "tempStore")); ms.hang = 0; ms.temp = 0;
+  return { add, flat };
+}
+// 受けるダメージの倍率（愚者・皇帝の逆・悪魔の逆・教皇の逆の守り）
+function arcTaken(f, M, kind) {
+  const ms = f.ms; if (!ms) return 1;
+  let m = 1;
+  if (ms.fGuard) { m *= 1 - ms.fGuard; ms.fGuard = 0; }
+  if (ms.fTaken) { m *= 1 + ms.fTaken; ms.fTaken = 0; }
+  if (kind === "lose" && ms.shd <= 0) m *= 1 + mz(M, "bareTaken");
+  if (ms.vuln) m *= 1 + mz(M, "devilTaken");
+  if (ms.echo === "guard") m *= 1 - mz(M, "echo");
+  return m;
+}
+// 盾で受ける。残ったダメージを返す
+function arcShield(f, dmg) {
+  const ms = f.ms; if (!ms || ms.shd <= 0 || dmg <= 0) return { dmg, abs: 0 };
+  const abs = r2(Math.min(ms.shd, dmg)); ms.shd = r2(ms.shd - abs);
+  return { dmg: r2(dmg - abs), abs };
+}
+// 吊された男：負けで軽くした分をためる（raw は軽くする前のダメージ）
+const arcHangStore = (f, M, raw) => { if (f.ms && mz(M, "hangStore")) f.ms.hang = r2(f.ms.hang + raw * Math.min(0.9, mz(M, "loseTaken")) * mz(M, "hangStore")); };
+// 教皇の逆：キャラ能力が働いたかどうか（ch は実際に働くキャラ能力。封じられていたら 0）
+function echoKind(ch, res, h, f) {
+  if (res === "win") return { 1: h === G_ && "guard", 2: h === C_ && "power", 3: h === P_ && "heal", 5: f.streak >= 2 && "power", 8: "guard", 10: "guard",
+    11: h === P_ && "power", 12: h === C_ && "power", 13: f.hp < f.max && "power" }[ch] || null;
+  if (res === "lose") return { 4: h === G_ && "guard", 7: "power", 9: "power", 14: h === G_ && "guard" }[ch] || null;
+  return ch === 6 ? "power" : null;
+}
+// じゃんけん1回の結果で、たまる数を動かす
+function arcResult(f, M, res, h, ch, say) {
+  const ms = f.ms; if (!ms) return;
+  const up = (k, f2) => { if (mz(M, f2) && ms[k] < ARC_MAX) ms[k]++; };
+  if (res === "win") {
+    up("cha", "chaWin"); up("star", "starStack"); up("sun", "sunStack");
+    ms.loss = 0; ms.starR = 0; ms.sunR = 0; ms.moon++;
+    if (ms.devilH != null) {
+      if (mz(M, "devilWin") && h === ms.devilH) { ms.devil = mz(M, "devilWin"); say(`悪魔：宣言どおり！ 次の勝ち+${Math.round(ms.devil * 100)}%`); }
+      if (mz(M, "devilRev") && h !== ms.devilH) { ms.devil = mz(M, "devilRev"); ms.vulnNext = true; say(`悪魔：宣言破り！ 次の勝ち+${Math.round(ms.devil * 100)}%`); }
+    }
+  } else if (res === "lose") {
+    if (mz(M, "chaWin")) {
+      ms.cha = 0;
+      const s = r2(f.max * mz(M, "chaShield"));
+      if (s > 0 && f.hp > 0) { ms.shd = r2(ms.shd + s); say(`戦車：盾+${fmt(s)}`); }
+    }
+    up("loss", "lossStack"); up("starR", "starRev"); up("herm", "hermStack"); up("moonR", "moonRev"); up("sunR", "sunRev");
+    ms.star = 0; ms.moon = 0;
+  } else {
+    up("sunR", "sunRev"); ms.moon++;
+    if (mz(M, "drawCost") && f.hp > 0) {
+      const cost = r2(f.max * mz(M, "drawCost")), nh = Math.max(Math.min(f.hp, 1), r2(f.hp - cost));
+      if (nh < f.hp) { say(`魔術師：HP−${fmt(r2(f.hp - nh))}`); f.hp = nh; }
+    }
+  }
+  if (mz(M, "echo") && !ms.echo) { const k = echoKind(ch, res, h, f); if (k) ms.echoNext = k; }
+}
+// ターンの終わり（塔・悪魔の次の宣言）
+function arcTurnEnd(f, M, rnd, say) {
+  const ms = f.ms; if (!ms) return;
+  ms.tn++; ms.vuln = false; ms.echo = null;
+  if (!ms.tower && f.hp > 0 && f.hp <= f.max / 2 && (mz(M, "towerUp") || mz(M, "towerShield"))) {
+    ms.tower = true;
+    if (mz(M, "towerShield")) { const s = r2(f.max * mz(M, "towerShield")); ms.shd = r2(ms.shd + s); say(`塔：盾+${fmt(s)}（攻撃力ダウン）`); }
+    else say(`塔：攻撃力+${Math.round(mz(M, "towerUp") * 100)}%`);
+  }
+  if (ms.devilH != null && f.hp > 0) { ms.devilH = Math.floor(rnd() * 3); say(`悪魔の宣言：${HN[ms.devilH]}`); }
+}
+// 大アルカナの状態の表示（チップ）
+function arcChips(f, M) {
+  const ms = f.ms; if (!ms) return "";
+  let s = "";
+  if (ms.shd > 0) s += chip(`盾 ${fmt(ms.shd)}`, "c-def");
+  if (ms.devilH != null) s += chip(`悪魔の宣言 ${HN[ms.devilH]}`, "c-read");
+  const a = arcAtk(f, M);
+  if (Math.abs(a) >= 0.005) s +=chip(`アルカナ 攻撃${a >= 0 ? "+" : "−"}${Math.round(Math.abs(a) * 100)}%`, a >= 0 ? "c-rage" : "c-read");
+  const w = (ms.fWin || 0) + (ms.devil || 0) + mz(M, "hermStack") * ms.herm + mz(M, "moonRev") * ms.moonR + (ms.hangReady ? mz(M, "hangWin") : 0);
+  if (w > 0) s += chip(`次の勝ち +${Math.round(w * 100)}%`, "c-charge");
+  const fl = r2(ms.hang + ms.temp * mz(M, "tempStore"));
+  if (fl > 0) s += chip(`上乗せ ${fmt(fl)}`, "c-charge");
+  if (ms.fGuard) s += chip("次の被ダメ半減", "c-def");
+  if (ms.fTaken || ms.vuln) s += chip("被ダメアップ中", "c-read");
+  if (ms.echo) s += chip("能力の余韻", "c-inv");
+  return s;
+}
 
 // ---- 所持カードの保存（このブラウザ）----
 const STARTER = ["magician", "wand1", "cup1", "sword1"];
@@ -2449,7 +2624,41 @@ const sortBar = () => `<div class="sortbar"><span class="sub">並び替え</span
 
 // ---- カード画面 ----
 const CARD_FILTERS = [["all", "すべて"], ["major", "大アルカナ"], ["wand", "ワンド"], ["cup", "カップ"], ["sword", "ソード"], ["coin", "ペンタクル"]]; // 所持カード・図鑑の絞り込み
-let CD = { tab: "equip", pick: null, filter: "all", gacha: null, hl: null, sel: null };
+// 効果の種類での絞り込み。いま選んでいるキャラの向き（正位置・逆位置）の効果で見る。代償（下がる側）は数えない
+const EFF_FILTERS = [["all", "効果：すべて"], ["hp", "HP上昇"], ["atk", "攻撃力上昇"], ["dmg", "与ダメージ上昇"], ["def", "被ダメージ減少"], ["heal", "HP回復"],
+  ["shield", "盾付与"], ["counter", "反撃・反射"], ["streak", "連勝"], ["ability", "キャラ能力"]];
+const EFF_OF = {
+  hp: ["maxHp"],
+  atk: ["atk", "streak2Atk", "lowHpAtk", "priGrow", "priRev", "shieldAtk", "chaWin", "lossStack", "starStack", "starRev", "moonGrow", "sunStack", "sunRev", "deathLate", "towerUp", "worldUp"],
+  dmg: ["winMul", "handG", "handC", "handP", "bossDmg", "firstWin", "afterDrawWin", "revenge", "critAtk", "towerAtk", "foolWin", "foolRWin", "empDmg", "lowHpDmg",
+    "hermStack", "hangWin", "hangStore", "tempStore", "devilWin", "devilRev", "moonRev"],
+  def: ["dmgTaken", "loseTaken", "lowHpDef", "bossDef", "multiDef", "abilDef", "firstHit", "luck", "foolGuard", "judgement"],
+  heal: ["heal", "regen", "winHeal", "loseHeal", "drawHeal", "killHeal", "foolHeal", "judgement"],
+  shield: ["startShield", "chaShield", "towerShield"],
+  counter: ["reflect", "drawHit"],
+  streak: ["streakAdd", "streak2Atk", "critAtk", "streakCoin", "enemyStreakCut"],
+  ability: ["charBoost", "echo"],
+  read: ["predict", "jam", "readResist"],
+  coin: ["coin", "killCoin", "clearCoin", "bossCoin", "streakCoin", "gachaCost", "lvCost", "synthCost", "shopDisc", "extraCard", "rareRate"],
+};
+const effPass = id => {
+  if (CD.eff === "all") return true;
+  const c = CARD[id], fx = isRev(S.charId) ? c.rv : c.fx, fs = EFF_OF[CD.eff] || [];
+  // 攻撃力・最大HP・回復量はマイナス（代償）なら数えない。受けるダメージはマイナスが良い方
+  return fx.some(([f, v]) => fs.includes(f) && (f === "dmgTaken" ? v < 0 : ["atk", "maxHp", "heal"].includes(f) ? v > 0 : true));
+};
+// 絞り込みは2つのボタン。1＝カードの種類（大アルカナ・ワンドなど）、2＝効果（バフの種類）。押すと選択肢が並び、選ぶと閉じる
+// withType=false（装備の枠を選ぶとき）は種類が決まっているので、効果だけ
+const effBar = (withType = true) => {
+  if (!withType && CD.open === "type") CD.open = null;
+  const tName = CARD_FILTERS.find(([f]) => f === CD.filter)[1], eName = EFF_FILTERS.find(([f]) => f === CD.eff)[1];
+  const btn = (k, label, on) => `<button class="tab sm${on ? " on" : ""}" data-act="fopen" data-k="${k}" aria-expanded="${CD.open === k}">${label} ${CD.open === k ? "▲" : "▼"}</button>`;
+  let h = `<div class="tabs effbar">${withType ? btn("type", `1 種類：${tName}`, CD.filter !== "all") : ""}${btn("eff", `${withType ? "2 " : ""}効果：${CD.eff === "all" ? "なし" : eName}`, CD.eff !== "all")}</div>`;
+  if (CD.open === "type") h += `<div class="tabs effbar">${CARD_FILTERS.map(([f, n]) => `<button class="tab sm${CD.filter === f ? " on" : ""}" data-act="filter" data-f="${f}">${n}</button>`).join("")}</div>`;
+  if (CD.open === "eff") h += `<div class="tabs effbar">${EFF_FILTERS.map(([f, n]) => `<button class="tab sm${CD.eff === f ? " on" : ""}" data-act="eff" data-f="${f}">${f === "all" ? "なし（すべて）" : n}</button>`).join("")}</div>`;
+  return h;
+};
+let CD = { tab: "equip", pick: null, filter: "all", eff: "all", gacha: null, hl: null, sel: null };
 function renderCards() {
   $("cd-coins").textContent = `${CS.coins.toLocaleString()} コイン`;
   $("scr-cards").classList.toggle("rev", isRev(S.charId)); // 背景色：正位置は金、逆位置は紫
@@ -2486,13 +2695,13 @@ function htmlEquip() {
   const i = CD.pick, major = i === 0, cur = inst(major ? e.maj : e.min[i - 1]);
   const others = e.min.filter((_, j) => j !== i - 1).map(inst).filter(Boolean).map(x => x.c);
   const base = cost - (cur ? RAR[cur.r].cost : 0);
-  const list = sortList(CS.cards.filter(x => (CARD[x.c].kind === "major") === major));
+  const list = sortList(CS.cards.filter(x => (CARD[x.c].kind === "major") === major && effPass(x.c)));
   // どの枠に付けるのか、いま何が付いているのかを見出しに出す
   const slotName = major ? "大アルカナ" : `小アルカナ ${i}`;
   h += `<div class="row spread" id="cd-picker"><div><b>「${slotName}」の枠に付けるカードを選ぶ</b><div class="sub">いま：${cur ? `<b style="color:var(--gold)">${CARD[cur.c].name}</b>（${RAR[cur.r].name} Lv${cur.l}）` : "空き"}・${list.length}枚から</div></div>
     <div class="row">${cur ? `<button class="btn" data-act="unequip">外す</button>` : ""}<button class="btn" data-act="slot" data-i="${i}">閉じる</button></div></div>`;
-  h += sortBar();
-  if (!list.length) return h + `<p class="sub">まだ持っていません。ステージのドロップかガチャで手に入ります。</p>`;
+  h += effBar(false) + sortBar();
+  if (!list.length) return h + `<p class="sub">${CD.eff === "all" ? "まだ持っていません。ステージのドロップかガチャで手に入ります。" : "この効果のカードは持っていません。"}</p>`;
   h += splitHTML(list.map(x => {
     let why = "";
     if (cur && x.u === cur.u) why = "この枠に装備中";
@@ -2526,9 +2735,8 @@ function eqBadge(x) {
 }
 function htmlOwn() {
   const M = curM();
-  let h = `<div class="tabs">${CARD_FILTERS.map(([f, n]) => `<button class="tab${CD.filter === f ? " on" : ""}" data-act="filter" data-f="${f}">${n}</button>`).join("")}</div>`;
-  h += sortBar();
-  const list = sortList(CS.cards.filter(x => CD.filter === "all" || (CD.filter === "major" ? CARD[x.c].kind === "major" : CARD[x.c].suit === CD.filter)));
+  let h = effBar() + sortBar();
+  const list = sortList(CS.cards.filter(x => (CD.filter === "all" || (CD.filter === "major" ? CARD[x.c].kind === "major" : CARD[x.c].suit === CD.filter)) && effPass(x.c)));
   h += `<p class="sub">${list.length}枚。レベルアップは同じカード1枚＋コイン。最大レベルになったら、同じカード・同じレアリティ2枚＋コインで1つ上のレアリティに合成できる（レベルはそのまま、上限が上がる）。装備中のカードは素材にならない。</p>`;
   if (!list.length) return h + `<p class="sub">このグループのカードはまだありません。</p>`;
   return h + splitHTML(list.map(x => [x.u, miniTile(x, x.u, eqBadge(x), CD.flash === x.u ? "hl" : ""), () => tileHTML(x, ownActions(x, M), eqBadge(x))]),
@@ -2557,14 +2765,14 @@ function htmlShop() {
 function htmlBook() {
   const seen = new Set(CS.seen);
   // 絞り込み（所持カードと同じ並び）。選んだものは CD.filter に入り、所持カードと共通
-  let h = `<div class="tabs">${CARD_FILTERS.map(([f, n]) => `<button class="tab${CD.filter === f ? " on" : ""}" data-act="filter" data-f="${f}">${n}</button>`).join("")}</div>`;
+  let h = effBar();
   h += `<p class="sub">図鑑 ${seen.size} / ${CARDS.length}。手に入れたことのあるカードは、ノーマルLv1の効果が見られる。</p>`;
   const item = c => seen.has(c.id)
     ? ["b" + c.id, miniTile({ c: c.id, r: 0, l: 1 }, "b" + c.id), () => tileHTML({ c: c.id, r: 0, l: 1 })]
     : ["u" + c.id, unseenMini(c), () => ""];
   // 大アルカナと小アルカナの間に、小さな見出しと細い線だけ入れて、それとなく分ける
   const head = (name, list) => [null, `<div class="cgrid-sep"><span>${name}</span><small>${list.filter(c => seen.has(c.id)).length} / ${list.length}</small></div>`, null];
-  const pass = c => CD.filter === "all" || (CD.filter === "major" ? c.kind === "major" : c.suit === CD.filter);
+  const pass = c => (CD.filter === "all" || (CD.filter === "major" ? c.kind === "major" : c.suit === CD.filter)) && effPass(c.id);
   const maj = CARDS.filter(c => c.kind === "major" && pass(c)), min = CARDS.filter(c => c.kind !== "major" && pass(c));
   const items = [...(maj.length ? [head("大アルカナ", maj), ...maj.map(item)] : []), ...(min.length ? [head(CD.filter === "all" ? "小アルカナ" : `小アルカナ・${SUITS[CD.filter].name}`, min), ...min.map(item)] : [])];
   return h + splitHTML(items, "カードを選ぶと、効果が見られます。");
@@ -2581,7 +2789,9 @@ function cardAct(act, d) {
     if (CD.pick !== null) $("cd-picker")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
     return;
   }
-  if (act === "filter") { CD.filter = d.f; CD.sel = null; renderCards(); return; }
+  if (act === "filter") { CD.filter = d.f; CD.open = null; CD.sel = null; renderCards(); return; }
+  if (act === "fopen") { CD.open = CD.open === d.k ? null : d.k; renderCards(); return; }
+  if (act === "eff") { CD.eff = d.f; CD.open = null; CD.sel = null; renderCards(); return; }
   if (act === "equip" || act === "unequip") {
     const e = eqOf(S.charId), i = CD.pick, u = act === "equip" ? +d.u : null;
     if (i === 0) e.maj = u; else e.min[i - 1] = u;
@@ -2836,10 +3046,11 @@ async function startBattle(w, i) {
     queue: list.map(([tk, hits, atk]) => ({ tk, hp: half(hits * ps.atk), atk: atk ?? W.atk })),
     slots: Array(slotsOf(W)).fill(null),
     p: { hp: maxHp, max: maxHp, atk: ps.atk * sealK, streak: 0, inv: false, charge: false, guts: false, losses: 0,
-      judged: false, firstHitUsed: false, afterDraw: false, foolWin: false, foolGuard: false },
+      judged: false, firstHitUsed: false, afterDraw: false },
     lastP: null, rep: 0,
     log: [`<span class="y">ステージ${key(w, i)} 開始！ 敵は${list.length}体</span>`].concat(cards.length ? [`<span class="p">装備：${cards.map(x => `${CARD[x.c].name}Lv${x.l}`).join("・")}</span>`] : []),
   };
+  arcInit(b.p, M, Math.random);
   clearStage();
   const st = $("stage");
   W.sky.forEach((c, n) => st.style.setProperty(`--sky${n + 1}`, c));
@@ -2897,34 +3108,35 @@ const pRate = () => (S.charId === 5 ? 0.5 * CB() : 0.1) + mz(BM(), "streakAdd");
 const eRate = e => (has(e, "king") ? 0.3 : has(e, "gale") ? 0.5 : 0.1) * (1 - Math.min(0.9, mz(BM(), "enemyStreakCut")));
 const furyBonus = p => (S.charId === 7 ? Math.min(CB(), 0.2 * CB() * (p.losses || 0)) : S.charId === SCAR_CH ? scarBonus(p.hp, p.max, CB()) : 0);
 const furyName = () => (S.charId === SCAR_CH ? "傷の炎" : "逆境");
-const atkMods = p => { const M = BM(); return mz(M, "atk") + (p.streak >= 2 ? mz(M, "streak2Atk") : 0) + (p.hp <= p.max / 2 ? mz(M, "lowHpAtk") : 0); };
+const atkMods = p => { const M = BM(); return mz(M, "atk") + (p.streak >= 2 ? mz(M, "streak2Atk") : 0) + (p.hp <= p.max / 2 ? mz(M, "lowHpAtk") : 0) + arcAtk(p, M); };
 const pAtk = p => p.atk * (1 + furyBonus(p)) * Math.max(0.2, 1 + atkMods(p));
 // イワオ：常に20%＋連勝数×10%（最大70%）
 const pDef = p => (S.charId === 8 ? Math.min(0.7 * CB(), (0.2 + 0.1 * p.streak) * CB()) : 0);
 const readChance = b => (b.lastP !== null && b.rep >= 2 ? Math.min(0.9, (b.rep - 1) * 0.3) : 0) * (1 - Math.min(0.9, mz(b.M, "readResist")));
 
-// 次のターンの敵の手を先に決める（女教皇の予測・月の妨害・愚者の補助もここ）
+// 次のターンの敵の手を先に決める（カードの予測・妨害もここ）
 function prepTurn(b) {
-  const M = b.M || {}, evs = [];
+  const M = b.M || {}, devilH = b.p.ms && mz(M, "devilWin") ? b.p.ms.devilH : null;
   const chance = readChance(b);
   b.next = b.slots.map(e => {
     if (!e) return null;
     // ツツミにパーで負けた敵は、このターンはグーしか出せない
     if (e.forceG) return { h: G_, read: false, forced: true, uid: e.uid, seen: true };
     let t = Math.random() < chance ? { h: beats(b.lastP), read: true } : { h: pickEnemy(b, e), read: false, beat: e.ai.t === "beatLast" && b.lastP !== null };
+    // 悪魔（正位置）：敵は宣言された手につられやすい
+    if (devilH != null && !t.read && Math.random() < 0.35) t = { h: devilH, read: false };
     if ((t.read || t.beat) && Math.random() < mz(M, "jam")) t = { h: Math.floor(Math.random() * 3), read: false, jam: true };
     return { ...t, uid: e.uid, seen: Math.random() < mz(M, "predict") };
   });
-  const p = b.p;
-  if (p.hp > 0 && Math.random() < mz(M, "fool")) {
-    const t = Math.floor(Math.random() * 3);
-    if (t === 0) { const amt = r2(Math.min(p.max - p.hp, p.max * 0.08 * healMul(M))); if (amt > 0) { p.hp = r2(p.hp + amt); evs.push({ k: "heal", amt }); } evs.push({ k: "fool", text: "愚者：回復" }); }
-    else if (t === 1) { p.foolWin = true; evs.push({ k: "fool", text: "愚者：次の勝ち×1.3" }); }
-    else { p.foolGuard = true; evs.push({ k: "fool", text: "愚者：次の負け半減" }); }
-  }
-  return evs;
 }
-function startTurn(b) { prepTurn(b).forEach(ev => fx(ev)); }
+// 大アルカナの短い表示をイベントにする（amt があれば回復も出す）
+const arcSay = list => (text, amt) => { if (amt > 0) list.push({ k: "heal", amt }); if (text) list.push({ k: "fool", text }); };
+function startTurn(b) {
+  const evs = [];
+  arcTurnStart(b.p, b.M, Math.random, arcSay(evs));
+  prepTurn(b);
+  evs.forEach((ev, i) => setTimeout(() => { if (alive(b)) { fx(ev); renderBattle(); } }, T(i * 260)));
+}
 
 function pickEnemy(b, e) {
   const ai = e.ai, rnd = Math.random(), any = () => Math.floor(Math.random() * 3);
@@ -3136,6 +3348,7 @@ async function play(h) {
     const amt = r2(Math.min(p.max - p.hp, p.max * mz(b.M, "regen") * healMul(b.M)));
     if (amt > 0) { p.hp = r2(p.hp + amt); fx({ k: "heal", amt }); lines.unshift(`<span class="g">ターン終わりに${fmt(amt)}回復</span>`); }
   }
+  { const evs = []; arcTurnEnd(p, b.M, Math.random, arcSay(evs)); for (const ev of evs) { fx(ev); renderBattle(); await wait(240); } }
   pushLog(b, lines);
   renderBattle();
 
@@ -3229,10 +3442,13 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
       - (e.boss ? mz(M, "bossDef") : 0) - (multi ? mz(M, "multiDef") : 0);
     m = Math.max(0.1, m);
     if (kind === "abil") m *= 1 - Math.min(0.9, mz(M, "abilDef"));
-    if (kind === "lose" && p.foolGuard) { m *= 0.5; p.foolGuard = false; }
+    if (kind === "lose") arcHangStore(p, M, raw * (1 - def));
+    m *= arcTaken(p, M, kind);
     if (!p.firstHitUsed && mz(M, "firstHit") > 0) { m *= 1 - Math.min(0.9, mz(M, "firstHit")); p.firstHitUsed = true; }
     let dmg = r2(raw * m * (1 - def));
     if (kind === "lose" && dmg > 0 && Math.random() < mz(M, "luck")) { dmg = 0; push(post, k, { k: "lucky" }); lines.push(`<span class="p">幸運！ ダメージを受けなかった</span>`); }
+    const sh = arcShield(p, dmg);
+    if (sh.abs > 0) { dmg = sh.dmg; push(post, k, { k: "block", text: `盾 −${fmt(sh.abs)}` }); lines.push(`<span class="p">盾が${fmt(sh.abs)}ダメージを受けとめた</span>`); }
     let nh = r2(p.hp - dmg);
     // ゴン：じゃんけんの負け以外のダメージでは体力1より下がらない（体力1以下なら受けない）
     if (c === 4 && kind !== "lose") { nh = gonFloor(4, p.hp, dmg); dmg = r2(p.hp - nh); }
@@ -3247,7 +3463,7 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
     if (c === 9 && dmg > 0 && e.hp > 0) { const cd = r2(p.atk * KAGE_RATE); e.hp = r2(Math.max(0, e.hp - cd)); push(post, k, { k: "counter", amt: cd }); lines.push(`<span class="p">返しの刃：${e.name}に${fmt(cd)}反撃</span>`); }
     if (mz(M, "reflect") > 0 && dmg > 0 && e.hp > 0) { const rd = r2(dmg * mz(M, "reflect")); e.hp = r2(Math.max(0, e.hp - rd)); push(post, k, { k: "counter", amt: rd }); lines.push(`<span class="p">カードの反射：${e.name}に${fmt(rd)}返した</span>`); }
     if (gutsHit) { after.unshift({ k: "guts" }); lines.push(`<span class="p">不屈！ 体力${fmt(p.hp)}で踏みとどまった</span>`); }
-    if (judged) { after.unshift({ k: "judge" }); lines.push(`<span class="p">審判！ 体力${fmt(p.hp)}で立ち上がった</span>`); }
+    if (judged) { after.unshift({ k: "judge" }); lines.push(`<span class="p">世界！ 体力${fmt(p.hp)}で立ち上がった</span>`); }
     return { ev, dmg };
   };
 
@@ -3255,15 +3471,15 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
     p.streak++;
     const N = p.streak - 1, mult = 1 + N * pRate();
     const charged = p.charge; if (charged) p.charge = false;
-    const foolWin = p.foolWin; p.foolWin = false;
+    const aw = arcWin(p, M, arcSay(after)), foolWin = aw.add > 0;
     const pierce = c === PIERCE_CH && h === C_; // ウガチ：チョキの勝ちは盾とトゲを無視
     for (const { e, k } of group) {
       if (p.hp <= 0) break;
       const before = e.hp;
       const bonus = 1 + mz(M, "winMul") + mz(M, "hand" + "GCP"[h]) + (e.boss ? mz(M, "bossDmg") : 0) + (p.afterDraw ? mz(M, "afterDrawWin") : 0)
         + (N >= 2 ? mz(M, "critAtk") : 0) + (!e.hitOnce ? mz(M, "firstWin") : 0) + (p.streak >= 2 ? mz(M, "worldDmg") : 0)
-        + (p.revenge ? mz(M, "revenge") : 0);
-      let dmg = pAtk(p) * mult * (charged ? 3 + mz(M, "charBoost") : 1) * bonus * (foolWin ? 1.3 : 1) + mz(M, "towerAtk") * p.atk, cut = false;
+        + (p.revenge ? mz(M, "revenge") : 0) + aw.add;
+      let dmg = pAtk(p) * mult * (charged ? 3 + mz(M, "charBoost") : 1) * bonus + mz(M, "towerAtk") * p.atk + aw.flat, cut = false;
       e.hitOnce = true;
       let nt2 = N > 0 ? `（${p.streak}連勝 ×${fmt(mult)}）` : "";
       if (bonus > 1.001) nt2 += `（カード ×${fmt(bonus)}）`;
@@ -3288,10 +3504,6 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
         lines.push(`<span class="r">${e.name}のトゲ！ ${fmt(sd)}ダメージ</span>`);
       }
       if (has(e, "rage") && !e.calm && e.hp > 0 && e.hp <= e.max / 2 && before > e.max / 2) { push(post, k, { k: "rage", text: "激昂！" }); lines.push(`<span class="r">${e.name}が激昂した！ 攻撃力1.5倍</span>`); }
-      if (e.hp > 0 && (e.shield || e.bonded || e.streak || ((has(e, "rage") || has(e, "regen")) && !e.calm)) && Math.random() < mz(M, "dispel")) {
-        e.shield = false; e.bonded = false; e.streak = 0; e.calm = true;
-        push(post, k, { k: "dispel" }); lines.push(`<span class="p">死神：${e.name}の強化を解除した</span>`);
-      }
     }
     if (p.streak >= 2) after.push({ k: "streak", n: p.streak });
     if (c === 1 && h === G_ && !p.inv) { p.inv = true; after.push({ k: "inv" }); lines.push(`<span class="p">無敵状態になった</span>`); }
@@ -3316,7 +3528,7 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
       for (const { e, k } of group) { e.hp = r2(Math.max(0, e.hp - cd)); push(post, k, { k: "hitE", amt: cd }); }
       lines.push(`<span class="p">チャージ解放：${fmt(cd)}ダメージ</span>`);
     }
-    if (mz(M, "drawHeal") > 0) healP(mz(M, "drawHeal"));
+    if (mz(M, "drawHeal") > 0) { const amt = healP(mz(M, "drawHeal")); if (p.ms && mz(M, "tempStore")) p.ms.temp = r2(p.ms.temp + amt); }
     if (mz(M, "drawHit") > 0) {
       const d = r2(pAtk(p) * mz(M, "drawHit"));
       for (const { e, k } of group) { if (e.hp <= 0) continue; e.hp = r2(Math.max(0, e.hp - d)); push(post, k, { k: "hitE", amt: d }); }
@@ -3351,6 +3563,7 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
     }
     if (p.hp > 0 && mz(M, "loseHeal") > 0) healP(mz(M, "loseHeal"));
   }
+  arcResult(p, M, res, h, c, arcSay(after));
   return { imp, post, after };
 }
 
@@ -3457,7 +3670,7 @@ function fx(ev, E, Pp) {
     case "judge":
       sfx("guts"); flash("rgba(255,244,190,.5)", .5);
       ring(pp, "#fff", { r: 10, grow: 5, w: 8 }); rise(pp, ["#fff", "#ffd166"], 22);
-      floatText(P, "審判！", "gold", true);
+      floatText(P, ev.text || "世界！", "gold", true);
       break;
     case "dispel":
       sfx("fizzle"); burst(ep, { n: 22, colors: ["#a9b0cf", "#fff"], speed: 4, grav: -0.06, shape: "circle", life: 34 });
@@ -3580,7 +3793,8 @@ function renderBattle() {
   if (c.id === 7 || c.id === SCAR_CH) pc += chip(`${furyName()} +${Math.round(furyBonus(p) * 100)}%`, "c-rage", furyBonus(p) > 0);
   if (c.id === 8) pc += chip(`防御 ${Math.round(pDef(p) * 100)}%`, "c-def", pDef(p) > 0);
   if (c.id === 9) pc += chip(`返しの刃 ${fmt(p.atk * KAGE_RATE)}`, "c-def");
-  if (p.judged === false && mz(b.M, "judgeOn")) pc += chip("審判（残1）", "c-guts");
+  if (p.judged === false && mz(b.M, "judgeOn")) pc += chip("世界（残1）", "c-guts");
+  pc += arcChips(p, b.M);
   pc += cardChips(b.cards || [], isRev(S.charId));
   setHTML($("p-chips"), pc); paintAll($("p-chips"));
 
@@ -3843,8 +4057,11 @@ function mkFighter(ch, cards, oppCh) {
   const k = ch === SEAL_CH ? SEAL_RATE : 1;  // シズクは体力・攻撃力85%
   const hp = half(PVP.hp * k * (1 + mz(M, "maxHp")));
   // ab：実際に働くキャラ能力。相手がシズクなら封じられて 0（なし）
-  return { ch, ab: oppCh === SEAL_CH && SEAL_PASSIVE_CH.has(ch) ? 0 : ch, hp, max: hp, atk: PVP.atk * k, streak: 0, inv: false, charge: false, guts: false, losses: 0, M, cards,
-    judged: false, firstHitUsed: false, afterDraw: false, foolWin: false, foolGuard: false };
+  const f = { ch, ab: oppCh === SEAL_CH && SEAL_PASSIVE_CH.has(ch) ? 0 : ch, hp, max: hp, atk: PVP.atk * k, streak: 0, inv: false, charge: false, guts: false, losses: 0, M, cards,
+    judged: false, firstHitUsed: false, afterDraw: false };
+  // 大アルカナの初期状態（悪魔の最初の宣言も、両方の画面で同じになる乱数で決める）
+  arcInit(f, M, seededRng(`${ON ? ON.g : 0}|${ch}|${oppCh}|${JSON.stringify(cards)}`));
+  return f;
 }
 // 両者の手の「塩」から作る共通の乱数（愚者・運命の輪などが両画面で同じ結果になる）
 function seededRng(str) {
@@ -4049,7 +4266,7 @@ const fCB = f => 1 + mz(f.M, "charBoost");
 // ガロウの逆境／ホムラの傷の炎（ホムラはシズクに封じられると無し）
 const fFury = f => (f.ch === 7 ? Math.min(fCB(f), 0.2 * fCB(f) * f.losses) : f.ab === SCAR_CH ? scarBonus(f.hp, f.max, fCB(f)) : 0);
 const fAtkOf = f => f.atk * (1 + fFury(f))
-  * Math.max(0.2, 1 + mz(f.M, "atk") + (f.streak >= 2 ? mz(f.M, "streak2Atk") : 0) + (f.hp <= f.max / 2 ? mz(f.M, "lowHpAtk") : 0));
+  * Math.max(0.2, 1 + mz(f.M, "atk") + (f.streak >= 2 ? mz(f.M, "streak2Atk") : 0) + (f.hp <= f.max / 2 ? mz(f.M, "lowHpAtk") : 0) + arcAtk(f, f.M));
 // イワオ：いつでも−20%＋連勝ごとに10%。シズクに封じられると、いつでもの−20%だけが消える
 const fDefOf = f => (f.ch === 8 ? Math.min(0.7 * fCB(f), ((f.ab === 8 ? 0.2 : 0) + 0.1 * f.streak) * fCB(f)) : 0);
 function pvpResolve(F, hA, hB, mySide, rng) {
@@ -4060,23 +4277,31 @@ function pvpResolve(F, hA, hB, mySide, rng) {
   const healS = (s, pct, list = out.after) => {
     const f = F[s], amt = r2(Math.min(f.max - f.hp, f.max * pct * (1 + mz(f.M, "heal"))));
     if (amt > 0 && f.hp > 0) { f.hp = r2(f.hp + amt); add(list, s, { k: "heal", amt }); }
+    return Math.max(0, amt);
+  };
+  const say = (s, list = out.after) => (text, amt) => {
+    if (amt > 0) add(list, s, { k: "heal", amt });
+    if (text) { add(list, s, { k: "fool", text }); out.lines.push(`<span class="p">${who(s)}の${esc(text)}</span>`); }
   };
   // 被ダメージ補正（kind: "lose" | "abil"）
   const hurt = (s, raw, kind) => {
     const f = F[s], M = f.M;
     let m = Math.max(0.1, 1 + mz(M, "dmgTaken") - (kind === "lose" ? mz(M, "loseTaken") : 0) - (f.hp <= f.max * 0.3 ? mz(M, "lowHpDef") : 0));
-    if (kind === "lose" && f.foolGuard) { m *= 0.5; f.foolGuard = false; }
+    if (kind === "lose") arcHangStore(f, M, raw);
+    m *= arcTaken(f, M, kind);
     if (!f.firstHitUsed && mz(M, "firstHit") > 0) { m *= 1 - Math.min(0.9, mz(M, "firstHit")); f.firstHitUsed = true; }
     let dmg = r2(raw * m);
     if (kind === "lose" && dmg > 0 && rng() < mz(M, "luck")) { dmg = 0; add(out.after, s, { k: "lucky" }); out.lines.push(`<span class="p">${who(s)}は幸運でダメージ0！</span>`); }
-    return { dmg, soft: m < 1 };
+    const sh = arcShield(f, dmg);
+    if (sh.abs > 0) { dmg = sh.dmg; add(out.after, s, { k: "block", text: `盾 −${fmt(sh.abs)}` }); out.lines.push(`<span class="p">${who(s)}の盾が${fmt(sh.abs)}ダメージを受けとめた</span>`); }
+    return { dmg, soft: m < 1 || sh.abs > 0 };
   };
   // isLoss=false はじゃんけんの負け以外（チャージ解放・あいこの一撃など）。ゴンはそれでは体力1より下がらない。実際に減った量を返す
   const finishHit = (s, dmg, canGuts, isLoss = true) => {
     const f = F[s], before = f.hp;
     let nh = isLoss ? r2(f.hp - dmg) : gonFloor(f.ab, f.hp, dmg);
     if (nh <= 0 && canGuts && f.ch === 4 && !f.guts) { f.guts = true; nh = Math.min(f.hp, 1); add(out.after, s, { k: "guts" }, true); out.lines.push(`<span class="p">${who(s)}は不屈で踏みとどまった！</span>`); }
-    if (nh <= 0 && mz(f.M, "judgeOn") && !f.judged) { f.judged = true; nh = r2(Math.min(f.max, 1 + f.max * mz(f.M, "judgement") * (1 + mz(f.M, "heal")))); add(out.after, s, { k: "judge" }, true); out.lines.push(`<span class="p">${who(s)}は審判でHP${fmt(nh)}から立ち上がった！</span>`); }
+    if (nh <= 0 && mz(f.M, "judgeOn") && !f.judged) { f.judged = true; nh = r2(Math.min(f.max, 1 + f.max * mz(f.M, "judgement") * (1 + mz(f.M, "heal")))); add(out.after, s, { k: "judge" }, true); out.lines.push(`<span class="p">${who(s)}は世界の力でHP${fmt(nh)}から立ち上がった！</span>`); }
     f.hp = r2(Math.max(0, nh));
     return r2(before - f.hp);
   };
@@ -4090,22 +4315,14 @@ function pvpResolve(F, hA, hB, mySide, rng) {
   };
   // ツツミのグー強制は1ラウンドだけ（このラウンドが強制だったかを覚えて、続けて強制しない）
   for (const s of ["A", "B"]) { F[s].forcedNow = !!F[s].forceG; F[s].forceG = false; }
-  // 愚者：ラウンドのはじめに判定
-  for (const s of ["A", "B"]) {
-    const f = F[s];
-    if (rng() < mz(f.M, "fool")) {
-      const t = Math.floor(rng() * 3);
-      if (t === 0) { healS(s, 0.08, out.pre); add(out.pre, s, { k: "fool", text: "愚者：回復" }); }
-      else if (t === 1) { f.foolWin = true; add(out.pre, s, { k: "fool", text: "愚者：次の勝ち×1.3" }); }
-      else { f.foolGuard = true; add(out.pre, s, { k: "fool", text: "愚者：次の負け半減" }); }
-    }
-  }
+  // 大アルカナ：ラウンドのはじめ（愚者など）
+  for (const s of ["A", "B"]) arcTurnStart(F[s], F[s].M, rng, say(s, out.pre));
   if (res === "draw") {
     out.lines.push(`<span class="y">ラウンド${ON.r} あいこ（${HN[hA]}）</span>`);
     for (const s of ["A", "B"]) {
       const f = F[s]; f.afterDraw = true;
       if (f.ch === 6) { f.streak++; add(out.after, s, { k: "streak", n: f.streak, calm: true }); }
-      if (mz(f.M, "drawHeal") > 0) healS(s, mz(f.M, "drawHeal"));
+      if (mz(f.M, "drawHeal") > 0) { const amt = healS(s, mz(f.M, "drawHeal")); if (mz(f.M, "tempStore")) f.ms.temp = r2(f.ms.temp + amt); }
     }
     for (const s of ["A", "B"]) {
       const f = F[s], o = F[oth(s)];
@@ -4138,10 +4355,10 @@ function pvpResolve(F, hA, hB, mySide, rng) {
       + (fw.revenge ? mz(M, "revenge") : 0);
     fw.revenge = false; fl.revenge = true;
     const charged = fw.charge; if (charged) fw.charge = false;
-    const foolWin = fw.foolWin; fw.foolWin = false;
+    const aw = arcWin(fw, M, say(W)), foolWin = aw.add > 0;
     // マサ：グーで負けたときは、相手の攻撃力アップ（連勝・チャージ・カード・逆境など）を受けず基礎攻撃力だけ
     const steady = fl.ch === STEADY_CH && hl === G_;
-    let raw = steady ? fw.atk : fAtkOf(fw) * mult * (charged ? 3 + mz(M, "charBoost") : 1) * bonus * (foolWin ? 1.3 : 1) + mz(M, "towerAtk") * fw.atk;
+    let raw = steady ? fw.atk : fAtkOf(fw) * mult * (charged ? 3 + mz(M, "charBoost") : 1) * (bonus + aw.add) + mz(M, "towerAtk") * fw.atk + aw.flat;
     // ウガチ：チョキで勝つと、守り（無敵・岩の守り・カードの軽減）も反射（返しの刃・カードの反射）も無視
     const pierce = fw.ch === PIERCE_CH && hw === C_;
     const tag = steady ? "（不動：強化を受けない）" : (N > 0 ? `（${fw.streak}連勝 ×${fmt(mult)}）` : "") + (charged ? "（チャージ）" : "") + (bonus > 1.001 ? `（カード ×${fmt(bonus)}）` : "") + (pierce ? "（穿ち：守り無視）" : "");
@@ -4167,8 +4384,13 @@ function pvpResolve(F, hA, hB, mySide, rng) {
     if (hp > 0) healS(W, hp);
     fw.afterDraw = false; fl.afterDraw = false;
   }
-  // ラウンドの終わり：星などの回復
+  // 大アルカナ：結果でたまる数を動かす
+  const R = { A: res === "win" ? "win" : res === "lose" ? "lose" : "draw" };
+  R.B = { win: "lose", lose: "win", draw: "draw" }[R.A];
+  for (const s of ["A", "B"]) arcResult(F[s], F[s].M, R[s], H[s], F[s].ab, say(s));
+  // ラウンドの終わり：女帝・節制などの回復、塔、悪魔の次の宣言
   for (const s of ["A", "B"]) { const f = F[s]; if (f.hp > 0 && mz(f.M, "regen") > 0) healS(s, mz(f.M, "regen")); }
+  for (const s of ["A", "B"]) arcTurnEnd(F[s], F[s].M, rng, say(s));
   return out;
 }
 
@@ -4286,7 +4508,8 @@ function fighterChips(f) {
   if (f.ch === 7) { const v = Math.min(1, 0.2 * f.losses); s += chip(`逆境 +${Math.round(v * 100)}%`, "c-rage", v > 0); }
   if (f.ch === 8) { const v = fDefOf(f); s += chip(`防御 ${Math.round(v * 100)}%`, "c-def", v > 0); }
   if (f.ch === 9) s += chip(`返しの刃 ${fmt(f.atk * KAGE_RATE)}`, "c-def");
-  if (mz(f.M, "judgeOn") && !f.judged) s += chip("審判（残1）", "c-guts");
+  if (mz(f.M, "judgeOn") && !f.judged) s += chip("世界（残1）", "c-guts");
+  s += arcChips(f, f.M);
   return s + cardChips((f.cards || []).map(([c, r, l]) => ({ c, r, l })), isRev(f.ch));
 }
 function renderOnline() {
