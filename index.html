@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-02-0043";
+  window.JQ_VER = "2026-11-02-0116";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -203,6 +203,11 @@ details.rules ul { margin: 8px 0 2px; padding-left: 1.2em; color: var(--dim); fo
 .hp i { background: var(--matcha); transition: width .25s ease; }
 .hp i.mid { background: var(--gold); }
 .hp i.low { background: var(--danger); }
+/* 盾：HPバーのすぐ下に、同じ形の青いバー（長さは最大HPに対する盾の量） */
+.hp.shieldbar { margin-top: 4px; }
+/* 教皇：キャラごとの効果（効果の行のすぐ下に小さく） */
+.hiero { margin: 2px 0 4px 8px; font-size: .78rem; line-height: 1.5; color: var(--dim); }
+.hp.shieldbar i { background: #7fb6ff; }
 .chips { display: flex; gap: 5px; flex-wrap: wrap; }
 .chip { font-size: .72rem; padding: 0 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
 .chip.on { color: var(--night); border-color: transparent; font-weight: 700; animation: chipIn .3s cubic-bezier(.2, 1.8, .4, 1); }
@@ -2148,8 +2153,8 @@ const MAJOR_DEF = [
     [["startShield", .15, .30], ["shieldAtk", .05, .15]], "開始時に最大HPの{0}の盾を得る。盾が残っている間、攻撃力 +{1}",
     [["atk", .20, .45], ["bareTaken", .15, .15, "c"]], "攻撃力 +{0}。ただし盾がないときに負けると、受けるダメージ +{1}"],
   ["hierophant", "教皇", "crown",
-    [["charBoost", .10, .30]], "キャラ固有能力が強くなる（強さ +{0}）。キリのチャージ・ハルの回復が増える。テツは無敵が切れたあと、ゴンはグーで勝つと、次に受けるダメージ減。マサはグーで負けたときのダメージ減。ウガチのチョキ勝ち、ツツミのグーに固めた相手へのパー勝ちはダメージ増",
-    [["echo", .20, .50]], "キャラ固有能力が働いた次のターン、その能力がもう一度だけ弱く（{0}）働く。レンの連撃・ガロウの逆境・ホムラの傷の炎・イワオの守りが強まり、ナギは{0}の確率で連勝+1、カゲは弱い返しの刃。シズクは体力・攻撃力の低下がなくなり、レベルが上がるとさらに強くなる（最大+10%）"],
+    [["charBoost", .10, .30]], "キャラ固有能力が強くなる（強さ +{0}）",
+    [["echo", .20, .50]], "能力が働いた次のターン、もう一度弱く（{0}）働く"],
   ["lovers", "恋人", "heart",
     [["loseTaken", .08, .25]], "負けたときに受けるダメージ −{0}",
     [["winMul", .10, .35]], "勝ったときに与えるダメージ +{0}"],
@@ -2509,7 +2514,6 @@ function arcTurnEnd(f, M, rnd, say) {
 function arcChips(f, M) {
   const ms = f.ms; if (!ms) return "";
   let s = "";
-  if (ms.shd > 0) s += chip(`盾 ${fmt(ms.shd)}`, "c-def");
   if (ms.devilH != null) s += chip(`悪魔の宣言 ${HN[ms.devilH]}`, "c-read");
   const a = arcAtk(f, M);
   if (Math.abs(a) >= 0.005) s +=chip(`アルカナ 攻撃${a >= 0 ? "+" : "−"}${Math.round(Math.abs(a) * 100)}%`, a >= 0 ? "c-rage" : "c-read");
@@ -2592,10 +2596,34 @@ const artHTML = (c, r, rev, cls = "") => `<span class="cfig${rev ? " rev" : ""}"
 const paintAll = root => root.querySelectorAll("canvas.cart").forEach(paintCard);
 const stars = r => "★".repeat(r + 1);
 
-// カード1枚の表示。正位置・逆位置の両方を出し、いま選んでいるキャラで使う方を強調する
-function tileHTML(x, extra = "", badge = "", cls = "", style = "", revOv) {
-  const c = CARD[x.c], R = RAR[x.r], rev = revOv ?? isRev(S.charId), aw = awakenText(c, x.r);
-  const line = (isR, on) => `<div class="fxline${on ? " on" : ""}"><span class="pos ${isR ? "down" : "up"}">${isR ? "逆位置" : "正位置"}</span><span>${cardText(c, x.l, x.r, isR)}</span></div>`;
+// どちらの向きで見せるか。図鑑はキャラに関係なく自分で切りかえ、それ以外（装備・所持など）はいまのキャラの向き
+const posRev = () => (S.screen === "cards" && CD.tab === "book" ? !!CD.bookRev : isRev(S.charId));
+// 教皇：キャラごとに何が起きるか（v はそのカードの強さ）。図鑑では選んだ向きのキャラ全員、それ以外はいまのキャラだけ出す
+const HIERO_UP = {
+  1: v => `無敵が切れたあと、次の被ダメ −${pctS(0.75 * v)}`, 2: v => `チャージ ×${numS(3 + v)}`, 3: v => `癒しの掌の回復 +${pctS(v)}`,
+  4: v => `グーで勝つと、次の被ダメ −${pctS(0.75 * v)}`, 11: v => `グーに固めた相手へのパー勝ち ×${numS(1 + v)}`,
+  12: v => `チョキ勝ちのダメージ ×${numS(1 + v)}`, 14: v => `グーで負けたときの被ダメ −${pctS(0.75 * v)}`,
+};
+const HIERO_REV = {
+  5: v => `2連勝以上で勝った次のターン、連撃 ×${numS(1 + v)}`, 6: v => `あいこの次のターン、${pctS(v)}の確率で連勝+1`,
+  7: v => `負けた次のターン、逆境 ×${numS(1 + v)}`, 8: v => `勝った次のターン、岩の守り ×${numS(1 + v)}`,
+  9: v => `負けた次のターン、返しの刃（${pctS(v)}）がもう一度`, 10: v => `体力・攻撃力 ${pctS(sealRateOf({ echo: v }))}（低下なし）`,
+  13: v => `HPが減った状態で勝った次のターン、傷の炎 ×${numS(1 + v)}`,
+};
+const pctS = v => `${Math.round(v * 1000) / 10}%`, numS = v => String(Math.round(v * 100) / 100);
+function hieroHTML(c, x, rev, who = S.charId) {
+  if (c.id !== "hierophant") return "";
+  const v = cardVals(c, x.l, x.r, rev)[0][0], tbl = rev ? HIERO_REV : HIERO_UP;
+  const book = S.screen === "cards" && CD.tab === "book";
+  const ids = book ? CHARS.filter(ch => isRev(ch.id) === rev).map(ch => ch.id) : [who];
+  const rows = ids.filter(id => tbl[id]).map(id => `<div>└ ${charOf(id).name}：${tbl[id](v)}</div>`).join("");
+  return rows ? `<div class="hiero">${rows}</div>` : "";
+}
+// カード1枚の表示。正位置・逆位置の両方を出し、いま見ている向きを強調する
+// who：カードを持っているキャラ（バトル中の能力画面で、相手のカードを見るとき用）。なければいまのキャラ
+function tileHTML(x, extra = "", badge = "", cls = "", style = "", revOv, who) {
+  const c = CARD[x.c], R = RAR[x.r], rev = revOv ?? posRev(), aw = awakenText(c, x.r);
+  const line = (isR, on) => `<div class="fxline${on ? " on" : ""}"><span class="pos ${isR ? "down" : "up"}">${isR ? "逆位置" : "正位置"}</span><span>${cardText(c, x.l, x.r, isR)}</span></div>${on ? hieroHTML(c, x, isR, who) : ""}`;
   return `<div class="ctile ${cls}" style="--rc:${R.color};${style}">${badge}
     ${artHTML(c, x.r, rev)}
     <div class="cmeta">
@@ -2654,7 +2682,7 @@ const EFF_OF = {
 };
 const effPass = id => {
   if (CD.eff === "all") return true;
-  const c = CARD[id], fx = isRev(S.charId) ? c.rv : c.fx, fs = EFF_OF[CD.eff] || [];
+  const c = CARD[id], fx = posRev() ? c.rv : c.fx, fs = EFF_OF[CD.eff] || [];
   // 攻撃力・最大HP・回復量はマイナス（代償）なら数えない。受けるダメージはマイナスが良い方
   return fx.some(([f, v]) => fs.includes(f) && (f === "dmgTaken" ? v < 0 : ["atk", "maxHp", "heal"].includes(f) ? v > 0 : true));
 };
@@ -2669,10 +2697,16 @@ const effBar = (withType = true) => {
   if (CD.open === "eff") h += `<div class="tabs effbar">${EFF_FILTERS.map(([f, n]) => `<button class="tab sm${CD.eff === f ? " on" : ""}" data-act="eff" data-f="${f}">${f === "all" ? "なし（すべて）" : n}</button>`).join("")}</div>`;
   return h;
 };
-let CD = { tab: "equip", pick: null, filter: "all", eff: "all", gacha: null, hl: null, sel: null };
+let CD = { tab: "equip", pick: null, gacha: null, hl: null, sel: null };
+// 絞り込み（種類・効果・開いているメニュー）は、アルカナ（装備・所持）と図鑑で別々に覚える
+const CD_FILT = { arcana: { filter: "all", eff: "all", open: null }, book: { filter: "all", eff: "all", open: null } };
+for (const k of ["filter", "eff", "open"]) Object.defineProperty(CD, k, {
+  get: () => CD_FILT[CD.tab === "book" ? "book" : "arcana"][k],
+  set: v => { CD_FILT[CD.tab === "book" ? "book" : "arcana"][k] = v; },
+});
 function renderCards() {
   $("cd-coins").textContent = `${CS.coins.toLocaleString()} コイン`;
-  $("scr-cards").classList.toggle("rev", isRev(S.charId)); // 背景色：正位置は金、逆位置は紫
+  $("scr-cards").classList.toggle("rev", posRev()); // 背景色：正位置は金、逆位置は紫
   document.querySelectorAll("#cd-tabs .tab").forEach(t => t.classList.toggle("on", t.dataset.tab === CD.tab));
   const body = $("cd-body");
   body.innerHTML = { equip: htmlEquip, own: htmlOwn, gacha: htmlGacha, shop: htmlShop, book: htmlBook }[CD.tab]();
@@ -2775,8 +2809,12 @@ function htmlShop() {
 }
 function htmlBook() {
   const seen = new Set(CS.seen);
-  // 絞り込み（所持カードと同じ並び）。選んだものは CD.filter に入り、所持カードと共通
-  let h = effBar();
+  // 絞り込み（所持カードと同じ並び）。図鑑の絞り込みは所持カードとは別に覚える
+  // 向きの切りかえ（図鑑だけ）。その向きで装備するキャラも出す
+  const rv = !!CD.bookRev, users = CHARS.filter(ch => isRev(ch.id) === rv).map(ch => ch.name).join("・");
+  let h = `<div class="tabs posbar"><button class="tab${rv ? "" : " on"}" data-act="bookpos" data-v="0" aria-pressed="${!rv}">正位置</button><button class="tab${rv ? " on" : ""}" data-act="bookpos" data-v="1" aria-pressed="${rv}">↻ 逆位置</button></div>
+    <p class="sub">${rv ? "逆位置" : "正位置"}で装備するキャラ：${users}</p>`;
+  h += effBar();
   h += `<p class="sub">図鑑 ${seen.size} / ${CARDS.length}。手に入れたことのあるカードは、ノーマルLv1の効果が見られる。</p>`;
   const item = c => seen.has(c.id)
     ? ["b" + c.id, miniTile({ c: c.id, r: 0, l: 1 }, "b" + c.id), () => tileHTML({ c: c.id, r: 0, l: 1 })]
@@ -2801,6 +2839,7 @@ function cardAct(act, d) {
     return;
   }
   if (act === "filter") { CD.filter = d.f; CD.open = null; CD.sel = null; renderCards(); return; }
+  if (act === "bookpos") { CD.bookRev = d.v === "1"; renderCards(); return; }
   if (act === "fopen") { CD.open = CD.open === d.k ? null : d.k; renderCards(); return; }
   if (act === "eff") { CD.eff = d.f; CD.open = null; CD.sel = null; renderCards(); return; }
   if (act === "equip" || act === "unequip") {
@@ -3748,12 +3787,23 @@ function setCall(t, cls) { const el = $("callout"); el.textContent = t; el.class
 function popCall() { play_($("callout"), [{ transform: "translateX(-50%) scale(.3)", opacity: 0 }, { transform: "translateX(-50%) scale(1.25)", opacity: 1, offset: .6 }, { transform: "translateX(-50%)" }], 300, "ease-out"); }
 function setHandsDisabled(v) { for (let i = 0; i < 3; i++) $("h" + i).disabled = v; }
 
-function hpBar(bar, trail, hp, max) {
+function hpBar(bar, trail, hp, max, shd = 0) {
   const pct = Math.max(0, hp / max * 100) + "%";
   bar.style.width = pct; trail.style.width = pct;
   const n = hp / max * 100;
   bar.className = n <= 25 ? "low" : n <= 50 ? "mid" : "";
+  // 盾（大アルカナ）があるときは、HPバーの下に盾のバーを出す
+  const hp0 = bar.parentElement;
+  let sb = hp0.nextElementSibling;
+  if (!sb || !sb.classList.contains("shieldbar")) {
+    if (shd <= 0) return;
+    sb = document.createElement("div"); sb.className = "hp shieldbar"; sb.innerHTML = "<b></b><i></i>"; hp0.after(sb);
+  }
+  sb.hidden = shd <= 0;
+  const sp = Math.min(100, Math.max(0, shd / max * 100)) + "%";
+  sb.querySelector("i").style.width = sp; sb.querySelector("b").style.width = sp;
 }
+const hpText = (hp, max, shd, atk) => `HP ${fmt(hp)}/${max}${shd > 0 ? `　盾 ${fmt(shd)}` : ""}　ATK ${fmt(atk)}`;
 function chip(text, cls, on = true) { return `<span class="chip ${on ? "on " + cls : ""}">${text}</span>`; }
 function setHTML(el, html) { if (el.dataset.h !== html) { el.innerHTML = html; el.dataset.h = html; } }
 
@@ -3803,8 +3853,9 @@ function renderBattle() {
 
   // プレイヤー
   setHTML($("p-name"), `<span class="badge" style="color:${c.color};width:28px;height:28px;font-size:.9rem;border-width:2px">${charFace(c.id)}</span><span>${c.name}（${c.title}）</span>`);
-  $("p-hpn").textContent = `HP ${fmt(p.hp)}/${p.max}　ATK ${fmt(pAtk(p))}`;
-  hpBar($("p-hp"), $("p-trail"), p.hp, p.max);
+  const pshd = p.ms ? p.ms.shd : 0;
+  $("p-hpn").textContent = hpText(p.hp, p.max, pshd, pAtk(p));
+  hpBar($("p-hp"), $("p-trail"), p.hp, p.max, pshd);
   $("ppanel").classList.toggle("hot", p.streak >= 2);
   $("ppanel").classList.toggle("danger", p.hp > 0 && p.hp <= p.max * 0.3 && p.streak < 2);
   let pc = chip(`${p.streak}連勝　次の勝ち×${fmt(1 + p.streak * pRate())}`, "c-streak", p.streak > 0);
@@ -4562,13 +4613,13 @@ function renderOnline() {
       <div class="hp"><b></b><i></i></div><div class="chips"></div><div class="trait">${co.ab}</div>`;
   }
   el.className = "panel";
-  el.querySelector(".hpnum").textContent = `HP ${fmt(op.hp)}/${op.max}　ATK ${fmt(fAtkOf(op))}`;
-  hpBar(el.querySelector(".hp i"), el.querySelector(".hp b"), op.hp, op.max);
+  el.querySelector(".hpnum").textContent = hpText(op.hp, op.max, op.ms ? op.ms.shd : 0, fAtkOf(op));
+  hpBar(el.querySelector(".hp i"), el.querySelector(".hp b"), op.hp, op.max, op.ms ? op.ms.shd : 0);
   setHTML(el.querySelector(".chips"), fighterChips(op)); paintAll(el);
 
   setHTML($("p-name"), `${badge(cm)}<span>${esc(ON.myNick)}（${cm.name}）</span>`);
-  $("p-hpn").textContent = `HP ${fmt(me.hp)}/${me.max}　ATK ${fmt(fAtkOf(me))}`;
-  hpBar($("p-hp"), $("p-trail"), me.hp, me.max);
+  $("p-hpn").textContent = hpText(me.hp, me.max, me.ms ? me.ms.shd : 0, fAtkOf(me));
+  hpBar($("p-hp"), $("p-trail"), me.hp, me.max, me.ms ? me.ms.shd : 0);
   $("ppanel").classList.toggle("hot", me.streak >= 2);
   $("ppanel").classList.toggle("danger", me.hp > 0 && me.hp <= me.max * 0.3 && me.streak < 2);
   setHTML($("p-chips"), fighterChips(me)); paintAll($("p-chips"));
@@ -4644,7 +4695,7 @@ function charInfoHTML(ch, nick, cards, statusHTML = "") {
     <div class="who"><span class="badge" style="color:${c.color}">${charFace(c.id)}</span><span class="grow"><b>${c.name}</b> <span class="sub">${c.title}</span>
       <span class="pos ${rev ? "down" : "up"}" style="margin-left:6px">${rev ? "逆位置" : "正位置"}</span><br><span class="sub" style="color:var(--ink)">${c.ab}</span>${statusHTML}</span></div></div>
     <div class="info-sec"><h3>タロット（${cards.length}枚）</h3>
-    ${cards.length ? `<div class="cgrid">${cards.map(x => tileHTML(x, "", "", "", "", rev)).join("")}</div>` : `<p class="sub">装備していません。</p>`}</div>`;
+    ${cards.length ? `<div class="cgrid">${cards.map(x => tileHTML(x, "", "", "", "", rev, ch)).join("")}</div>` : `<p class="sub">装備していません。</p>`}</div>`;
 }
 // バトル中：自分のキャラ・タロットと、相手の特性を見る
 function openBattleInfo() {
@@ -4652,7 +4703,7 @@ function openBattleInfo() {
     const me = ON.F[ON.side], op = ON.F[oth(ON.side)];
     const toX = f => (f.cards || []).map(([c, r, l]) => ({ c, r, l }));
     openInfo("能力", charInfoHTML(me.ch, ON.myNick, toX(me)) + `<hr style="border:0;border-top:1px solid var(--line);width:100%">` + charInfoHTML(op.ch, ON.oppNick, toX(op))
-      + `<p class="sub">オンライン対戦では、予測・妨害系のカード（女教皇・月・隠者・死神など）は効きません。</p>`);
+      + `<p class="sub">オンライン対戦では、敵の手を読む・読ませないカード（ソードの2・3・5・7など）は効きません。</p>`);
     return;
   }
   const b = S.battle; if (!b) return;
