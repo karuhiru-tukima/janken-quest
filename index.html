@@ -1915,7 +1915,7 @@ const CHARS = [
   { id: 9, name: "カゲ", title: "返しの刃", glyph: "返", color: "#7fd6d6",
     ab: "ダメージを受けると、<b>基礎攻撃力の35%</b>のダメージを相手に返す（カードなどの強化はのらない）。" },
   { id: 10, name: "シズク", title: "封じの札", glyph: "封", color: "#c8a0f0",
-    ab: "相手の<b>常に働く能力</b>を封じる（条件で発動する能力は封じない）。かわりに<b>体力・攻撃力85%</b>。" },
+    ab: "相手の<b>常に働く能力</b>と、敵の<b>あいこでのダメージ</b>を封じる（ほかの条件で発動する能力は封じない）。かわりに<b>体力・攻撃力85%</b>。" },
   { id: 11, name: "ツツミ", title: "包みの掌", glyph: "包", color: "#f6b8d8",
     ab: "<b>パー</b>で勝つと、次のターン相手は<b>グーしか出せない</b>（強制されたグーに勝っても、続けては強制できない）。" },
   { id: 12, name: "ウガチ", title: "穿ちの刃", glyph: "穿", color: "#e8d860",
@@ -1930,7 +1930,7 @@ const FORCE_CH = 11, PIERCE_CH = 12, SCAR_CH = 13, STEADY_CH = 14; // ツツミ�
 const scarBonus = (hp, max, cb) => Math.min(cb, cb * Math.max(0, max - hp) / max);
 const SEAL_CH = 10, SEAL_RATE = 0.85; // シズク：相手の「常時発動」の能力を封じるかわりに、体力と攻撃力が85%
 // 封じられる（いつでも働いている）能力。「グーで勝ったら」「あいこで」「殴られたら」などの条件で発動するものは封じない
-const SEAL_ABIL = new Set(["king", "gale", "regen", "mirage"]);  // 敵：王の連撃・疾風・再生・幻影
+const SEAL_ABIL = new Set(["king", "gale", "regen", "mirage", "rock", "thunder"]);  // 敵：王の連撃・疾風・再生・幻影、あいこのダメージ（岩肌・雷鳴）
 const SEAL_PASSIVE_CH = new Set([4, 5, 8, 13]);                  // 味方：ゴンの不屈の体・レンの連勝倍率・イワオの軽減・ホムラの傷の炎
 const sealedAbil = a => S.charId === SEAL_CH && SEAL_ABIL.has(a);
 // 敵の能力の説明（封じたものは打ち消し線と「封印中」）
