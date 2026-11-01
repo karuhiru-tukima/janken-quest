@@ -3643,14 +3643,16 @@ function finish(won) {
     sfx("lose");
   }
   showReward(grantRewards(b, won));
-  btns.push(["ロビー（対戦）へ", "", () => { S.battle = null; clearStage(); show("stage"); }]);
+  // ボタンの並び：勝ったら「次のステージへ」を右（進む方向）、負けたら「もう一度」を左
+  const lobby = ["ロビー（対戦）へ", "", () => { S.battle = null; clearStage(); show("stage"); }];
+  if (won) btns.unshift(lobby); else btns.push(lobby);
   const box = $("r-btns"); box.innerHTML = "";
   btns.forEach(([t, cls, fn], i) => {
     const el = document.createElement("button"); el.className = "btn " + cls; el.textContent = t; el.id = "r-btn-" + i;
     el.onclick = () => { $("result").hidden = true; fn(); };
     box.appendChild(el);
   });
-  setTimeout(() => { $("result").hidden = false; box.firstChild.focus(); }, won ? T(700) : 0);
+  setTimeout(() => { $("result").hidden = false; (box.querySelector(".primary") || box.firstChild).focus(); }, won ? T(700) : 0); // Enterで「次へ／もう一度」
 }
 
 /* =========================================================
@@ -4368,7 +4370,7 @@ function openInfo(title, html, btns = []) {
   box.hidden = !btns.length;
   $("info").hidden = false; paintAll($("info-body"));
   $("info-body").scrollTop = 0;
-  (box.firstChild || $("info-close")).focus();
+  (box.querySelector(".primary") || box.firstChild || $("info-close")).focus();
 }
 function closeInfo() { $("info").hidden = true; }
 $("info-close").onclick = closeInfo;
@@ -4415,8 +4417,8 @@ function openStagePreview(w, i) {
   if (bosses.length) h += `<div class="info-sec"><h3>ボスの特性</h3>${bosses.map(([t, hits, atk]) => enemyPrevHTML(TPL[t], `HP ${half(hits * ps.atk)}・ATK ${fmt(atk ?? W.atk)}`)).join("")}</div>`;
   h += `<div class="info-sec"><h3>出てくる順番</h3>${list.map(([t, hits, atk], n) => enemyPrevHTML(TPL[t], `${n + 1}体目・HP ${half(hits * ps.atk)}・ATK ${fmt(atk ?? W.atk)}`)).join("")}</div>`;
   openInfo(`${key(w, i)}${boss ? " BOSS" : ""}　${W.name}`, h, [
-    ["出撃する", "primary", () => { closeInfo(); startBattle(w, i); }],
     ["やめる", "", closeInfo],
+    ["出撃する", "primary", () => { closeInfo(); startBattle(w, i); }], // 進む方は右
   ]);
 }
 
