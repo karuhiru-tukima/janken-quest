@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-01-2346";
+  window.JQ_VER = "2026-11-02-0043";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -1901,7 +1901,7 @@ const CHARS = [
   { id: 2, name: "キリ", title: "二刀の刃", glyph: "刃", color: "#f483b0",
     ab: "<b>チョキ</b>で勝つと<b>チャージ</b>。次に勝てばダメージ<b>3倍</b>。あいこなら相手に攻撃力の半分のダメージで解除。負けると何もなく解除。" },
   { id: 3, name: "ハル", title: "癒しの掌", glyph: "癒", color: "#8ed69a",
-    ab: "<b>パー</b>で勝つと、相手の攻撃<b>1.3回分</b>の体力を回復。" },
+    ab: "<b>パー</b>で勝つと、相手の攻撃<b>1.5回分</b>の体力を回復。" },
   { id: 4, name: "ゴン", title: "不屈の男", glyph: "根", color: "#ff9a4a",
     ab: "<b>グー</b>で負けて倒れるはずのとき、<b>1回だけ</b>体力1で耐える（1ステージに1回）。さらに<b>じゃんけんで負けたとき以外のダメージ</b>（反撃・トゲ・あいこのダメージなど）では倒れず、体力1以下のときは受けない。" },
   { id: 5, name: "レン", title: "連撃の風", glyph: "連", color: "#9fc5ff",
@@ -2137,66 +2137,66 @@ const MAJOR_DEF = [
     "各ターンのはじめ、3分の1の確率で「次の勝ちのダメージ+{0}」か「次に受けるダメージ+{1}」のどちらかが起きる"],
   ["magician", "魔術師", "star",
     [["atk", .05, .25]], "基礎攻撃力 +{0}",
-    [["atk", .30, .60], ["drawCost", .03, .03, "c"]], "基礎攻撃力 +{0}。ただし、あいこになると最大HPの{1}を失う"],
+    [["atk", .25, .50], ["drawCost", .03, .03, "c"]], "基礎攻撃力 +{0}。ただし、あいこになると最大HPの{1}を失う"],
   ["priestess", "女教皇", "moon",
-    [["priGrow", .02, .05], ["priCap", .12, .30]], "1ターンごとに攻撃力 +{0}。最大 +{1}までたまる",
-    [["priRev", .20, .50]], "開始時に攻撃力 +{0}。1ターンごとに少しずつ減り、5ターンでなくなる"],
+    [["priGrow", .03, .06], ["priCap", .15, .36]], "1ターンごとに攻撃力 +{0}。最大 +{1}までたまる",
+    [["priRev", .35, .80]], "開始時に攻撃力 +{0}。1ターンごとに少しずつ減り、5ターンでなくなる"],
   ["empress", "女帝", "heart",
-    [["regen", .03, .07]], "ターンの終わりに最大HPの{0}回復",
+    [["regen", .015, .035]], "ターンの終わりに最大HPの{0}回復",
     [["empDmg", .30, .70], ["empCost", .06, .06, "c"]], "勝つと最大HPの{1}を使って、与えるダメージ +{0}（HPが足りないときは使わない）"],
   ["emperor", "皇帝", "crown",
     [["startShield", .15, .30], ["shieldAtk", .05, .15]], "開始時に最大HPの{0}の盾を得る。盾が残っている間、攻撃力 +{1}",
     [["atk", .20, .45], ["bareTaken", .15, .15, "c"]], "攻撃力 +{0}。ただし盾がないときに負けると、受けるダメージ +{1}"],
   ["hierophant", "教皇", "crown",
-    [["charBoost", .10, .30]], "キャラ固有能力の効果量 +{0}（発動の条件や回数は変わらない）",
-    [["echo", .30, .60]], "キャラ固有能力が働いた次のターン、その力がもう一度だけ弱く（{0}）働く"],
+    [["charBoost", .10, .30]], "キャラ固有能力が強くなる（強さ +{0}）。キリのチャージ・ハルの回復が増える。テツは無敵が切れたあと、ゴンはグーで勝つと、次に受けるダメージ減。マサはグーで負けたときのダメージ減。ウガチのチョキ勝ち、ツツミのグーに固めた相手へのパー勝ちはダメージ増",
+    [["echo", .20, .50]], "キャラ固有能力が働いた次のターン、その能力がもう一度だけ弱く（{0}）働く。レンの連撃・ガロウの逆境・ホムラの傷の炎・イワオの守りが強まり、ナギは{0}の確率で連勝+1、カゲは弱い返しの刃。シズクは体力・攻撃力の低下がなくなり、レベルが上がるとさらに強くなる（最大+10%）"],
   ["lovers", "恋人", "heart",
-    [["loseTaken", .10, .35]], "負けたときに受けるダメージ −{0}",
+    [["loseTaken", .08, .25]], "負けたときに受けるダメージ −{0}",
     [["winMul", .10, .35]], "勝ったときに与えるダメージ +{0}"],
   ["chariot", "戦車", "wheel",
     [["maxHp", .10, .25], ["atk", .05, .15]], "最大HP +{0}、攻撃力 +{1}",
-    [["chaWin", .05, .12], ["chaShield", .05, .10]], "勝つたび攻撃力 +{0}（3回まで）。負けるとたまった分が消え、最大HPの{1}の盾を得る"],
+    [["chaWin", .05, .12], ["chaShield", .03, .06]], "勝つたび攻撃力 +{0}（3回まで）。負けるとたまった分が消え、最大HPの{1}の盾を得る"],
   ["strength", "力", "sun",
     [["winMul", .08, .25]], "勝ったときに与えるダメージ +{0}",
-    [["lowHpDmg", .20, .50]], "HPが半分以下のとき、勝って与えるダメージ +{0}"],
+    [["lowHpDmg", .30, .70]], "HPが半分以下のとき、勝って与えるダメージ +{0}"],
   ["hermit", "隠者", "eye",
     [["startShield", .20, .40]], "開始時に最大HPの{0}の盾を得る",
-    [["hermStack", .15, .30]], "負けるたび、次に勝ったときのダメージ +{0}（3回までたまる。勝つと使い切る）"],
+    [["hermStack", .20, .40]], "負けるたび、次に勝ったときのダメージ +{0}（3回までたまる。勝つと使い切る）"],
   ["wheel", "運命の輪", "wheel",
-    [["streakAdd", .05, .15]], "連勝ボーナスが、1連勝ごとにさらに +{0}",
-    [["lossStack", .10, .25]], "負けるたび攻撃力 +{0}（3回まで）。勝つと元に戻る"],
+    [["streakAdd", .10, .30]], "連勝ボーナスが、1連勝ごとにさらに +{0}",
+    [["lossStack", .12, .30]], "負けるたび攻撃力 +{0}（3回まで）。勝つと元に戻る"],
   ["justice", "正義", "scale",
     [["atk", .04, .15], ["dmgTaken", -.04, -.15]], "攻撃力 +{0}、受けるダメージ −{1}",
-    [["reflect", .10, .35], ["loseTaken", .10, .30]], "受けたダメージの{0}を相手に返す。負けたときのダメージ −{1}"],
+    [["reflect", .08, .20], ["loseTaken", .05, .15]], "受けたダメージの{0}を相手に返す。負けたときのダメージ −{1}"],
   ["hanged", "吊された男", "eye",
-    [["loseTaken", .20, .45], ["hangStore", .50, .50, "c"]], "負けたときのダメージ −{0}。軽くした分の{1}を、次に勝ったときに上乗せする",
-    [["hangWin", .25, .60], ["hangCost", .04, .04, "c"]], "毎ターン最大HPの{1}を使い、勝ったときのダメージ +{0}（HPが足りないときは使わない）"],
+    [["loseTaken", .10, .25], ["hangStore", .50, .50, "c"]], "負けたときのダメージ −{0}。軽くした分の{1}を、次に勝ったときに上乗せする",
+    [["hangWin", .40, .70], ["hangCost", .04, .04, "c"]], "毎ターン最大HPの{1}を使い、勝ったときのダメージ +{0}（HPが足りないときは使わない）"],
   ["death", "死神", "skull",
-    [["atk", .20, .50], ["deathCost", .15, .15, "c"]], "開始時に最大HPの{1}を失う。かわりに攻撃力 +{0}",
+    [["atk", .25, .50], ["deathCost", .15, .15, "c"]], "開始時に最大HPの{1}を失う。かわりに攻撃力 +{0}",
     [["deathLate", .30, .70], ["deathEarly", .15, .15, "c"]], "1〜6ターン目は攻撃力 −{1}。7ターン目から攻撃力 +{0}"],
   ["temperance", "節制", "scale",
-    [["regen", .015, .04], ["atk", .03, .10]], "ターンの終わりに最大HPの{0}回復、攻撃力 +{1}",
-    [["drawHeal", .03, .08], ["tempStore", 1, 1, "c"]], "あいこのたび最大HPの{0}回復。次に勝つと、たまった回復量と同じだけダメージを上乗せ"],
+    [["regen", .01, .025], ["atk", .03, .10]], "ターンの終わりに最大HPの{0}回復、攻撃力 +{1}",
+    [["drawHeal", .02, .05], ["tempStore", 1, 1, "c"]], "あいこのたび最大HPの{0}回復。次に勝つと、たまった回復量と同じだけダメージを上乗せ"],
   ["devil", "悪魔", "skull",
-    [["devilWin", .20, .50]], "毎ターン、グー・チョキ・パーのどれかを宣言（画面に出る）。その手で勝つと、次の勝ちのダメージ +{0}。ステージでは敵が宣言の手を出しやすい",
+    [["devilWin", .40, .90]], "毎ターン、グー・チョキ・パーのどれかを宣言（画面に出る）。その手で勝つと、次の勝ちのダメージ +{0}。ステージでは敵が宣言の手を出しやすい",
     [["devilRev", .40, 1.0], ["devilTaken", .25, .25, "c"]], "毎ターン手を宣言。宣言と違う手で勝つと、次の勝ちのダメージ +{0}。ただし次のターンは受けるダメージ +{1}"],
   ["tower", "塔", "tower",
     [["towerUp", .20, .50]], "HPがはじめて半分以下になったとき、攻撃力 +{0}（その試合のあいだずっと）",
     [["towerShield", .20, .50], ["towerDown", .25, .25, "c"]], "HPがはじめて半分以下になったとき、最大HPの{0}の盾を得る。かわりに攻撃力 −{1}"],
   ["star", "星", "star",
-    [["starStack", .05, .15]], "勝つたび攻撃力 +{0}（3回まで）。負けると元に戻る",
+    [["starStack", .10, .24]], "勝つたび攻撃力 +{0}（3回まで）。負けると元に戻る",
     [["starRev", .15, .35]], "負けるたび攻撃力 +{0}（3回まで）。勝つと元に戻る"],
   ["moon", "月", "moon",
-    [["moonGrow", .03, .08], ["moonCap", .15, .40]], "負けずにいる間、1ターンごとに攻撃力 +{0}（最大 +{1}）。負けると元に戻る",
-    [["moonRev", .10, .25]], "負けるたび、次に勝ったときのダメージ +{0}（3回まで）。勝つと元に戻る"],
+    [["moonGrow", .06, .14], ["moonCap", .25, .60]], "負けずにいる間、1ターンごとに攻撃力 +{0}（最大 +{1}）。負けると元に戻る",
+    [["moonRev", .15, .35]], "負けるたび、次に勝ったときのダメージ +{0}（3回まで）。勝つと元に戻る"],
   ["sun", "太陽", "sun",
-    [["sunStack", .03, .08]], "勝つたび攻撃力 +{0}（3回まで。負けても消えない）",
-    [["sunRev", .05, .12]], "勝てなかったターン（負け・あいこ）ごとに攻撃力 +{0}（3回まで）。勝つと元に戻る"],
+    [["sunStack", .05, .12]], "勝つたび攻撃力 +{0}（3回まで。負けても消えない）",
+    [["sunRev", .08, .18]], "勝てなかったターン（負け・あいこ）ごとに攻撃力 +{0}（3回まで）。勝つと元に戻る"],
   ["judgement", "審判", "crown",
     [["winHeal", .03, .08]], "勝つたび最大HPの{0}回復",
     [["lowHpAtk", .10, .30], ["lowHpDef", .20, .50]], "HPが半分以下で攻撃力 +{0}。HP30%以下で受けるダメージ −{1}"],
   ["world", "世界", "wheel",
-    [["worldUp", .10, .30]], "HPが多いほど攻撃力アップ（HP満タンで +{0}、HPが減ると下がる）",
+    [["worldUp", .15, .40]], "HPが多いほど攻撃力アップ（HP満タンで +{0}、HPが減ると下がる）",
     [["judgement", .05, .15]], "1ステージ（1試合）に1回、倒れる攻撃をHP1で耐え、最大HPの{0}回復"],
 ];
 const MINOR_DEF = {
@@ -2392,12 +2392,15 @@ function arcAtk(f, M) {
   a += mz(M, "worldUp") * Math.max(0, f.hp) / f.max;
   return a;
 }
-// ターンのはじめ（愚者・吊された男の逆・教皇の逆の回復）
-function arcTurnStart(f, M, rnd, say) {
+// ターンのはじめ（愚者・吊された男の逆・教皇の逆）。ch は実際に働くキャラ能力
+function arcTurnStart(f, M, rnd, say, ch) {
   const ms = f.ms; if (!ms || f.hp <= 0) return;
-  ms.vuln = ms.vulnNext; ms.vulnNext = false; ms.echo = ms.echoNext; ms.echoNext = null;
-  if (ms.echo) say(`教皇：${{ power: "能力の余韻（攻撃）", guard: "能力の余韻（守り）", heal: "能力の余韻（回復）" }[ms.echo]}`);
-  if (ms.echo === "heal") { const amt = arcHeal(f, M, 0.15 * mz(M, "echo")); if (amt > 0) say(null, amt); }
+  ms.vuln = ms.vulnNext; ms.vulnNext = false; ms.echo = ms.echoNext; ms.echoNext = null; ms.kageDone = false;
+  if (ms.echo) {
+    say(`教皇：${ECHO_NAME[ch] || "能力"}の余韻`);
+    // ナギ：凪の構えがもう一度（余韻の強さの確率で連勝+1）
+    if (ch === 6 && rnd() < mz(M, "echo")) { f.streak++; say("凪の余韻：連勝+1"); }
+  }
   if (mz(M, "foolWin") && rnd() < 1 / 3) {
     const t = Math.floor(rnd() * 3);
     if (t === 0) { ms.fWin = mz(M, "foolWin"); say(`愚者：次の勝ち+${Math.round(ms.fWin * 100)}%`); }
@@ -2426,7 +2429,6 @@ function arcWin(f, M, say) {
   add += mz(M, "hermStack") * ms.herm + mz(M, "moonRev") * ms.moonR; ms.herm = 0; ms.moonR = 0;
   if (ms.hangReady) { add += mz(M, "hangWin"); ms.hangReady = false; }
   if (ms.devil) { add += ms.devil; ms.devil = 0; }
-  if (ms.echo === "power") add += mz(M, "echo");
   flat = r2(ms.hang + ms.temp * mz(M, "tempStore")); ms.hang = 0; ms.temp = 0;
   return { add, flat };
 }
@@ -2438,7 +2440,7 @@ function arcTaken(f, M, kind) {
   if (ms.fTaken) { m *= 1 + ms.fTaken; ms.fTaken = 0; }
   if (kind === "lose" && ms.shd <= 0) m *= 1 + mz(M, "bareTaken");
   if (ms.vuln) m *= 1 + mz(M, "devilTaken");
-  if (ms.echo === "guard") m *= 1 - mz(M, "echo");
+  if (ms.cbGuard) { m *= 1 - ms.cbGuard; ms.cbGuard = 0; } // 教皇（正位置）：テツ・ゴンの守り
   return m;
 }
 // 盾で受ける。残ったダメージを返す
@@ -2449,13 +2451,21 @@ function arcShield(f, dmg) {
 }
 // 吊された男：負けで軽くした分をためる（raw は軽くする前のダメージ）
 const arcHangStore = (f, M, raw) => { if (f.ms && mz(M, "hangStore")) f.ms.hang = r2(f.ms.hang + raw * Math.min(0.9, mz(M, "loseTaken")) * mz(M, "hangStore")); };
-// 教皇の逆：キャラ能力が働いたかどうか（ch は実際に働くキャラ能力。封じられていたら 0）
+// 教皇の逆：キャラ能力が働いたかどうか（ch は実際に働くキャラ能力。封じられていたら 0）。逆位置で装備するキャラだけ
+// 余韻のターンは：レン＝連撃の伸び、ガロウ＝逆境、ホムラ＝傷の炎、イワオ＝岩の守りが（1＋強さ）倍。ナギ＝確率で連勝+1。カゲ＝弱い返しの刃
+const ECHO_NAME = { 5: "連撃", 6: "凪の構え", 7: "逆境", 8: "岩の守り", 9: "返しの刃", 13: "傷の炎" };
 function echoKind(ch, res, h, f) {
-  if (res === "win") return { 1: h === G_ && "guard", 2: h === C_ && "power", 3: h === P_ && "heal", 5: f.streak >= 2 && "power", 8: "guard", 10: "guard",
-    11: h === P_ && "power", 12: h === C_ && "power", 13: f.hp < f.max && "power" }[ch] || null;
-  if (res === "lose") return { 4: h === G_ && "guard", 7: "power", 9: "power", 14: h === G_ && "guard" }[ch] || null;
-  return ch === 6 ? "power" : null;
+  if (res === "win") return ch === 5 ? f.streak >= 2 : ch === 8 || (ch === 13 && f.hp < f.max);
+  if (res === "lose") return ch === 7 || ch === 9;
+  return ch === 6;
 }
+// 教皇（逆）の余韻ターンなら 1＋強さ、それ以外は 1
+const echoMul = (f, M) => (f.ms && f.ms.echo ? 1 + mz(M, "echo") : 1);
+// 教皇（逆）：シズクの体力・攻撃力の低下（85%）がなくなる。さらにレベルで上がる（Lv1で100%、Lv20で107.5%、レジェンド覚醒のLv20で110%）
+const sealRateOf = M => (mz(M, "echo") > 0 ? 1 + (mz(M, "echo") - 0.2) / 4 : SEAL_RATE);
+// 教皇（正）：テツ・ゴン・マサの守り（−）と、ツツミ・ウガチの攻め（×）。強さ+20%で −15%・×1.2
+const cbGuardOf = M => 0.75 * mz(M, "charBoost");
+const cbHitOf = M => 1 + mz(M, "charBoost");
 // じゃんけん1回の結果で、たまる数を動かす
 function arcResult(f, M, res, h, ch, say) {
   const ms = f.ms; if (!ms) return;
@@ -2482,7 +2492,7 @@ function arcResult(f, M, res, h, ch, say) {
       if (nh < f.hp) { say(`魔術師：HP−${fmt(r2(f.hp - nh))}`); f.hp = nh; }
     }
   }
-  if (mz(M, "echo") && !ms.echo) { const k = echoKind(ch, res, h, f); if (k) ms.echoNext = k; }
+  if (mz(M, "echo") && !ms.echo && echoKind(ch, res, h, f)) ms.echoNext = true;
 }
 // ターンの終わり（塔・悪魔の次の宣言）
 function arcTurnEnd(f, M, rnd, say) {
@@ -2510,6 +2520,7 @@ function arcChips(f, M) {
   if (ms.fGuard) s += chip("次の被ダメ半減", "c-def");
   if (ms.fTaken || ms.vuln) s += chip("被ダメアップ中", "c-read");
   if (ms.echo) s += chip("能力の余韻", "c-inv");
+  if (ms.cbGuard) s += chip(`次の被ダメ −${Math.round(ms.cbGuard * 100)}%`, "c-def");
   return s;
 }
 
@@ -3039,7 +3050,7 @@ async function startBattle(w, i) {
   const ps = pStats(w);
   const cards = eqList(S.charId).map(x => ({ c: x.c, r: x.r, l: x.l, rev: isRev(S.charId) }));
   const M = computeMods(cards, false);
-  const sealK = S.charId === SEAL_CH ? SEAL_RATE : 1;
+  const sealK = S.charId === SEAL_CH ? sealRateOf(M) : 1;
   const maxHp = half(ps.max * sealK * (1 + mz(M, "maxHp")));
   const b = S.battle = {
     w, i, turn: 1, over: false, busy: true, total: list.length, kills: 0, coins: 0, M, cards,
@@ -3104,14 +3115,15 @@ const enemyAtk = e => e.atk * (has(e, "rage") && !e.calm && e.hp <= e.max / 2 ? 
 const BM = () => (S.battle && S.battle.M) || {};
 const CB = () => 1 + mz(BM(), "charBoost"); // 教皇：キャラ固有能力の数値アップ
 const healMul = M => 1 + mz(M, "heal");
-const pRate = () => (S.charId === 5 ? 0.5 * CB() : 0.1) + mz(BM(), "streakAdd");
+const EM = () => (S.battle ? echoMul(S.battle.p, S.battle.M) : 1); // 教皇（逆）の余韻
+const pRate = () => (S.charId === 5 ? 0.5 * CB() * EM() : 0.1) + mz(BM(), "streakAdd");
 const eRate = e => (has(e, "king") ? 0.3 : has(e, "gale") ? 0.5 : 0.1) * (1 - Math.min(0.9, mz(BM(), "enemyStreakCut")));
-const furyBonus = p => (S.charId === 7 ? Math.min(CB(), 0.2 * CB() * (p.losses || 0)) : S.charId === SCAR_CH ? scarBonus(p.hp, p.max, CB()) : 0);
+const furyBonus = p => (S.charId === 7 ? Math.min(CB() * EM(), 0.2 * CB() * EM() * (p.losses || 0)) : S.charId === SCAR_CH ? scarBonus(p.hp, p.max, CB() * EM()) : 0);
 const furyName = () => (S.charId === SCAR_CH ? "傷の炎" : "逆境");
 const atkMods = p => { const M = BM(); return mz(M, "atk") + (p.streak >= 2 ? mz(M, "streak2Atk") : 0) + (p.hp <= p.max / 2 ? mz(M, "lowHpAtk") : 0) + arcAtk(p, M); };
 const pAtk = p => p.atk * (1 + furyBonus(p)) * Math.max(0.2, 1 + atkMods(p));
 // イワオ：常に20%＋連勝数×10%（最大70%）
-const pDef = p => (S.charId === 8 ? Math.min(0.7 * CB(), (0.2 + 0.1 * p.streak) * CB()) : 0);
+const pDef = p => (S.charId === 8 ? Math.min(0.85, 0.7 * CB() * EM(), (0.2 + 0.1 * p.streak) * CB() * EM()) : 0);
 const readChance = b => (b.lastP !== null && b.rep >= 2 ? Math.min(0.9, (b.rep - 1) * 0.3) : 0) * (1 - Math.min(0.9, mz(b.M, "readResist")));
 
 // 次のターンの敵の手を先に決める（カードの予測・妨害もここ）
@@ -3133,7 +3145,7 @@ function prepTurn(b) {
 const arcSay = list => (text, amt) => { if (amt > 0) list.push({ k: "heal", amt }); if (text) list.push({ k: "fool", text }); };
 function startTurn(b) {
   const evs = [];
-  arcTurnStart(b.p, b.M, Math.random, arcSay(evs));
+  arcTurnStart(b.p, b.M, Math.random, arcSay(evs), S.charId);
   prepTurn(b);
   evs.forEach((ev, i) => setTimeout(() => { if (alive(b)) { fx(ev); renderBattle(); } }, T(i * 260)));
 }
@@ -3179,7 +3191,7 @@ function makeActor(kind, data, k) {
 }
 const feet = a => { const r = a.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.bottom - 4 }; };
 const KAGE_RATE = 0.35; // カゲの返しの刃：基礎攻撃力の35%
-const HARU_RATE = 1.3;  // ハルの癒しの掌：相手の攻撃1.3回分
+const HARU_RATE = 1.5;  // ハルの癒しの掌：相手の攻撃1.5回分
 // ゴン（4）がじゃんけんの負け以外で受けるダメージ：体力1より下がらない（もともと1以下なら減らない）。ほかのキャラは普通に減る
 const gonFloor = (ch, hp, dmg) => (ch === 4 ? Math.max(Math.min(hp, 1), r2(hp - dmg)) : r2(Math.max(0, hp - dmg)));
 const scaleOf = a => (a.offsetWidth ? a.getBoundingClientRect().width / a.offsetWidth : 1) || 1;
@@ -3467,6 +3479,12 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
     return { ev, dmg };
   };
 
+  // 教皇（逆）：カゲの余韻。ターンのはじめのじゃんけんで、弱い返しの刃をもう一度
+  if (c === 9 && p.ms && p.ms.echo && !p.ms.kageDone && group.length && group[0].e.hp > 0) {
+    p.ms.kageDone = true;
+    const { e, k } = group[0], cd = r2(p.atk * KAGE_RATE * mz(M, "echo"));
+    e.hp = r2(Math.max(0, e.hp - cd)); push(post, k, { k: "counter", amt: cd }); lines.push(`<span class="p">返しの刃の余韻：${e.name}に${fmt(cd)}</span>`);
+  }
   if (res === "win") {
     p.streak++;
     const N = p.streak - 1, mult = 1 + N * pRate();
@@ -3491,6 +3509,8 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
         lines.push(`<span class="y">${T0}${nt}${HN[h]}で勝ち！…が、${e.name}は幻影でかわした</span>`);
         continue;
       }
+      // 教皇（正）：ウガチのチョキ勝ち、ツツミがグーに固めた相手へのパー勝ちは、ダメージアップ
+      if ((pierce || (c === FORCE_CH && h === P_ && e.forcedNow)) && mz(M, "charBoost")) { dmg *= cbHitOf(M); nt2 += `（教皇 ×${fmt(cbHitOf(M))}）`; }
       if (pierce) { if (e.shield) nt2 += "（盾を貫通）"; }
       else if (e.shield) { dmg *= 0.5; e.shield = false; cut = true; nt2 += "（盾で半減）"; }
       dmg = r2(dmg); e.hp = r2(Math.max(0, e.hp - dmg));
@@ -3506,6 +3526,7 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
       if (has(e, "rage") && !e.calm && e.hp > 0 && e.hp <= e.max / 2 && before > e.max / 2) { push(post, k, { k: "rage", text: "激昂！" }); lines.push(`<span class="r">${e.name}が激昂した！ 攻撃力1.5倍</span>`); }
     }
     if (p.streak >= 2) after.push({ k: "streak", n: p.streak });
+    if (c === 4 && h === G_ && p.ms && cbGuardOf(M) > 0) { p.ms.cbGuard = cbGuardOf(M); lines.push(`<span class="p">教皇：次に受けるダメージ −${Math.round(p.ms.cbGuard * 100)}%</span>`); }
     if (c === 1 && h === G_ && !p.inv) { p.inv = true; after.push({ k: "inv" }); lines.push(`<span class="p">無敵状態になった</span>`); }
     if (c === 2 && h === C_) { p.charge = true; after.push({ k: "charge" }); lines.push(`<span class="p">チャージ！ 次の勝ちは${fmt(3 + mz(M, "charBoost"))}倍</span>`); }
     if (c === 3 && h === P_ && group.length) {
@@ -3548,7 +3569,7 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
     p.streak = 0; p.afterDraw = false; p.revenge = true;
     if (c === 7) { p.losses = (p.losses || 0) + 1; if (p.losses <= 5) after.push({ k: "fury", v: furyBonus(p) }); }
     if (p.charge) { p.charge = false; after.unshift({ k: "fizzle" }); lines.push(`<span class="p">チャージが消えた</span>`); }
-    const blocked = p.inv; if (blocked) p.inv = false;
+    const blocked = p.inv; if (blocked) { p.inv = false; if (p.ms && cbGuardOf(M) > 0) p.ms.cbGuard = cbGuardOf(M); } // 教皇（正）：テツは無敵が切れたあと、次の被ダメ減
     for (const { e, k } of group) {
       e.streak++;
       if (p.hp <= 0) continue;
@@ -3556,7 +3577,7 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
       const steady = c === STEADY_CH && h === G_; // マサ：グーの負けは敵の強化（連勝・激昂・絆）を受けない
       const note2 = steady ? "（不動：強化を受けない）" : N > 0 ? `（敵${e.streak}連勝 ×${fmt(mult)}）` : "";
       if (blocked) { push(imp, k, { k: "block" }); lines.push(`<span class="p">${T0}${nt}${HN[h]}で負け…でも無敵で${e.name}の攻撃は0！</span>`); continue; }
-      const { ev, dmg } = hurtPlayer(e, k, steady ? e.atk : enemyAtk(e) * mult, "", false, def, "lose");
+      const { ev, dmg } = hurtPlayer(e, k, steady ? e.atk * (1 - cbGuardOf(M)) : enemyAtk(e) * mult, "", false, def, "lose");
       ev.crit = N >= 2;
       push(imp, k, ev);
       lines.push(`<span class="r">${T0}${nt}${HN[h]}で負け ${e.name}から${fmt(dmg)}ダメージ${note2}${def > 0 ? `（岩の守り −${Math.round(def * 100)}%）` : ""}</span>`);
@@ -4054,7 +4075,7 @@ function cleanCards(v) {
 function mkFighter(ch, cards, oppCh) {
   // 正位置か逆位置かは、送られてきた値ではなく相手のキャラから決める
   const M = computeMods(cards.map(([c, r, l]) => ({ c, r, l, rev: isRev(ch) })), true);
-  const k = ch === SEAL_CH ? SEAL_RATE : 1;  // シズクは体力・攻撃力85%
+  const k = ch === SEAL_CH ? sealRateOf(M) : 1;  // シズクは体力・攻撃力85%
   const hp = half(PVP.hp * k * (1 + mz(M, "maxHp")));
   // ab：実際に働くキャラ能力。相手がシズクなら封じられて 0（なし）
   const f = { ch, ab: oppCh === SEAL_CH && SEAL_PASSIVE_CH.has(ch) ? 0 : ch, hp, max: hp, atk: PVP.atk * k, streak: 0, inv: false, charge: false, guts: false, losses: 0, M, cards,
@@ -4264,11 +4285,11 @@ function startTimer() {
 // 対戦の1ラウンド。両方の画面が同じ手と同じ乱数から同じ結果を計算する
 const fCB = f => 1 + mz(f.M, "charBoost");
 // ガロウの逆境／ホムラの傷の炎（ホムラはシズクに封じられると無し）
-const fFury = f => (f.ch === 7 ? Math.min(fCB(f), 0.2 * fCB(f) * f.losses) : f.ab === SCAR_CH ? scarBonus(f.hp, f.max, fCB(f)) : 0);
+const fFury = f => { const cb = fCB(f) * echoMul(f, f.M); return f.ch === 7 ? Math.min(cb, 0.2 * cb * f.losses) : f.ab === SCAR_CH ? scarBonus(f.hp, f.max, cb) : 0; };
 const fAtkOf = f => f.atk * (1 + fFury(f))
   * Math.max(0.2, 1 + mz(f.M, "atk") + (f.streak >= 2 ? mz(f.M, "streak2Atk") : 0) + (f.hp <= f.max / 2 ? mz(f.M, "lowHpAtk") : 0) + arcAtk(f, f.M));
 // イワオ：いつでも−20%＋連勝ごとに10%。シズクに封じられると、いつでもの−20%だけが消える
-const fDefOf = f => (f.ch === 8 ? Math.min(0.7 * fCB(f), ((f.ab === 8 ? 0.2 : 0) + 0.1 * f.streak) * fCB(f)) : 0);
+const fDefOf = f => { const cb = fCB(f) * echoMul(f, f.M); return f.ch === 8 ? Math.min(0.85, 0.7 * cb, ((f.ab === 8 ? 0.2 : 0) + 0.1 * f.streak) * cb) : 0; };
 function pvpResolve(F, hA, hB, mySide, rng) {
   const res = outcome(hA, hB), H = { A: hA, B: hB };
   const out = { res, pre: [], imp: [], after: [], lines: [] };
@@ -4316,7 +4337,14 @@ function pvpResolve(F, hA, hB, mySide, rng) {
   // ツツミのグー強制は1ラウンドだけ（このラウンドが強制だったかを覚えて、続けて強制しない）
   for (const s of ["A", "B"]) { F[s].forcedNow = !!F[s].forceG; F[s].forceG = false; }
   // 大アルカナ：ラウンドのはじめ（愚者など）
-  for (const s of ["A", "B"]) arcTurnStart(F[s], F[s].M, rng, say(s, out.pre));
+  for (const s of ["A", "B"]) arcTurnStart(F[s], F[s].M, rng, say(s, out.pre), F[s].ab);
+  // 教皇（逆）：カゲの余韻（弱い返しの刃）
+  for (const s of ["A", "B"]) {
+    const f = F[s], o = F[oth(s)];
+    if (f.ab !== 9 || !f.ms.echo || f.hp <= 0 || o.hp <= 0) continue;
+    const cd = minorHit(oth(s), r2(f.atk * KAGE_RATE * mz(f.M, "echo")));
+    add(out.pre, oth(s), { k: "counter", amt: cd }); out.lines.push(`<span class="p">${who(s)}の返しの刃の余韻：${fmt(cd)}</span>`);
+  }
   if (res === "draw") {
     out.lines.push(`<span class="y">ラウンド${ON.r} あいこ（${HN[hA]}）</span>`);
     for (const s of ["A", "B"]) {
@@ -4350,7 +4378,7 @@ function pvpResolve(F, hA, hB, mySide, rng) {
     fw.streak++; fl.streak = 0;
     if (fl.ch === 7) { fl.losses++; if (fl.losses <= 5) add(out.after, L, { k: "fury", v: Math.min(fCB(fl), 0.2 * fCB(fl) * fl.losses) }); }
     if (fl.charge) { fl.charge = false; add(out.after, L, { k: "fizzle" }); }
-    const N = fw.streak - 1, mult = 1 + N * ((fw.ab === 5 ? 0.5 * fCB(fw) : 0.1) + mz(M, "streakAdd"));
+    const N = fw.streak - 1, mult = 1 + N * ((fw.ab === 5 ? 0.5 * fCB(fw) * echoMul(fw, M) : 0.1) + mz(M, "streakAdd"));
     const bonus = 1 + mz(M, "winMul") + mz(M, "hand" + "GCP"[hw]) + (fw.afterDraw ? mz(M, "afterDrawWin") : 0) + (N >= 2 ? mz(M, "critAtk") : 0) + (fw.streak >= 2 ? mz(M, "worldDmg") : 0)
       + (fw.revenge ? mz(M, "revenge") : 0);
     fw.revenge = false; fl.revenge = true;
@@ -4358,12 +4386,14 @@ function pvpResolve(F, hA, hB, mySide, rng) {
     const aw = arcWin(fw, M, say(W)), foolWin = aw.add > 0;
     // マサ：グーで負けたときは、相手の攻撃力アップ（連勝・チャージ・カード・逆境など）を受けず基礎攻撃力だけ
     const steady = fl.ch === STEADY_CH && hl === G_;
-    let raw = steady ? fw.atk : fAtkOf(fw) * mult * (charged ? 3 + mz(M, "charBoost") : 1) * (bonus + aw.add) + mz(M, "towerAtk") * fw.atk + aw.flat;
+    let raw = steady ? fw.atk * (1 - cbGuardOf(fl.M)) : fAtkOf(fw) * mult * (charged ? 3 + mz(M, "charBoost") : 1) * (bonus + aw.add) + mz(M, "towerAtk") * fw.atk + aw.flat;
     // ウガチ：チョキで勝つと、守り（無敵・岩の守り・カードの軽減）も反射（返しの刃・カードの反射）も無視
     const pierce = fw.ch === PIERCE_CH && hw === C_;
+    // 教皇（正）：ウガチのチョキ勝ち、ツツミがグーに固めた相手へのパー勝ちは、ダメージアップ
+    if (!steady && (pierce || (fw.ch === FORCE_CH && hw === P_ && fl.forcedNow))) raw *= cbHitOf(M);
     const tag = steady ? "（不動：強化を受けない）" : (N > 0 ? `（${fw.streak}連勝 ×${fmt(mult)}）` : "") + (charged ? "（チャージ）" : "") + (bonus > 1.001 ? `（カード ×${fmt(bonus)}）` : "") + (pierce ? "（穿ち：守り無視）" : "");
     if (fl.inv && !pierce) {
-      fl.inv = false; add(out.imp, L, { k: "block" });
+      fl.inv = false; if (cbGuardOf(fl.M) > 0) fl.ms.cbGuard = cbGuardOf(fl.M); // 教皇（正）：テツは無敵が切れたあと、次の被ダメ減 add(out.imp, L, { k: "block" });
       out.lines.push(`<span class="p">ラウンド${ON.r} ${who(W)}の${HN[hw]}が勝ち…でも${who(L)}は無敵で0ダメージ</span>`);
     } else {
       const { dmg, soft } = pierce ? { dmg: r2(raw), soft: false } : hurt(L, raw * (1 - def), "lose");
@@ -4375,6 +4405,7 @@ function pvpResolve(F, hA, hB, mySide, rng) {
       if (fl.hp > 0 && mz(fl.M, "loseHeal") > 0) healS(L, mz(fl.M, "loseHeal"));
     }
     if (fw.streak >= 2) add(out.after, W, { k: "streak", n: fw.streak });
+    if (fw.ch === 4 && hw === G_ && cbGuardOf(M) > 0) fw.ms.cbGuard = cbGuardOf(M); // 教皇（正）：ゴンはグーで勝つと、次の被ダメ減
     if (fw.ch === 1 && hw === G_ && !fw.inv) { fw.inv = true; add(out.after, W, { k: "inv" }); }
     if (fw.ch === 2 && hw === C_) { fw.charge = true; add(out.after, W, { k: "charge" }); }
     if (fw.ch === 3 && hw === P_) { const heal = r2(Math.min(fw.max - fw.hp, fAtkOf(fl) * HARU_RATE * fCB(fw) * (1 + mz(M, "heal")))); if (heal > 0 && fw.hp > 0) { fw.hp = r2(fw.hp + heal); add(out.after, W, { k: "heal", amt: heal }); } }
