@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-02-1103";
+  window.JQ_VER = "2026-11-02-1110";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -1551,13 +1551,15 @@ function playFrames(a, name, o = {}) {
   let i = 0;
   const step = () => {
     fr.style.backgroundPosition = n > 1 ? `${i / (n - 1) * 100}% 0` : "0 0";
+    if (o.still) return; // 1コマ目で止める
     if (++i < n) a._ft = setTimeout(step, FT(1000 / fps));
     else if (o.loop) { i = 0; a._ft = setTimeout(step, FT(1000 / fps)); }
     else if (o.then) a._ft = setTimeout(() => (o.then === "idle" ? idle(a) : playFrames(a, o.then, { loop: o.loop })), FT(o.hold || 300));
   };
   step();
 }
-const idle = a => playFrames(a, "idle", { loop: true, fps: 1.5 }); // 待機はゆっくり（1コマ約0.67秒）
+// 待機は動かさない（呼吸のコマ送りは不自然だったので、1コマ目で止めておく）
+const idle = a => playFrames(a, "idle", { still: true });
 function setupFrames(a, set, base, widths) {
   if (a._fr) return;
   a._set = set; a._base = base; a._w = widths || {}; // "framed"（立ち絵を隠す）は最初のコマが出せたときに付ける
