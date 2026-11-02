@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-02-1110";
+  window.JQ_VER = "2026-11-02-1530";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -1633,20 +1633,30 @@ const stopAnims = el => el && el.getAnimations().forEach(a => { if (!(a instance
 const AU = { ctx: null, se: prefs.se !== false, bgm: prefs.bgm !== false, voice: prefs.voice !== false, want: null, song: null, timer: 0, step: 0, next: 0 };
 const mf = m => 440 * Math.pow(2, (m - 69) / 12);
 function savePrefs() { try { localStorage.setItem("jq-sound", JSON.stringify({ se: AU.se, bgm: AU.bgm, voice: AU.voice, fast: FAST })); } catch {} }
-function audioInit() {
-  if (AU.ctx) { if (AU.ctx.state === "suspended") AU.ctx.resume(); return; }
+// 音の準備は読み込み時に先にしておき（止まった状態で作られる）、画面に触れたら鳴らせる状態にするだけにする。
+// スマホは「触れてから作る」と立ち上がりに時間がかかり、最初の音（はじめる・出撃）が遅れていた
+function audioMake() {
+  if (AU.ctx) return;
   try {
-    const c = new (window.AudioContext || window.webkitAudioContext)();
+    const c = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "interactive" });
     AU.ctx = c;
     AU.master = c.createGain(); AU.master.gain.value = 0.55; AU.master.connect(c.destination);
     AU.seGain = c.createGain(); AU.seGain.connect(AU.master);
     AU.bgmGain = c.createGain(); AU.bgmGain.gain.value = 0.22; AU.bgmGain.connect(AU.master);
     const len = c.sampleRate; AU.nbuf = c.createBuffer(1, len, c.sampleRate);
     const d = AU.nbuf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-    if (AU.want) { const w = AU.want; AU.want = null; bgm(w); }
   } catch { AU.ctx = null; }
 }
-["pointerdown", "keydown"].forEach(ev => addEventListener(ev, audioInit, { capture: true }));
+function audioInit() {
+  audioMake(); const c = AU.ctx; if (!c) return;
+  if (c.state !== "running") {
+    const r = c.resume(); if (r && r.catch) r.catch(() => {});
+    // iPhone：触れた瞬間に無音を1つ鳴らしておくと、音の出口がすぐ開く（鳴らせる状態になるまで毎回ためす）
+    try { const s = c.createBufferSource(); s.buffer = c.createBuffer(1, 1, 22050); s.connect(c.destination); s.start(0); } catch {}
+  }
+  if (AU.want && !AU.timer) { const w = AU.want; AU.want = null; bgm(w); }
+}
+["touchstart", "pointerdown", "touchend", "keydown"].forEach(ev => addEventListener(ev, audioInit, { capture: true, passive: true }));
 document.addEventListener("visibilitychange", () => { if (!AU.ctx) return; document.hidden ? AU.ctx.suspend() : AU.ctx.resume(); });
 
 function env(g, t, v, d) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + d); }
@@ -1719,7 +1729,7 @@ const SONGS = {
 function bgm(name) {
   if (AU.song === name && AU.timer) return;
   bgmStop(); AU.want = name;
-  if (!name || !AU.ctx || !AU.bgm) return;
+  if (!name || !AU.ctx || !AU.bgm || !window.JQ_BOOT?.started) return; // 「はじめる」を押すまでは流さない
   AU.song = name; AU.step = 0; AU.next = AU.ctx.currentTime + 0.08;
   AU.timer = setInterval(bgmTick, 25);
 }
@@ -1752,6 +1762,7 @@ $("tg-voice").onclick = () => {
    ファイルが読めないときだけ、ブラウザの読み上げ（speakAs）に切り替える */
 /* スマホの消音モード（iPhoneのマナースイッチ）で鳴らないように、ふつうの音声再生ではなく効果音と同じしくみ（Web Audio）で鳴らす */
 try { if (navigator.audioSession) navigator.audioSession.type = "ambient"; } catch {}  // iPhone：消音モードに従う
+audioMake(); // 音の準備を先に（消音モードの設定のあとで作る）
 let curVoice = null;
 const VBUF = {};  // 読みこんだ声のデータ（ファイル名ごと）
 function voiceData(url) {
@@ -3108,10 +3119,10 @@ async function startBattle(w, i) {
   W.sky.forEach((c, n) => st.style.setProperty(`--sky${n + 1}`, c));
   applyStageBg(st, `bg/w${w}`);
   const spawned = spawn(b);
+  sfx("start"); // 画面の切りかえ（スマホでは少し時間がかかる）より先に鳴らす
   show("battle");
   setHandsDisabled(true);
   showBanner(false, `STAGE ${key(w, i)}`, `敵 ×${list.length}${MODE_LABEL[W.mode] ? "（" + MODE_LABEL[W.mode] + "）" : ""}`);
-  sfx("start");
   await done(play_(PA._rig, [{ transform: "translateX(-160px)", opacity: 0 }, { transform: "none", opacity: 1 }], 450, "ease-out"));
   dust(feet(PA), 1);
   for (const k of spawned) await enterEnemy(b, k);
@@ -4852,7 +4863,7 @@ function start(data) {
 window.JQ_BOOT = {
   started: false, titled: false,
   // タイトルが出たとき：音を出してよい状態ならジングルを鳴らす（スマホなどは画面に触るまで音を出せないので、その場合は「はじめる」で鳴らす）
-  title() { try { audioInit(); if (AU.ctx && AU.ctx.state === "running") { sfx("title"); this.titled = true; } } catch {} },
+  title() { try { audioMake(); if (AU.ctx && AU.ctx.state === "running") { sfx("title"); this.titled = true; } } catch {} },
   begin() { if (this.started) return; this.started = true; audioInit(); sfx(this.titled ? "start" : "title"); bgm(songFor()); },
 };
 // 起動画面が出なかったとき（古い版が残っている等）でも、最初に画面を触った時点で音を出してBGMを流す
