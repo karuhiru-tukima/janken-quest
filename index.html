@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-02-2257";
+  window.JQ_VER = "2026-11-02-2313";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -2157,7 +2157,7 @@ const MAJOR_DEF = [
     [["foolRWin", .40, .90], ["foolRTaken", .25, .25, "c"]],
     "各ターンのはじめ、3分の1の確率で「次の勝ちのダメージ+{0}」か「次に受けるダメージ+{1}」のどちらかが起きる"],
   ["magician", "魔術師", "star",
-    [["atk", .05, .15], ["shieldHit", .10, .35, "c"]], "基礎攻撃力 +{0}。相手の盾に与えるダメージ +{1}（身構えにも効く）",
+    [["atk", .05, .15], ["shieldHit", .10, .35, "c"]], "基礎攻撃力 +{0}。相手の盾に与えるダメージ +{1}",
     [["atk", .20, .40]], "基礎攻撃力 +{0}"],
   ["priestess", "女教皇", "moon",
     [["priGrow", .03, .06], ["priCap", .15, .36]], "1ターンごとに攻撃力 +{0}。最大 +{1}までたまる",
@@ -2178,11 +2178,11 @@ const MAJOR_DEF = [
     [["maxHp", .10, .25], ["atk", .05, .15]], "最大HP +{0}、攻撃力 +{1}",
     [["chaWin", .05, .12], ["chaShield", .03, .06]], "勝つたび攻撃力 +{0}（3回まで）。負けるとたまった分が消え、最大HPの{1}の盾を得る"],
   ["strength", "力", "sun",
-    [["winMul", .08, .25], ["shieldHit", .20, .50]], "勝ったときに与えるダメージ +{0}。相手の盾に与えるダメージ +{1}（身構えにも効く）",
-    [["lowHpDmg", .30, .70], ["shieldHit", .20, .50]], "HPが半分以下のとき、勝って与えるダメージ +{0}。相手の盾に与えるダメージ +{1}（身構えにも効く）"],
+    [["winMul", .08, .25], ["shieldHit", .20, .50]], "勝ったときに与えるダメージ +{0}。相手の盾に与えるダメージ +{1}",
+    [["lowHpDmg", .30, .70], ["shieldHit", .20, .50]], "HPが半分以下のとき、勝って与えるダメージ +{0}。相手の盾に与えるダメージ +{1}"],
   ["hermit", "隠者", "eye",
     [["startShield", .20, .40]], "開始時に最大HPの{0}の盾を得る",
-    [["shieldHit", .50, 1.20], ["hermShield", .03, .07]], "相手の盾に与えるダメージ +{0}（盾を割ったあとのHPへのダメージは増えない。身構えにも効く）。勝ったとき相手に盾（身構え）がなければ、自分が最大HPの{1}の盾を得る"],
+    [["shieldHit", .50, 1.20], ["hermShield", .03, .07]], "相手の盾に与えるダメージ +{0}（盾を割ったあとのHPへのダメージは増えない）。勝ったとき相手に盾がなければ、自分が最大HPの{1}の盾を得る"],
   ["wheel", "運命の輪", "wheel",
     [["streakAdd", .10, .30]], "連勝ボーナスが、1連勝ごとにさらに +{0}",
     [["streakKeep", .30, .4583]], "連勝中に負けても、{0}の確率で連勝数（連勝倍率）がそのまま残る（負けたときのダメージはふつうに受ける）"],
@@ -2271,7 +2271,7 @@ const MINOR_DEF = {
      [["halfHpDef", .08, .20]], "HPが半分以下のとき、受けるダメージ −{0}"],
     [[["regen", .008, .02]], "ターンの終わりに最大HPの{0}回復",
      [["loseHeal", .02, .05]], "負けたターンの終わりに最大HPの{0}回復"],
-    [[["shieldVsShield", .04, .09]], "相手に盾（身構え）があるとき、勝つたび最大HPの{0}の盾を得る",
+    [[["shieldVsShield", .04, .09]], "相手に盾があるとき、勝つたび最大HPの{0}の盾を得る",
      [["drawShield", .03, .07]], "あいこになるたび最大HPの{0}の盾を得る（1試合3回まで）"],
     [[["drawHeal", .02, .05]], "あいこになるたび最大HPの{0}回復",
      [["winGuard", .10, .25]], "勝つと、次に受けるダメージ −{0}"],
@@ -2294,16 +2294,16 @@ const MINOR_DEF = {
     [[["cWinAtk", .03, .08]], "チョキで勝つたび、攻撃力 +{0}（3回まで。試合のあいだ続く）",
      [["cDrawNext", .10, .25]], "チョキであいこになると、次に勝ったときのダメージ +{0}"],
     [[["pLoseNext", .10, .25]], "パーで負けたあと、次に勝つとダメージ +{0}",
-     [["pPierce", .20, .50]], "パーで勝つと、ダメージの{0}が相手の盾を通りぬける（身構えにも効く）"],
+     [["pPierce", .20, .50]], "パーで勝つと、ダメージの{0}が相手の盾を通りぬける"],
     [[["revenge", .15, .40]], "負けた次に勝つと、ダメージ +{0}",
      [["vsStreakDmg", .25, .60]], "相手が2連勝以上しているとき、勝ったときのダメージ +{0}"],
     [[["s8Win", .30, .70]], "3回勝つごとに、次に勝ったときのダメージ +{0}",
      [["s8rWin", .25, .60]], "2連敗すると、次に勝ったときのダメージ +{0}"],
-    [[["shieldIgnore", .15, .40]], "勝ったとき、ダメージの{0}が相手の盾を通りぬける（身構えにも効く）",
+    [[["shieldIgnore", .15, .40]], "勝ったとき、ダメージの{0}が相手の盾を通りぬける",
      [["oppHpDmg", .15, .35]], "相手のHPが多いほど、勝ったときのダメージアップ（満タンで +{0}）"],
     [[["sunStack", .02, .05]], "勝つたび攻撃力 +{0}（3回まで。負けても消えない）",
-     [["shieldStack", .15, .35]], "負けるたび、相手の盾に与えるダメージ +{0}ずつたまる（3回まで。次に勝つと使い切る。身構えにも効く）"],
-    [[["drawShieldBreak", .05, .12]], "あいこになると、相手の盾を最大HPの{0}ぶん削る（ステージでは敵の身構えを崩す）",
+     [["shieldStack", .15, .35]], "負けるたび、相手の盾に与えるダメージ +{0}ずつたまる（3回まで。次に勝つと使い切る）"],
+    [[["drawShieldBreak", .05, .12]], "あいこになると、相手の盾を最大HPの{0}ぶん削る",
      [["drawNextAtk", .08, .20]], "あいこの次のターン、攻撃力 +{0}"],
     [[["bleed", .15, .35]], "勝つと相手に傷を負わせ、次のターンのはじめに基礎攻撃力の{0}のダメージ",
      [["lossAtkPerm", .03, .08]], "負けるたび攻撃力 +{0}（3回まで。勝っても消えない）"],
@@ -3923,9 +3923,9 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
     const N = p.streak - 1, mult = 1 + N * pRate();
     const charged = p.charge; if (charged) p.charge = false;
     const g0 = group[0] && group[0].e;
-    rctx.oppShield = group.some(x => x.e.shield);
+    rctx.oppShield = false; // ステージの敵はアルカナの盾を持たない（身構えは盾ではない）
     const aw = arcWin(p, M, arcSay(after), { h, oppShield: rctx.oppShield, oppStreak: g0 ? g0.streak : 0, oppHpRatio: g0 ? g0.hp / g0.max : 1 }), foolWin = aw.add > 0;
-    if (mz(M, "hermShield") && !group.some(x => x.e.shield)) arcNoShieldWin(p, M, arcSay(after));
+    if (mz(M, "hermShield")) arcNoShieldWin(p, M, arcSay(after)); // ステージの敵は盾を持たない
     const pierce = c === PIERCE_CH && h === C_; // ウガチ：チョキの勝ちは身構えとトゲを無視
     for (const { e, k } of group) {
       if (p.hp <= 0) break;
@@ -3949,9 +3949,8 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
       if ((pierce || (c === FORCE_CH && h === P_ && e.forcedNow)) && mz(M, "charBoost")) { dmg *= cbHitOf(M); nt2 += `（教皇 ×${fmt(cbHitOf(M))}）`; }
       if (pierce) { if (e.shield) nt2 += "（身構えを貫通）"; }
       else if (e.shield) {
-        // 敵の身構え（次の被ダメ半減）。盾崩し（魔術師・力・隠者）や通りぬけがあると、半減が弱まる（ふつうのダメージより上にはならない）
-        const k = Math.min(1, 0.5 * (1 + mz(M, "shieldHit") + aw.sh) + 0.5 * aw.ign); // ソード9などの「通りぬけ」も半減を弱める
-        dmg *= k; e.shield = false; cut = k < 1; nt2 += k < 1 ? (mz(M, "shieldHit") ? `（身構え崩し：×${fmt(k)}）` : "（身構えで半減）") : "（身構えを崩した）";
+        // 敵の身構え（次の被ダメ半減）。アルカナの盾崩し・通りぬけは効かない
+        dmg *= 0.5; e.shield = false; cut = true; nt2 += "（身構えで半減）";
       }
       dmg = r2(dmg); e.hp = r2(Math.max(0, e.hp - dmg));
       push(imp, k, { k: "hitE", amt: dmg, crit: charged || foolWin || N >= 2, cut });
@@ -3981,8 +3980,6 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
     p.afterDraw = false; p.revenge = false;
   } else if (res === "draw") {
     lines.push(`<span class="y">${T0}${nt}あいこ（${HN[h]}）</span>`);
-    // ソードのペイジ（正）：あいこで敵の身構えを崩す
-    if (mz(M, "drawShieldBreak")) for (const { e, k } of group) if (e.shield) { e.shield = false; push(post, k, { k: "dispel" }); lines.push(`<span class="p">ソードのペイジ：${e.name}の身構えを崩した</span>`); }
     p.afterDraw = true;
     if (c === 6) { p.streak++; after.push({ k: "streak", n: p.streak, calm: true }); lines.push(`<span class="p">凪の構え：あいこで${p.streak}連勝</span>`); }
     if (p.charge) {
