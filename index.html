@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-02-2210";
+  window.JQ_VER = "2026-11-02-2223";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -98,6 +98,9 @@ button:focus-visible, .card:focus-visible { outline: 3px solid var(--gold); outl
 .btn.primary { background: var(--lantern); border-color: var(--lantern); color: #2a1404; }
 .btn.primary:hover { filter: brightness(1.08); }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
+/* 強化できるとき：黄色く光らせる */
+.btn.upglow { animation: upglow 1.2s ease-in-out infinite; }
+@keyframes upglow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.25) drop-shadow(0 0 6px #ffd166); } }
 .btn.sm { padding: 4px 10px; font-size: .78rem; border-radius: 8px; }
 .btn.sm.off { color: var(--dim); text-decoration: line-through; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
@@ -2132,7 +2135,6 @@ const RAR = [
   { name: "エピック", max: 15, cost: 3, color: "#c48bff" },
   { name: "レジェンド", max: 20, cost: 4, color: "#ffd166" },
 ];
-const EQUIP_COST = 10; // 装備コスト上限：レジェンド4枚は積めないので、ノーマルにも出番が残る
 // レベルによる伸び：Lv1→1, Lv5→2, Lv10→3, Lv15→4, Lv20→5（魔術師なら ×1.10→×1.50）
 const lvS = lv => (lv <= 5 ? 1 + (lv - 1) / 4 : 2 + (lv - 5) / 5);
 const fxVal = (v1, v20, lv) => v1 + (v20 - v1) * (lvS(lv) - 1) / 4;
@@ -2784,7 +2786,6 @@ function eqOf(ch) {
   return e;
 }
 const eqList = ch => { const e = eqOf(ch); return [e.maj, ...e.min].map(inst).filter(Boolean); };
-const eqCost = ch => eqList(ch).reduce((s, x) => s + RAR[x.r].cost, 0);
 const equippedBy = u => CHARS.filter(ch => { const e = CS.eq[ch.id]; return e && (e.maj === u || (e.min || []).includes(u)); }).map(ch => ch.id);
 const curM = () => computeMods(eqList(S.charId), false);
 function consume(u) {
@@ -2811,7 +2812,30 @@ const shopPrice = (r, M) => Math.round((r ? 260 : 80) * (1 - Math.min(0.5, mz(M,
 
 // ---- タロットの絵（描画は art.js）----
 const CW = 64, CH = 96;
-function paintCard(cv) { JQArt.paintCard(cv); } // 絵は art.js（濃紺の輪郭・2倍の細かさ）
+// 絵は art.js（濃紺の輪郭・2倍の細かさ）。1枚描くのに約10ミリ秒かかるので、同じ絵は一度だけ描いて覚えておき、2回目からは写すだけにする
+// （カードが数百枚あると、一覧を開くたびに数秒かかっていた）
+const CARD_ART = new Map();
+function paintCard(cv) {
+  const d = cv.dataset, key = `${d.art}|${d.id}|${d.suit}|${d.rank}|${d.r}|${d.col}|${d.kind}|${d.label}`;
+  let src = CARD_ART.get(key);
+  if (!src) { src = document.createElement("canvas"); Object.assign(src.dataset, d); JQArt.paintCard(src); CARD_ART.set(key, src); }
+  cv.width = src.width; cv.height = src.height;
+  const g = cv.getContext("2d"); g.imageSmoothingEnabled = false; g.drawImage(src, 0, 0);
+}
+// 全カード×レアリティの絵を、手が空いているときに少しずつ先に描いておく（初めて一覧を開くときも待たないように）
+function warmCardArt() {
+  const todo = [];
+  for (const c of CARDS) for (let r = 0; r < 4; r++) todo.push([c, r]);
+  const tmp = document.createElement("div");
+  const step = deadline => {
+    let n = 0;
+    while (todo.length && (deadline ? deadline.timeRemaining() > 4 : n < 6)) {
+      const [c, r] = todo.shift(); tmp.innerHTML = artHTML(c, r, false); paintCard(tmp.querySelector("canvas")); n++;
+    }
+    if (todo.length) (window.requestIdleCallback ? requestIdleCallback(step, { timeout: 500 }) : setTimeout(step, 30));
+  };
+  setTimeout(step, 1500);
+}
 const artAttrs = (c, r) => `data-art="${c.art}" data-id="${c.id}" data-suit="${c.suit || ""}" data-rank="${c.rank ?? ""}" data-r="${r}" data-col="${c.color}" data-kind="${c.kind}" data-label="${c.kind === "minor" ? RANK_GLYPH[c.rank] : ROMAN[c.no]}"`;
 // 逆位置は絵を逆さにしたうえで、紫の光と「逆位置」の帯をつけて一目で分かるようにする
 const artHTML = (c, r, rev, cls = "") => `<span class="cfig${rev ? " rev" : ""}"><canvas class="cart${rev ? " rev" : ""} ${cls}" width="${CW}" height="${CH}" ${artAttrs(c, r)}></canvas>${rev ? `<span class="revtag">↻ 逆位置</span>` : ""}</span>`;
@@ -2898,36 +2922,16 @@ function cardScore(x, ch) {
 // おまかせ装備の優先度：ランク（レアリティ）が一番、次にレベル、同じならキャラとの相性
 // ランクの重みは大きくとり（レジェンド1枚 ＞ エピック2枚）、高いランクのカードが必ず先に入るようにする
 const autoScore = (x, ch) => [1, 8, 27, 64][x.r] * 1000 + x.l * 20 + cardScore(x, ch) / 10;
-// 装備コストの上限の中で、大アルカナ1枚＋小アルカナ3枚（同じカードは1枚まで）の優先度の合計が一番高い組み合わせを選ぶ
+// 大アルカナは一番いいもの1枚、小アルカナは同じカードを除いて上位3枚
 function autoEquip(ch) {
-  const groups = {};
-  CS.cards.forEach(x => { if (CARD[x.c] && CARD[x.c].kind === "minor") (groups[x.c] = groups[x.c] || []).push(x); });
-  let dp = Array.from({ length: 4 }, () => Array(EQUIP_COST + 1).fill(null)); dp[0][0] = { s: 0, pick: [] };
-  for (const id in groups) {
-    const nd = dp.map(r => r.slice());
-    for (let n = 0; n < 3; n++) for (let cost = 0; cost <= EQUIP_COST; cost++) {
-      const cur = dp[n][cost]; if (!cur) continue;
-      for (const x of groups[id]) {
-        const nc = cost + RAR[x.r].cost; if (nc > EQUIP_COST) continue;
-        const s = cur.s + autoScore(x, ch);
-        if (!nd[n + 1][nc] || nd[n + 1][nc].s < s) nd[n + 1][nc] = { s, pick: [...cur.pick, x] };
-      }
-    }
-    dp = nd;
-  }
-  const majors = [null, ...CS.cards.filter(x => CARD[x.c] && CARD[x.c].kind === "major")];
-  let best = null;
-  for (const m of majors) {
-    const mc = m ? RAR[m.r].cost : 0, ms = m ? autoScore(m, ch) : 0; if (mc > EQUIP_COST) continue;
-    for (let n = 0; n <= 3; n++) for (let cost = 0; cost + mc <= EQUIP_COST; cost++) {
-      const cur = dp[n][cost]; if (!cur) continue;
-      if (!best || cur.s + ms > best.s) best = { s: cur.s + ms, maj: m, min: cur.pick };
-    }
-  }
-  if (!best) return false;
+  const by = (a, b) => autoScore(b, ch) - autoScore(a, ch);
+  const majors = CS.cards.filter(x => CARD[x.c] && CARD[x.c].kind === "major").sort(by);
+  const seen = new Set(), minors = [];
+  for (const x of CS.cards.filter(x => CARD[x.c] && CARD[x.c].kind === "minor").sort(by)) { if (seen.has(x.c)) continue; seen.add(x.c); minors.push(x); if (minors.length === 3) break; }
+  if (!majors.length && !minors.length) return false;
   const e = eqOf(ch);
-  e.maj = best.maj ? best.maj.u : null;
-  e.min = [0, 1, 2].map(i => (best.min[i] ? best.min[i].u : null));
+  e.maj = majors.length ? majors[0].u : null;
+  e.min = [0, 1, 2].map(i => (minors[i] ? minors[i].u : null));
   return true;
 }
 // 強化（レベルアップか合成）がいまできるか
@@ -2938,7 +2942,7 @@ function canUpgrade(x, M) {
 }
 const upBadge = (x, M) => (canUpgrade(x, M) ? `<span class="ctag up">強化できる</span>` : "");
 // 装備中のカードを、素材とコインが足りるだけまとめて強化する（大アルカナから順に）。
-// 合成は、レアリティが上がっても装備コストの上限をこえないときだけ。結果の回数と使ったコインを返す
+// 結果の回数と使ったコインを返す
 function upgradeEquipped(ch, M) {
   let lv = 0, syn = 0, spent = 0, changed = true;
   while (changed) {
@@ -2951,7 +2955,7 @@ function upgradeEquipped(ch, M) {
       }
       if (x.l >= RAR[x.r].max && x.r < 3) {
         const mats = synthMats(x), cost = synthCostOf(x, M);
-        if (mats && CS.coins >= cost && eqCost(ch) - RAR[x.r].cost + RAR[x.r + 1].cost <= EQUIP_COST) {
+        if (mats && CS.coins >= cost) {
           CS.coins -= cost; spent += cost; mats.forEach(m => consume(m.u)); x.r++; syn++; changed = true;
         }
       }
@@ -3020,7 +3024,7 @@ function renderCards() {
   }
 }
 function htmlEquip() {
-  const ch = charOf(S.charId), e = eqOf(S.charId), cost = eqCost(S.charId);
+  const ch = charOf(S.charId), e = eqOf(S.charId);
   const slot = (u, i, label) => {
     const x = inst(u);
     if (!x) return `<button class="slot${CD.pick === i ? " on" : ""}" data-act="slot" data-i="${i}" id="slot-${i}"><span class="slabel">${label}</span><span class="sempty">空き</span></button>`;
@@ -3030,20 +3034,17 @@ function htmlEquip() {
   };
   let h = `<div class="panel"><div class="row spread"><b>${ch.name}（${ch.title}）の装備</b><span class="pos ${isRev(S.charId) ? "down" : "up"}">${isRev(S.charId) ? "逆位置で装備" : "正位置で装備"}</span></div>
     <div class="sub">${isRev(S.charId) ? "このキャラはカードを逆さに持つので、各カードの「逆位置」の効果が出ます。" : "このキャラはカードを正しい向きで持つので、各カードの「正位置」の効果が出ます。"}装備はキャラごとに保存。</div>
-    <div class="sub">装備コスト ${cost} / ${EQUIP_COST}（ノーマル1・レア2・エピック3・レジェンド4）</div>
-    <div class="costbar"><i style="width:${Math.min(100, cost / EQUIP_COST * 100)}%"></i></div>
     <div class="row" style="margin-top:8px"><button class="btn primary" data-act="auto">おまかせ装備</button><span class="sub">ランクの高いカードから順に装備します（同じランクならレベル、キャラとの相性の順）</span></div></div>`;
   h += `<div class="slots">${slot(e.maj, 0, "大アルカナ")}${e.min.map((u, j) => slot(u, j + 1, `小アルカナ ${j + 1}`)).join("")}</div>`;
   if (CD.pick === null) {
     const list = eqList(S.charId);
     const M = curM();
     h += `<p class="sub">枠を押すと、つけかえられます。カードのレベルアップ・合成は「所持・強化」でできます。</p>`;
-    if (list.length) h += `<div class="cgrid">${list.map(x => tileHTML(x, `<div class="cact"><button class="btn sm" data-act="goown" data-u="${x.u}">このカードを強化する</button></div>`, upBadge(x, M))).join("")}</div>`;
+    if (list.length) h += `<div class="cgrid">${list.map(x => tileHTML(x, `<div class="cact"><button class="btn sm${canUpgrade(x, M) ? " primary upglow" : ""}" data-act="goown" data-u="${x.u}" ${canUpgrade(x, M) ? "" : "disabled"}>このカードを強化する</button></div>`, upBadge(x, M))).join("")}</div>`;
     return h;
   }
   const i = CD.pick, major = i === 0, cur = inst(major ? e.maj : e.min[i - 1]);
   const others = e.min.filter((_, j) => j !== i - 1).map(inst).filter(Boolean).map(x => x.c);
-  const base = cost - (cur ? RAR[cur.r].cost : 0);
   const list = sortList(CS.cards.filter(x => (CARD[x.c].kind === "major") === major && effPass(x.c)));
   // どの枠に付けるのか、いま何が付いているのかを見出しに出す
   const slotName = major ? "大アルカナ" : `小アルカナ ${i}`;
@@ -3055,10 +3056,9 @@ function htmlEquip() {
     let why = "";
     if (cur && x.u === cur.u) why = "この枠に装備中";
     else if (!major && others.includes(x.c)) why = "同じカードを別の枠に装備中";
-    else if (base + RAR[x.r].cost > EQUIP_COST) why = `コスト超過（あと${base + RAR[x.r].cost - EQUIP_COST}）`;
     // 一覧の札は短い言葉で（切れないように）。いまこの枠に付いているカードは金の枠で目立たせる
     const isCur = cur && x.u === cur.u;
-    const tag = isCur ? `<span class="ctag">いま装備中</span>` : why ? `<span class="ctag other">${why.startsWith("同じ") ? "別の枠で使用中" : "コスト超過"}</span>` : "";
+    const tag = isCur ? `<span class="ctag">いま装備中</span>` : why ? `<span class="ctag other">別の枠で使用中</span>` : "";
     return [x.u, miniTile(x, x.u, tag, isCur ? "cur" : why ? "dim" : ""),
       () => tileHTML(x, `<div class="cact">${why ? `<span class="sub">${why}</span>` : `<button class="btn primary" data-act="equip" data-u="${x.u}">装備する</button>`}</div>`)];
   }), "カードを選ぶと、効果を見て装備できます。");
@@ -5218,6 +5218,7 @@ function start(data) {
   }
   if (S.screen === "battle" && S.battle) { WORLDS[S.battle.w - 1].sky.forEach((c, n) => $("stage").style.setProperty(`--sky${n + 1}`, c)); applyStageBg($("stage"), `bg/w${S.battle.w}`); }
   show(S.screen);
+  warmCardArt();
   EA.forEach(a => a && (a.style.visibility = "visible"));
 }
 // 起動画面（下の別スクリプト）から呼ぶもの：はじめるを押したら音を出せるようにして、今の画面の曲を流す
