@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-02-2206";
+  window.JQ_VER = "2026-11-02-2210";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -3032,8 +3032,7 @@ function htmlEquip() {
     <div class="sub">${isRev(S.charId) ? "このキャラはカードを逆さに持つので、各カードの「逆位置」の効果が出ます。" : "このキャラはカードを正しい向きで持つので、各カードの「正位置」の効果が出ます。"}装備はキャラごとに保存。</div>
     <div class="sub">装備コスト ${cost} / ${EQUIP_COST}（ノーマル1・レア2・エピック3・レジェンド4）</div>
     <div class="costbar"><i style="width:${Math.min(100, cost / EQUIP_COST * 100)}%"></i></div>
-    <div class="row" style="margin-top:8px"><button class="btn primary" data-act="auto">おまかせ装備</button><span class="sub">ランクの高いカードから順に装備します（同じランクならレベル、キャラとの相性の順）</span></div>
-    <div class="row" style="margin-top:6px"><button class="btn" data-act="bulkup" ${eqList(S.charId).some(x => canUpgrade(x, curM())) ? "" : "disabled"}>装備をまとめて強化</button><span class="sub">素材とコインが足りるだけ、装備中のカードをレベルアップ・合成します</span></div></div>`;
+    <div class="row" style="margin-top:8px"><button class="btn primary" data-act="auto">おまかせ装備</button><span class="sub">ランクの高いカードから順に装備します（同じランクならレベル、キャラとの相性の順）</span></div></div>`;
   h += `<div class="slots">${slot(e.maj, 0, "大アルカナ")}${e.min.map((u, j) => slot(u, j + 1, `小アルカナ ${j + 1}`)).join("")}</div>`;
   if (CD.pick === null) {
     const list = eqList(S.charId);
@@ -5227,6 +5226,8 @@ window.JQ_BOOT = {
   // タイトルが出たとき：音を出してよい状態ならジングルを鳴らす（スマホなどは画面に触るまで音を出せないので、その場合は「はじめる」で鳴らす）
   title() { try { audioMake(); if (AU.ctx && AU.ctx.state === "running") { sfx("title"); this.titled = true; } } catch {} },
   begin() { if (this.started) return; this.started = true; audioInit(); sfx(this.titled ? "start" : "title"); bgm(songFor()); },
+  // 起動画面のスクリプトから使う確認（端末の確認画面ではなく、ゲームの画面で聞く）
+  ask(msg, yesLabel, onYes) { openInfo("確認", `<p>${esc(msg)}</p>`, [["やめる", "", closeInfo], [yesLabel, "primary", () => { closeInfo(); onYes(); }]]); },
 };
 // 起動画面が出なかったとき（古い版が残っている等）でも、最初に画面を触った時点で音を出してBGMを流す
 document.addEventListener("pointerdown", () => window.JQ_BOOT.begin(), { once: true, capture: true });
@@ -5288,7 +5289,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
   addEventListener("pageshow", ev => { if (ev.persisted && !busy()) freshReload(); });
   // 設定の「スタートに戻る」：サイトを読み込み直してスタート画面へ（バトル中・オンライン中は確認してから）
   $b("tg-restart").onclick = () => {
-    if (busy() && !confirm("いまの対戦は終わります。スタートに戻りますか？")) return;
+    if (busy() && window.JQ_BOOT?.ask) { window.JQ_BOOT.ask("いまの対戦は終わります。スタートに戻りますか？", "スタートに戻る", freshReload); return; }
     freshReload();
   };
 })();
