@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-02-2202";
+  window.JQ_VER = "2026-11-02-2206";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -3090,7 +3090,8 @@ function htmlOwn() {
   const ups = list.filter(x => canUpgrade(x, M)).length;
   h += `<div class="panel"><b>カードの強化</b>
     <div class="sub">・レベルアップ：同じカード1枚＋コイン<br>・合成：最大レベルのとき、同じカード・同じレアリティ2枚＋コインで1つ上のレアリティに（上限が上がる）<br>装備中のカードは素材にならない。</div>
-    <div class="sub" style="margin-top:4px">${ups ? `<b style="color:var(--gold)">いま強化できるカード：${ups}枚</b>（「強化できる」の印）` : "いま強化できるカードはありません"}・全${list.length}枚</div></div>`;
+    <div class="sub" style="margin-top:4px">${ups ? `<b style="color:var(--gold)">いま強化できるカード：${ups}枚</b>（「強化できる」の印）` : "いま強化できるカードはありません"}・全${list.length}枚</div>
+    <div class="row" style="margin-top:8px"><button class="btn primary" data-act="bulkup" ${eqList(S.charId).some(x => canUpgrade(x, M)) ? "" : "disabled"}>${charOf(S.charId).name}の装備をまとめて強化</button><span class="sub">素材とコインが足りるだけ、装備中のカードをレベルアップ・合成します</span></div></div>`;
   if (!list.length) return h + `<p class="sub">このグループのカードはまだありません。</p>`;
   return h + splitHTML(list.map(x => [x.u, miniTile(x, x.u, upBadge(x, M) + eqBadge(x), CD.flash === x.u ? "hl" : ""), () => tileHTML(x, ownActions(x, M), eqBadge(x))]),
     "カードを選ぶと、効果を見てレベルアップ・合成ができます。");
@@ -3152,11 +3153,25 @@ function cardAct(act, d) {
     renderCards(); return;
   }
   if (act === "bulkup") {
-    const snap = JSON.stringify(CS), r = upgradeEquipped(S.charId, M);
+    // いったん強化してみて結果を調べ、元に戻してから、ゲーム内の画面で確認する
+    const snap = JSON.stringify(CS), before = eqList(S.charId).map(x => ({ u: x.u, c: x.c, r: x.r, l: x.l }));
+    const r = upgradeEquipped(S.charId, M);
+    const after = Object.fromEntries(eqList(S.charId).map(x => [x.u, { r: x.r, l: x.l }]));
+    CS = JSON.parse(snap);
     if (!r.lv && !r.syn) { toast("いま強化できる装備はありません"); return; }
-    const msg = `装備をまとめて強化します。\nレベルアップ ${r.lv}回・合成 ${r.syn}回\n使うコイン ${r.spent.toLocaleString()}\nよろしいですか？`;
-    if (!window.confirm(msg)) { CS = JSON.parse(snap); renderCards(); return; }
-    saveCS(); sfx(r.syn ? "unlock" : "buff"); toast(`レベルアップ ${r.lv}回・合成 ${r.syn}回（−${r.spent.toLocaleString()}コイン）`); renderCards(); return;
+    const rows = before.map(b => {
+      const a = after[b.u]; if (!a || (a.r === b.r && a.l === b.l)) return "";
+      const rar = a.r !== b.r ? `${RAR[b.r].name} → <b style="color:${RAR[a.r].color}">${RAR[a.r].name}</b>・` : "";
+      return `<li><b>${CARD[b.c].name}</b>：${rar}Lv${b.l} → <b>Lv${a.l}</b></li>`;
+    }).join("");
+    openInfo("装備をまとめて強化", `<div class="info-sec"><ul style="margin:0;padding-left:1.2em;line-height:1.9">${rows}</ul>
+      <p class="sub">レベルアップ ${r.lv}回・合成 ${r.syn}回<br>使うコイン <b style="color:var(--gold)">${r.spent.toLocaleString()}</b>（いま ${CS.coins.toLocaleString()}）<br>素材になるのは、装備していない同じカードです。</p></div>`,
+      [["やめる", "", closeInfo], ["強化する", "primary", () => {
+        const r2 = upgradeEquipped(S.charId, curM()); saveCS(); closeInfo();
+        sfx(r2.syn ? "unlock" : "buff"); if (r2.syn) flash("rgba(255,209,102,.35)", .4);
+        toast(`レベルアップ ${r2.lv}回・合成 ${r2.syn}回（−${r2.spent.toLocaleString()}コイン）`); renderCards();
+      }]]);
+    return;
   }
   if (act === "goown") { CD.tab = "own"; CD.pick = null; CD.sel = String(d.u); renderCards(); window.scrollTo(0, 0); return; }
   if (act === "bookpos") { CD.bookRev = d.v === "1"; renderCards(); return; }
