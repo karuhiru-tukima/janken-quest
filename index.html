@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-02-2242";
+  window.JQ_VER = "2026-11-02-2245";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -2822,6 +2822,18 @@ function paintCard(cv) {
   cv.width = src.width; cv.height = src.height;
   const g = cv.getContext("2d"); g.imageSmoothingEnabled = false; g.drawImage(src, 0, 0);
 }
+// 一覧の小さな絵は、描いた絵を画像（短いアドレス）にして使い回す。カードが千枚あっても、絵を描き直さずにすむ
+const CARD_URL = new Map();
+function cardURL(c, r) {
+  const key = c.id + "|" + r; let url = CARD_URL.get(key);
+  if (url) return url;
+  const tmp = document.createElement("div"); tmp.innerHTML = artHTML(c, r, false);
+  const cv = tmp.querySelector("canvas"); paintCard(cv);
+  const bin = atob(cv.toDataURL("image/png").split(",")[1]), arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  url = URL.createObjectURL(new Blob([arr], { type: "image/png" })); CARD_URL.set(key, url);
+  return url;
+}
 // 全カード×レアリティの絵と、敵・味方のドット絵を、手が空いているときに少しずつ先に作っておく
 // （初めて一覧やステージ選択を開くときも待たないように。ステージ選択は初回だけ約1.6秒かかっていた）
 function warmCardArt() {
@@ -2835,7 +2847,7 @@ function warmCardArt() {
     let n = 0;
     while (todo.length && (deadline ? deadline.timeRemaining() > 4 : n < 6)) {
       const job = todo.shift();
-      if (typeof job === "function") job(); else { const [c, r] = job; tmp.innerHTML = artHTML(c, r, false); paintCard(tmp.querySelector("canvas")); }
+      if (typeof job === "function") job(); else cardURL(job[0], job[1]);
       n++;
     }
     if (todo.length) (window.requestIdleCallback ? requestIdleCallback(step, { timeout: 500 }) : setTimeout(step, 30));
@@ -2891,11 +2903,13 @@ const cardChips = (list, rev) => list.length ? `<span class="cmarks">${list.map(
 // ---- 一覧＋詳細：一覧は絵と名前だけ、押したカードの効果・ボタンは詳細に出す（PCは右に並べる、スマホは下から出す）----
 const miniTile = (x, k, badge = "", cls = "") => { const c = CARD[x.c];
   return `<button class="ctile mini${CD.sel === String(k) ? " on" : ""} ${cls}" style="--rc:${RAR[x.r].color}" data-act="pick" data-k="${k}" aria-pressed="${CD.sel === String(k)}">${badge}
-    ${artHTML(c, x.r, false)}<span class="mname">${c.name}</span><span class="mlv">${stars(x.r)} Lv${x.l}</span></button>`; }; // 一覧は見分けやすいよう正しい向きで（逆位置の表示は詳細で）
+    <span class="cfig"><img class="cart" src="${cardURL(c, x.r)}" alt=""></span><span class="mname">${c.name}</span><span class="mlv">${stars(x.r)} Lv${x.l}</span></button>`; }; // 一覧は見分けやすいよう正しい向きで（逆位置の表示は詳細で）
 const unseenMini = c => `<button class="ctile mini unseen" style="--rc:var(--line)" disabled><span class="cfig"><canvas class="cart" width="${CW}" height="${CH}" data-art="unknown" data-r="0" data-label="${c.kind === "minor" ? RANK_GLYPH[c.rank] : ROMAN[c.no]}"></canvas></span><span class="mname">？？？</span></button>`;
 // items：[キー, 一覧の絵, 詳細のHTMLを作る関数]
 function splitHTML(items, hint) {
   const cur = items.find(([k]) => k != null && String(k) === CD.sel); // キーが null のものは見出し
+  // カードを選んだときに「くわしく」だけを入れかえられるよう、詳細を作る関数を覚えておく
+  CD._detail = new Map(items.filter(i => i[0] != null).map(i => [String(i[0]), i[2]])); CD._hint = hint;
   return `<div class="cd-split${cur ? " has-sel" : ""}"><div class="cgrid mini">${items.map(i => i[1]).join("")}</div>
     <aside class="cd-detail" aria-live="polite">${cur ? `<div class="cd-dhead"><b>くわしく</b><button class="btn sm" data-act="unpick">閉じる</button></div>${cur[2]()}` : `<p class="sub">${hint}</p>`}</aside></div>`;
 }
@@ -3158,8 +3172,18 @@ function cardAct(act, d) {
   const M = curM();
   if (act === "sortk") { SORT.k = d.k; saveSort(); renderCards(); return; }
   if (act === "sortdir") { SORT.desc = !SORT.desc; saveSort(); renderCards(); return; }
-  if (act === "pick") { CD.sel = d.k; renderCards(); return; }
-  if (act === "unpick") { CD.sel = null; renderCards(); return; }
+  // カードを選ぶ・閉じる：一覧は作り直さず、選んだ印と「くわしく」だけを入れかえる（カードが多いと一覧の作り直しが重い）
+  if (act === "pick" || act === "unpick") {
+    CD.sel = act === "pick" ? String(d.k) : null;
+    const split = document.querySelector("#cd-body .cd-split"), fn = CD.sel != null && CD._detail ? CD._detail.get(CD.sel) : null;
+    if (!split || (CD.sel != null && !fn)) { renderCards(); return; }
+    split.classList.toggle("has-sel", !!fn);
+    split.querySelectorAll(".ctile.mini.on").forEach(b => { b.classList.remove("on"); b.setAttribute("aria-pressed", "false"); });
+    if (CD.sel != null) { const b = split.querySelector(`.ctile.mini[data-k="${CSS.escape(CD.sel)}"]`); if (b) { b.classList.add("on"); b.setAttribute("aria-pressed", "true"); } }
+    const aside = split.querySelector(".cd-detail");
+    aside.innerHTML = fn ? `<div class="cd-dhead"><b>くわしく</b><button class="btn sm" data-act="unpick">閉じる</button></div>${fn()}` : `<p class="sub">${CD._hint}</p>`;
+    paintAll(aside); return;
+  }
   if (act === "slot") {
     CD.pick = CD.pick === +d.i ? null : +d.i; CD.sel = null; renderCards();
     // 選ぶ一覧は枠の下に出るので、スマホでは画面の外になる。一覧の見出しまで画面を動かす
@@ -3194,7 +3218,14 @@ function cardAct(act, d) {
   }
   if (act === "goown") { CD.tab = "own"; CD.pick = null; CD.sel = String(d.u); renderCards(); window.scrollTo(0, 0); return; }
   if (act === "bookpos") { CD.bookRev = d.v === "1"; renderCards(); return; }
-  if (act === "fopen") { CD.open = CD.open === d.k ? null : d.k; renderCards(); return; }
+  if (act === "fopen") {
+    CD.open = CD.open === d.k ? null : d.k;
+    // メニューの開け閉めだけなので、絞り込みの帯だけを入れかえる（一覧は作り直さない）
+    const bars = [...document.querySelectorAll("#cd-body .effbar")];
+    if (!bars.length) { renderCards(); return; }
+    const withType = !!bars[0].querySelector('[data-k="type"]'), tmp = document.createElement("div"); tmp.innerHTML = effBar(withType);
+    bars[0].before(...tmp.children); bars.forEach(b => b.remove()); return;
+  }
   if (act === "eff") { CD.eff = d.f; CD.open = null; CD.sel = null; renderCards(); return; }
   if (act === "equip" || act === "unequip") {
     const e = eqOf(S.charId), i = CD.pick, u = act === "equip" ? +d.u : null;
