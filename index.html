@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-02-2313";
+  window.JQ_VER = "2026-11-03-0141";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -1933,7 +1933,7 @@ const CHARS = [
   { id: 7, name: "ガロウ", title: "逆境の牙", glyph: "牙", color: "#ff7a7a",
     ab: "<b>負けるたびに攻撃力+20%</b>（そのステージ中ずっと。最大+100%）。" },
   { id: 8, name: "イワオ", title: "岩の守り", glyph: "盾", color: "#a6c48a",
-    ab: "いつでも受けるダメージ<b>−20%</b>。連勝するたび<b>10%</b>ずつ軽減が増える（最大70%）。連勝が切れる一撃にも効く。" },
+    ab: "いつでも受けるダメージ<b>−20%</b>。連勝するたび<b>10%</b>ずつ軽減が増える（最大70%）。" },
   { id: 9, name: "カゲ", title: "返しの刃", glyph: "返", color: "#7fd6d6",
     ab: "ダメージを受けると、<b>基礎攻撃力の35%</b>のダメージを相手に返す（カードなどの強化はのらない）。" },
   { id: 10, name: "シズク", title: "封じの札", glyph: "封", color: "#c8a0f0",
@@ -1946,8 +1946,22 @@ const CHARS = [
     ab: "<b>減っている体力</b>の割合だけ攻撃力アップ（体力が半分なら+50%、0に近いほど+100%）。回復すると下がる。" },
   { id: 14, name: "マサ", title: "不動の拳", glyph: "不", color: "#8ab4d8",
     ab: "<b>グー</b>で負けたとき、相手の<b>攻撃力アップ</b>（連勝・チャージ・カード・激昂など）を受けず、相手の基礎攻撃力ぶんのダメージだけ受ける。" },
+  { id: 15, name: "トキ", title: "刻の構え", glyph: "刻", color: "#e8c070",
+    ab: "<b>7手目</b>から（あいこも数える）<b>攻撃力+20%</b>・受けるダメージ<b>−15%</b>。ステージでは敵を1体倒すと数え直し。" },
+  { id: 16, name: "ミツ", title: "三つの型", glyph: "三", color: "#7ad0c0",
+    ab: "<b>グー</b>で負けると受けたダメージの<b>20%を反射</b>。<b>チョキ</b>で勝つとその一撃が<b>×1.2</b>。<b>パー</b>であいこなら最大HPの<b>8%回復</b>。" },
 ];
 const FORCE_CH = 11, PIERCE_CH = 12, SCAR_CH = 13, STEADY_CH = 14; // ツツミ：パー勝ちでグー強制／ウガチ：チョキ勝ちで守り・反射無視／ホムラ：被ダメで攻撃アップ
+// トキ：その相手と7手目から（あいこも数える）攻撃力+20%・被ダメ−15%
+const TOKI_CH = 15, TOKI_N = 7, TOKI_ATK = 0.2, TOKI_DEF = 0.15;
+// ミツ：グー負けで受けたダメージの20%を反射／チョキ勝ちでその一撃×1.2／パーのあいこで最大HPの8%回復
+const MITSU_CH = 16, MITSU_REFLECT = 0.2, MITSU_HIT = 1.2, MITSU_HEAL = 0.08;
+// 教皇（逆）のトキ：6手目から発動し、バフが ×(1＋強さ)
+const tokiN = M => (mz(M, "echo") > 0 ? TOKI_N - 1 : TOKI_N);
+const tokiK = M => 1 + mz(M, "echo");
+// 教皇（正）のミツ：反射・チョキの上乗せ・回復が ×(1＋強さ)
+const mitsuK = M => 1 + mz(M, "charBoost");
+const mitsuRef = M => MITSU_REFLECT * mitsuK(M), mitsuHitOf = M => 1 + (MITSU_HIT - 1) * mitsuK(M), mitsuHeal = M => MITSU_HEAL * mitsuK(M);
 // ホムラ：減っている体力の割合ぶん攻撃力アップ（体力0に近いほど+100%。回復すると下がる）
 const scarBonus = (hp, max, cb) => Math.min(cb, cb * Math.max(0, max - hp) / max);
 const SEAL_CH = 10, SEAL_RATE = 0.9; // シズク：相手の「常時発動」の能力を封じるかわりに、体力と攻撃力が90%
@@ -2345,7 +2359,7 @@ const MINOR_DEF = {
 };
 const OFFLINE_ONLY = new Set(["predict", "jam", "readResist", "enemyStreakCut"]);
 // ---- 逆位置（レン・ナギ・ガロウ・イワオ・カゲ・シズク・ホムラが装備すると逆位置になる）----
-const REV_CHARS = new Set([5, 6, 7, 8, 9, 10, 13]); // レン・ナギ・ガロウ・イワオ・カゲ・シズク・ホムラは逆位置で装備
+const REV_CHARS = new Set([5, 6, 7, 8, 9, 10, 13, 15]); // レン・ナギ・ガロウ・イワオ・カゲ・シズク・ホムラ・トキは逆位置で装備
 const isRev = ch => REV_CHARS.has(ch);
 // 効果の文章（逆位置はここから自動で作る）
 const FT_UP = {
@@ -2867,12 +2881,14 @@ const HIERO_UP = {
   1: v => `無敵が切れたあと、次の被ダメ −${pctS(0.75 * v)}`, 2: v => `チャージ ×${numS(3 + v)}`, 3: v => `癒しの掌の回復 +${pctS(v)}`,
   4: v => `グーで勝つと、次の被ダメ −${pctS(0.75 * v)}`, 11: v => `グーに固めた相手へのパー勝ち ×${numS(1 + v)}`,
   12: v => `チョキ勝ちのダメージ ×${numS(1 + v)}`, 14: v => `グーで負けたときの被ダメ −${pctS(0.75 * v)}`,
+  16: v => `反射 ${pctS(MITSU_REFLECT * (1 + v))}・チョキ勝ち ×${numS(1 + (MITSU_HIT - 1) * (1 + v))}・パーのあいこで回復 ${pctS(MITSU_HEAL * (1 + v))}`,
 };
 const HIERO_REV = {
   5: v => `2連勝以上で勝った次のターン、連撃 ×${numS(1 + v)}`, 6: v => `あいこの次のターン、${pctS(v)}の確率で連勝+1`,
   7: v => `負けた次のターン、逆境 ×${numS(1 + v)}`, 8: v => `勝った次のターン、岩の守り ×${numS(1 + v)}`,
   9: v => `負けた次のターン、返しの刃（${pctS(v)}）がもう一度`, 10: v => `体力・攻撃力 ${pctS(sealRateOf({ echo: v }))}（低下なし）`,
   13: v => `HPが減った状態で勝った次のターン、傷の炎 ×${numS(1 + v)}`,
+  15: v => `${TOKI_N - 1}手目から発動、攻撃力 +${pctS(TOKI_ATK * (1 + v))}・被ダメ −${pctS(TOKI_DEF * (1 + v))}`,
 };
 const pctS = v => `${Math.round(v * 1000) / 10}%`, numS = v => String(Math.round(v * 100) / 100);
 function hieroHTML(c, x, rev, who = S.charId) {
@@ -2929,7 +2945,7 @@ const sortBar = () => `<div class="sortbar"><span class="sub">並び替え</span
 
 // ---- おまかせ装備 ----
 // キャラごとの相性表：オンラインと同じ計算で「そのカードを持っていたときの勝率×10−500」を出したもの（カードの並び順。全員4枚ランダム・各キャラ4万試合）
-const FIT_RAW = "1:63,-39,7,104,36,14,28,42,10,14,-28,41,85,37,83,-2,-31,-37,-13,-33,-13,-35,-35,-12,-21,-1,0,25,-21,8,-36,-10,-1,-37,0,11,37,83,65,22,32,0,25,-16,72,12,40,48,-7,82,-4,9,-24,0,-18,-3,32,28,-47,16,-9,79,13,24,-16,36,10,30,29,45,88,0,6,88,3,63,-11,37;2:39,-28,3,73,24,1,50,47,-13,26,-36,39,83,9,54,-23,-52,-40,-27,-16,-17,7,-28,-6,-3,-22,-6,-15,-31,3,-37,-17,-5,-26,-19,7,31,59,55,24,37,-8,39,-22,47,9,36,66,-32,74,-5,-1,-15,-16,-17,-24,23,-7,-57,6,-24,72,-5,5,-6,24,20,56,20,42,42,-1,1,70,13,55,2,54;3:57,-56,-9,62,11,18,81,56,15,0,-38,76,145,14,45,2,-46,-33,-31,-24,-22,-16,-22,-21,-21,-12,-28,-1,-9,-36,-6,-7,-10,-23,-7,29,28,63,43,12,45,20,26,-20,41,-7,14,79,-5,59,13,-4,-15,-18,-23,-7,36,14,-26,17,-4,71,10,16,2,34,50,54,34,47,56,16,8,93,-1,71,-18,37;4:7,-76,-49,16,-17,-11,-7,10,-35,-30,-66,-9,88,-14,30,-45,-77,-58,-69,-68,-64,-66,-72,-29,-55,-47,-48,-39,-63,-28,-58,-53,-44,-57,-58,-7,-26,44,-7,-34,-28,-37,-3,-70,2,-41,-11,18,-48,31,-58,-42,-46,-42,-54,-69,-6,10,-94,-48,-56,45,-36,-36,-39,13,-40,15,9,-8,25,-40,-49,49,-59,17,-39,-6;5:-37,43,-56,46,4,-14,29,36,-26,-35,-69,58,-26,-15,11,55,-41,-42,-44,-56,16,65,-26,-12,-15,-49,-30,-67,11,-12,17,-27,-59,29,-32,-4,10,39,17,-3,0,26,4,3,22,25,11,66,47,40,-9,-6,-41,-36,-40,-40,-10,-26,15,-41,-28,-14,-41,-6,28,-5,-36,-4,-10,-21,33,-30,-20,88,-23,11,-4,21;6:-88,-26,-97,18,-38,-55,-22,-45,-48,-76,-136,15,-54,-31,-50,23,-117,-95,-91,-80,-12,-2,-63,-85,-40,-92,-60,-103,-48,-68,-46,-56,-53,-12,-84,-62,-25,19,-24,-53,-57,-32,-32,-50,0,-65,-41,23,-27,-10,-60,-74,-46,-102,-89,-105,-49,-69,-28,-89,-82,-48,-92,-47,-38,-36,-90,-42,-45,-34,-3,-70,-53,46,-54,-54,-60,-47;7:7,97,11,104,47,70,79,97,88,51,-67,118,-6,42,56,110,50,45,45,38,118,165,29,15,23,9,51,11,83,41,71,28,9,56,19,45,116,103,92,98,48,86,80,75,115,94,79,154,105,136,56,41,41,37,23,-8,48,67,91,20,15,76,12,80,95,82,31,77,78,71,109,26,56,160,27,63,60,68;8:8,78,-13,100,43,30,64,82,45,12,-11,75,-23,38,85,120,-16,8,-5,5,106,67,28,28,10,42,23,-26,59,21,51,14,-18,99,15,12,53,89,75,36,22,48,21,29,112,73,41,158,83,76,13,36,12,6,4,-20,44,47,76,-14,0,55,-7,43,70,64,-21,47,51,63,100,15,35,158,5,58,37,33;9:-15,65,-15,58,27,86,57,59,16,2,-93,145,-30,7,57,92,-40,13,-1,-19,79,99,0,10,13,-8,14,-21,39,-3,25,-7,-13,78,-21,20,40,81,55,43,22,45,23,53,73,64,62,126,80,104,23,10,19,-20,-2,-24,8,10,44,-33,4,17,-23,35,73,90,-18,34,65,24,78,0,35,130,9,14,35,19;10:-184,-133,-222,-94,-138,-31,-165,-204,-162,-178,-279,-116,-173,-153,-144,-92,-248,-222,-229,-202,-123,-131,-190,-176,-198,-202,-193,-207,-154,-188,-150,-178,-205,-132,-185,-196,-140,-118,-123,-157,-178,-169,-171,-173,-130,-140,-160,-137,-129,-115,-157,-182,-171,-214,-190,-197,-182,-180,-140,-219,-193,-154,-183,-162,-147,-146,-203,-157,-138,-145,-97,-195,-173,-66,-171,-161,-147,-163;11:91,13,33,111,80,67,88,107,60,98,41,88,143,55,101,43,-7,42,23,30,23,13,0,41,43,16,39,37,17,35,41,28,62,27,63,46,80,139,108,83,88,45,75,40,108,54,96,97,36,114,53,20,64,36,36,38,59,83,44,56,36,118,55,82,62,68,44,70,72,82,111,44,47,145,47,95,31,75;12:-18,-100,-61,20,-31,36,-37,-12,-45,-34,-69,-16,64,-61,8,-56,-89,-90,-73,-95,-51,-59,-76,-58,-44,-70,-72,-54,-103,-56,-75,-68,-49,-61,-62,-43,-5,4,-4,-9,-56,-48,-34,-74,24,-64,-27,2,-61,35,-27,-45,-77,-68,-57,-63,-39,-35,-81,-54,-64,13,-53,-30,-67,-37,-28,-6,-41,-17,14,-36,-45,47,-58,-4,-48,-16;13:25,104,22,150,67,32,98,76,65,29,-48,123,77,75,47,102,36,53,41,42,111,166,52,71,42,32,69,4,63,56,91,45,37,75,26,68,76,123,62,51,46,82,83,84,113,91,79,160,119,105,75,55,34,57,36,31,74,94,97,32,38,59,30,80,86,89,33,69,89,63,95,51,47,141,30,69,83,68;14:41,-64,-37,77,-24,0,26,22,-27,14,-68,25,42,8,61,-34,-59,-78,-70,-44,-13,-27,-66,-24,-51,-47,-26,-30,-41,-29,-46,-32,-36,-42,-23,0,-3,61,30,-9,-33,-21,-8,-39,48,-20,18,36,-32,69,-25,-27,-31,-29,-45,-36,-20,14,-57,-32,-57,49,-15,-17,-41,26,5,34,7,23,59,-23,-34,90,-24,38,-45,17";
+const FIT_RAW = "1:63,-39,7,104,36,14,28,42,10,14,-28,41,85,37,83,-2,-31,-37,-13,-33,-13,-35,-35,-12,-21,-1,0,25,-21,8,-36,-10,-1,-37,0,11,37,83,65,22,32,0,25,-16,72,12,40,48,-7,82,-4,9,-24,0,-18,-3,32,28,-47,16,-9,79,13,24,-16,36,10,30,29,45,88,0,6,88,3,63,-11,37;2:39,-28,3,73,24,1,50,47,-13,26,-36,39,83,9,54,-23,-52,-40,-27,-16,-17,7,-28,-6,-3,-22,-6,-15,-31,3,-37,-17,-5,-26,-19,7,31,59,55,24,37,-8,39,-22,47,9,36,66,-32,74,-5,-1,-15,-16,-17,-24,23,-7,-57,6,-24,72,-5,5,-6,24,20,56,20,42,42,-1,1,70,13,55,2,54;3:57,-56,-9,62,11,18,81,56,15,0,-38,76,145,14,45,2,-46,-33,-31,-24,-22,-16,-22,-21,-21,-12,-28,-1,-9,-36,-6,-7,-10,-23,-7,29,28,63,43,12,45,20,26,-20,41,-7,14,79,-5,59,13,-4,-15,-18,-23,-7,36,14,-26,17,-4,71,10,16,2,34,50,54,34,47,56,16,8,93,-1,71,-18,37;4:7,-76,-49,16,-17,-11,-7,10,-35,-30,-66,-9,88,-14,30,-45,-77,-58,-69,-68,-64,-66,-72,-29,-55,-47,-48,-39,-63,-28,-58,-53,-44,-57,-58,-7,-26,44,-7,-34,-28,-37,-3,-70,2,-41,-11,18,-48,31,-58,-42,-46,-42,-54,-69,-6,10,-94,-48,-56,45,-36,-36,-39,13,-40,15,9,-8,25,-40,-49,49,-59,17,-39,-6;5:-37,43,-56,46,4,-14,29,36,-26,-35,-69,58,-26,-15,11,55,-41,-42,-44,-56,16,65,-26,-12,-15,-49,-30,-67,11,-12,17,-27,-59,29,-32,-4,10,39,17,-3,0,26,4,3,22,25,11,66,47,40,-9,-6,-41,-36,-40,-40,-10,-26,15,-41,-28,-14,-41,-6,28,-5,-36,-4,-10,-21,33,-30,-20,88,-23,11,-4,21;6:-88,-26,-97,18,-38,-55,-22,-45,-48,-76,-136,15,-54,-31,-50,23,-117,-95,-91,-80,-12,-2,-63,-85,-40,-92,-60,-103,-48,-68,-46,-56,-53,-12,-84,-62,-25,19,-24,-53,-57,-32,-32,-50,0,-65,-41,23,-27,-10,-60,-74,-46,-102,-89,-105,-49,-69,-28,-89,-82,-48,-92,-47,-38,-36,-90,-42,-45,-34,-3,-70,-53,46,-54,-54,-60,-47;7:7,97,11,104,47,70,79,97,88,51,-67,118,-6,42,56,110,50,45,45,38,118,165,29,15,23,9,51,11,83,41,71,28,9,56,19,45,116,103,92,98,48,86,80,75,115,94,79,154,105,136,56,41,41,37,23,-8,48,67,91,20,15,76,12,80,95,82,31,77,78,71,109,26,56,160,27,63,60,68;8:8,78,-13,100,43,30,64,82,45,12,-11,75,-23,38,85,120,-16,8,-5,5,106,67,28,28,10,42,23,-26,59,21,51,14,-18,99,15,12,53,89,75,36,22,48,21,29,112,73,41,158,83,76,13,36,12,6,4,-20,44,47,76,-14,0,55,-7,43,70,64,-21,47,51,63,100,15,35,158,5,58,37,33;9:-15,65,-15,58,27,86,57,59,16,2,-93,145,-30,7,57,92,-40,13,-1,-19,79,99,0,10,13,-8,14,-21,39,-3,25,-7,-13,78,-21,20,40,81,55,43,22,45,23,53,73,64,62,126,80,104,23,10,19,-20,-2,-24,8,10,44,-33,4,17,-23,35,73,90,-18,34,65,24,78,0,35,130,9,14,35,19;10:-184,-133,-222,-94,-138,-31,-165,-204,-162,-178,-279,-116,-173,-153,-144,-92,-248,-222,-229,-202,-123,-131,-190,-176,-198,-202,-193,-207,-154,-188,-150,-178,-205,-132,-185,-196,-140,-118,-123,-157,-178,-169,-171,-173,-130,-140,-160,-137,-129,-115,-157,-182,-171,-214,-190,-197,-182,-180,-140,-219,-193,-154,-183,-162,-147,-146,-203,-157,-138,-145,-97,-195,-173,-66,-171,-161,-147,-163;11:91,13,33,111,80,67,88,107,60,98,41,88,143,55,101,43,-7,42,23,30,23,13,0,41,43,16,39,37,17,35,41,28,62,27,63,46,80,139,108,83,88,45,75,40,108,54,96,97,36,114,53,20,64,36,36,38,59,83,44,56,36,118,55,82,62,68,44,70,72,82,111,44,47,145,47,95,31,75;12:-18,-100,-61,20,-31,36,-37,-12,-45,-34,-69,-16,64,-61,8,-56,-89,-90,-73,-95,-51,-59,-76,-58,-44,-70,-72,-54,-103,-56,-75,-68,-49,-61,-62,-43,-5,4,-4,-9,-56,-48,-34,-74,24,-64,-27,2,-61,35,-27,-45,-77,-68,-57,-63,-39,-35,-81,-54,-64,13,-53,-30,-67,-37,-28,-6,-41,-17,14,-36,-45,47,-58,-4,-48,-16;13:25,104,22,150,67,32,98,76,65,29,-48,123,77,75,47,102,36,53,41,42,111,166,52,71,42,32,69,4,63,56,91,45,37,75,26,68,76,123,62,51,46,82,83,84,113,91,79,160,119,105,75,55,34,57,36,31,74,94,97,32,38,59,30,80,86,89,33,69,89,63,95,51,47,141,30,69,83,68;14:41,-64,-37,77,-24,0,26,22,-27,14,-68,25,42,8,61,-34,-59,-78,-70,-44,-13,-27,-66,-24,-51,-47,-26,-30,-41,-29,-46,-32,-36,-42,-23,0,-3,61,30,-9,-33,-21,-8,-39,48,-20,18,36,-32,69,-25,-27,-31,-29,-45,-36,-20,14,-57,-32,-57,49,-15,-17,-41,26,5,34,7,23,59,-23,-34,90,-24,38,-45,17;15:-31,53,-59,46,6,96,20,41,3,4,-108,61,-28,22,43,27,-2,-26,-22,-42,75,76,-20,-35,-30,-37,-19,-59,31,-36,17,-31,-24,57,-42,-13,54,72,47,16,28,24,7,4,67,29,16,101,72,61,1,-13,-9,-21,-8,-37,1,38,42,-33,-20,11,-31,20,53,54,-37,13,26,16,83,-6,-12,124,-14,19,24,2;16:72,-32,6,108,27,40,79,62,14,1,-17,73,123,14,105,16,-29,-38,-21,-21,-4,-13,2,15,0,-5,26,-10,-2,2,-3,6,-6,-18,-16,28,54,92,65,31,41,16,31,1,87,23,57,75,2,134,8,27,-17,-4,-8,-16,54,41,-30,11,-17,67,2,26,10,55,39,63,57,51,77,-1,5,101,1,71,-4,29";
 const FIT = {}; FIT_RAW.split(";").forEach(row => { const [ch, v] = row.split(":"); FIT[ch] = v.split(",").map(Number); });
 // 1枚の点数：相性（同じ種類のカードの平均との差）＋カードを持つこと自体の得点 を、レベル・レアリティで大きくする
 function cardScore(x, ch) {
@@ -2975,13 +2991,17 @@ function canUpgrade(x, M, ix) {
   return x.r < 3 && (ix.byIdR[x.c + "|" + x.r] || 0) - self >= 2 && CS.coins >= synthCostOf(x, M);
 }
 const upBadge = (x, M, ix) => (canUpgrade(x, M, ix) ? `<span class="ctag up">強化できる</span>` : "");
-// 装備中のカードを、素材とコインが足りるだけまとめて強化する（大アルカナから順に）。
+// 持っているカードを、素材とコインが足りるだけまとめて強化する。
+// 強化する順番：装備中（どのキャラでも）→ ランクが高い → レベルが高い。素材は装備していないカードの、ランク・レベルの低いものから使う。
 // 結果の回数と使ったコインを返す
-function upgradeEquipped(ch, M) {
+function upgradeAll(M) {
   let lv = 0, syn = 0, spent = 0, changed = true;
+  const eqSet = upIndex().eqSet;
   while (changed) {
     changed = false;
-    for (const x of eqList(ch)) {
+    const order = CS.cards.slice().sort((a, b) => (eqSet.has(b.u) - eqSet.has(a.u)) || b.r - a.r || b.l - a.l || a.u - b.u);
+    for (const x of order) {
+      if (!inst(x.u)) continue; // ほかのカードの素材に使われてもうない
       while (x.l < RAR[x.r].max) {
         const mat = lvMat(x), cost = lvCostOf(x, M);
         if (!mat || CS.coins < cost) break;
@@ -3124,7 +3144,7 @@ function htmlOwn() {
   h += `<div class="panel"><b>カードの強化</b>
     <div class="sub">・レベルアップ：同じカード1枚＋コイン<br>・合成：最大レベルのとき、同じカード・同じレアリティ2枚＋コインで1つ上のレアリティに（上限が上がる）<br>装備中のカードは素材にならない。</div>
     <div class="sub" style="margin-top:4px">${ups ? `<b style="color:var(--gold)">いま強化できるカード：${ups}枚</b>（「強化できる」の印）` : "いま強化できるカードはありません"}・全${list.length}枚</div>
-    <div class="row" style="margin-top:8px"><button class="btn primary" data-act="bulkup" ${eqList(S.charId).some(x => canUpgrade(x, M)) ? "" : "disabled"}>${charOf(S.charId).name}の装備をまとめて強化</button><span class="sub">素材とコインが足りるだけ、装備中のカードをレベルアップ・合成します</span></div></div>`;
+    <div class="row" style="margin-top:8px"><button class="btn primary" data-act="bulkup" ${ups ? "" : "disabled"}>持っているカードをまとめて強化</button><span class="sub">素材とコインが足りるだけ、全部のカードをレベルアップ・合成します（装備中 → ランク → レベルの高い順）</span></div></div>`;
   if (!list.length) return h + `<p class="sub">このグループのカードはまだありません。</p>`;
   return h + splitHTML(list.map(x => [x.u, miniTile(x, x.u, upBadge(x, M, ix) + eqBadge(x), CD.flash === x.u ? "hl" : ""), () => tileHTML(x, ownActions(x, M), eqBadge(x))]),
     "カードを選ぶと、効果を見てレベルアップ・合成ができます。");
@@ -3197,20 +3217,22 @@ function cardAct(act, d) {
   }
   if (act === "bulkup") {
     // いったん強化してみて結果を調べ、元に戻してから、ゲーム内の画面で確認する
-    const snap = JSON.stringify(CS), before = eqList(S.charId).map(x => ({ u: x.u, c: x.c, r: x.r, l: x.l }));
-    const r = upgradeEquipped(S.charId, M);
-    const after = Object.fromEntries(eqList(S.charId).map(x => [x.u, { r: x.r, l: x.l }]));
+    const snap = JSON.stringify(CS), before = CS.cards.map(x => ({ u: x.u, c: x.c, r: x.r, l: x.l }));
+    const r = upgradeAll(M);
+    const after = Object.fromEntries(CS.cards.map(x => [x.u, { r: x.r, l: x.l }])), used = before.length - CS.cards.length;
     CS = JSON.parse(snap);
-    if (!r.lv && !r.syn) { toast("いま強化できる装備はありません"); return; }
-    const rows = before.map(b => {
-      const a = after[b.u]; if (!a || (a.r === b.r && a.l === b.l)) return "";
+    if (!r.lv && !r.syn) { toast("いま強化できるカードはありません"); return; }
+    const changed = before.filter(b => after[b.u] && (after[b.u].r !== b.r || after[b.u].l !== b.l)).sort((a, b) => after[b.u].r - after[a.u].r || after[b.u].l - after[a.u].l);
+    const SHOW = 15;
+    const rows = changed.slice(0, SHOW).map(b => {
+      const a = after[b.u];
       const rar = a.r !== b.r ? `${RAR[b.r].name} → <b style="color:${RAR[a.r].color}">${RAR[a.r].name}</b>・` : "";
       return `<li><b>${CARD[b.c].name}</b>：${rar}Lv${b.l} → <b>Lv${a.l}</b></li>`;
-    }).join("");
-    openInfo("装備をまとめて強化", `<div class="info-sec"><ul style="margin:0;padding-left:1.2em;line-height:1.9">${rows}</ul>
-      <p class="sub">レベルアップ ${r.lv}回・合成 ${r.syn}回<br>使うコイン <b style="color:var(--gold)">${r.spent.toLocaleString()}</b>（いま ${CS.coins.toLocaleString()}）<br>素材になるのは、装備していない同じカードです。</p></div>`,
+    }).join("") + (changed.length > SHOW ? `<li>ほか ${changed.length - SHOW}枚</li>` : "");
+    openInfo("持っているカードをまとめて強化", `<div class="info-sec"><ul style="margin:0;padding-left:1.2em;line-height:1.9">${rows}</ul>
+      <p class="sub">強化するカード ${changed.length}枚・素材になるカード ${used}枚<br>レベルアップ ${r.lv}回・合成 ${r.syn}回<br>使うコイン <b style="color:var(--gold)">${r.spent.toLocaleString()}</b>（いま ${CS.coins.toLocaleString()}）<br>装備中 → ランクが高い → レベルが高いカードの順に強化します。素材になるのは、装備していないカード（ランク・レベルの低いものから）です。</p></div>`,
       [["やめる", "", closeInfo], ["強化する", "primary", () => {
-        const r2 = upgradeEquipped(S.charId, curM()); saveCS(); closeInfo();
+        const r2 = upgradeAll(curM()); saveCS(); closeInfo();
         sfx(r2.syn ? "unlock" : "buff"); if (r2.syn) flash("rgba(255,209,102,.35)", .4);
         toast(`レベルアップ ${r2.lv}回・合成 ${r2.syn}回（−${r2.spent.toLocaleString()}コイン）`); renderCards();
       }]]);
@@ -3545,9 +3567,12 @@ const eRate = e => (has(e, "king") ? 0.3 : has(e, "gale") ? 0.5 : 0.1) * (1 - Ma
 const furyBonus = p => (S.charId === 7 ? Math.min(CB() * EM(), 0.2 * CB() * EM() * (p.losses || 0)) : S.charId === SCAR_CH ? scarBonus(p.hp, p.max, CB() * EM()) : 0);
 const furyName = () => (S.charId === SCAR_CH ? "傷の炎" : "逆境");
 const atkMods = p => { const M = BM(); return mz(M, "atk") + (p.streak >= 2 ? mz(M, "streak2Atk") : 0) + (p.hp <= p.max / 2 ? mz(M, "lowHpAtk") : 0) + arcAtk(p, M); };
-const pAtk = p => p.atk * (1 + furyBonus(p)) * Math.max(0.2, 1 + atkMods(p));
-// イワオ：常に20%＋連勝数×10%（最大70%）
-const pDef = p => (S.charId === 8 ? Math.min(0.85, 0.7 * CB() * EM(), (0.2 + 0.1 * p.streak) * CB() * EM()) : 0);
+// トキの状態表示（n は終わった手数）：次の手で発動するなら「発動中」、まだなら発動まであと何手か
+const tokiChip = (n, M) => (n + 1 >= tokiN(M) ? chip(`刻の構え 攻+${Math.round(TOKI_ATK * tokiK(M) * 100)}%・被ダメ−${Math.round(TOKI_DEF * tokiK(M) * 100)}%`, "c-def", true) : chip(`刻の構え あと${tokiN(M) - 1 - n}手`, "c-def", false));
+const tokiOn = p => S.charId === TOKI_CH && (p.tk || 0) >= tokiN(BM());
+const pAtk = p => p.atk * (1 + furyBonus(p)) * (tokiOn(p) ? 1 + TOKI_ATK * tokiK(BM()) : 1) * Math.max(0.2, 1 + atkMods(p));
+// イワオ：常に20%＋連勝数×10%（最大70%）／トキ：7手目から15%
+const pDef = p => (S.charId === 8 ? Math.min(0.85, 0.7 * CB() * EM(), (0.2 + 0.1 * p.streak) * CB() * EM()) : tokiOn(p) ? TOKI_DEF * tokiK(BM()) : 0);
 const readChance = b => (b.lastP !== null && b.rep >= 2 ? Math.min(0.9, (b.rep - 1) * 0.3) : 0) * (1 - Math.min(0.9, mz(b.M, "readResist")));
 
 // 次のターンの敵の手を先に決める（カードの予測・妨害もここ）
@@ -3739,6 +3764,7 @@ async function play(h) {
   if (!alive(b)) return;
 
   const p = b.p, lines = [];
+  if (S.charId === TOKI_CH) { p.tk = (p.tk || 0) + 1; if (p.tk === tokiN(b.M)) { fx({ k: "fool", text: "刻の構え！" }); lines.push(`<span class="p">刻の構え：攻撃力+${Math.round(TOKI_ATK * tokiK(b.M) * 100)}%・受けるダメージ−${Math.round(TOKI_DEF * tokiK(b.M) * 100)}%</span>`); } }
   const live = b.slots.map((e, k) => (e && e.hp > 0 ? { e, k, eh: throws[k].h } : null)).filter(Boolean);
   live.forEach(x => { x.e.lastE = x.eh; x.e.lastRes = outcome(h, x.eh); });
 
@@ -3794,7 +3820,7 @@ async function play(h) {
     const e = b.slots[k];
     if (!e || e.hp > 0) continue;
     await koEnemy(b, k);
-    b.kills++; b.slots[k] = null;
+    b.kills++; b.slots[k] = null; p.tk = 0; // トキ：敵を倒したら数え直し
     const L = [`<span class="g">${e.name}をたおした！（${b.kills}/${b.total}）</span>`];
     const partner = b.slots.find(x => x && x.hp > 0 && has(x, "bond"));
     if (has(e, "bond") && partner && !partner.bonded) {
@@ -3947,6 +3973,7 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
       }
       // 教皇（正）：ウガチのチョキ勝ち、ツツミがグーに固めた相手へのパー勝ちは、ダメージアップ
       if ((pierce || (c === FORCE_CH && h === P_ && e.forcedNow)) && mz(M, "charBoost")) { dmg *= cbHitOf(M); nt2 += `（教皇 ×${fmt(cbHitOf(M))}）`; }
+      if (c === MITSU_CH && h === C_) { dmg *= mitsuHitOf(M); nt2 += `（三つの型 ×${fmt(mitsuHitOf(M))}）`; }
       if (pierce) { if (e.shield) nt2 += "（身構えを貫通）"; }
       else if (e.shield) {
         // 敵の身構え（次の被ダメ半減）。アルカナの盾崩し・通りぬけは効かない
@@ -3982,6 +4009,7 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
     lines.push(`<span class="y">${T0}${nt}あいこ（${HN[h]}）</span>`);
     p.afterDraw = true;
     if (c === 6) { p.streak++; after.push({ k: "streak", n: p.streak, calm: true }); lines.push(`<span class="p">凪の構え：あいこで${p.streak}連勝</span>`); }
+    if (c === MITSU_CH && h === P_ && p.hp > 0) { const amt = healP(mitsuHeal(M)); if (amt > 0) lines.push(`<span class="p">三つの型（パー）：${fmt(amt)}回復</span>`); }
     if (p.charge) {
       p.charge = false;
       const cd = r2(pAtk(p) * 0.5 * CB());
@@ -4024,7 +4052,9 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
       rctx.dmg += dmg;
       ev.crit = N >= 2;
       push(imp, k, ev);
-      lines.push(`<span class="r">${T0}${nt}${HN[h]}で負け ${e.name}から${fmt(dmg)}ダメージ${note2}${def > 0 ? `（岩の守り −${Math.round(def * 100)}%）` : ""}</span>`);
+      lines.push(`<span class="r">${T0}${nt}${HN[h]}で負け ${e.name}から${fmt(dmg)}ダメージ${note2}${def > 0 ? `（${c === TOKI_CH ? "刻の構え" : "岩の守り"} −${Math.round(def * 100)}%）` : ""}</span>`);
+      // ミツ：グーで負けたら、受けたダメージの一部を反射
+      if (c === MITSU_CH && h === G_ && dmg > 0 && e.hp > 0) { const rd = r2(dmg * mitsuRef(M)); e.hp = r2(Math.max(0, e.hp - rd)); push(post, k, { k: "counter", amt: rd }); lines.push(`<span class="p">三つの型（グー）：${e.name}に${fmt(rd)}反射</span>`); }
     }
     if (p.hp > 0 && mz(M, "loseHeal") > 0) healP(mz(M, "loseHeal"));
   }
@@ -4270,6 +4300,7 @@ function renderBattle() {
   if (c.id === 7 || c.id === SCAR_CH) pc += chip(`${furyName()} +${Math.round(furyBonus(p) * 100)}%`, "c-rage", furyBonus(p) > 0);
   if (c.id === 8) pc += chip(`防御 ${Math.round(pDef(p) * 100)}%`, "c-def", pDef(p) > 0);
   if (c.id === 9) pc += chip(`返しの刃 ${fmt(p.atk * KAGE_RATE)}`, "c-def");
+  if (c.id === TOKI_CH) pc += tokiChip(p.tk || 0, b.M);
   if (p.judged === false && mz(b.M, "judgeOn")) pc += chip("世界（残1）", "c-guts");
   pc += arcChips(p, b.M);
   pc += cardChips(b.cards || [], isRev(S.charId));
@@ -4534,7 +4565,7 @@ function mkFighter(ch, cards, oppCh) {
   const k = ch === SEAL_CH ? sealRateOf(M) : 1;  // シズクは体力・攻撃力90%（教皇（逆）で戻る）
   const hp = half(PVP.hp * k * (1 + mz(M, "maxHp")));
   // ab：実際に働くキャラ能力。相手がシズクなら封じられて 0（なし）
-  const f = { ch, ab: oppCh === SEAL_CH && SEAL_PASSIVE_CH.has(ch) ? 0 : ch, hp, max: hp, atk: PVP.atk * k, streak: 0, inv: false, charge: false, guts: false, losses: 0, M, cards,
+  const f = { ch, ab: oppCh === SEAL_CH && SEAL_PASSIVE_CH.has(ch) ? 0 : ch, hp, max: hp, atk: PVP.atk * k, streak: 0, inv: false, charge: false, guts: false, losses: 0, tk: 0, M, cards,
     judged: false, firstHitUsed: false, afterDraw: false };
   // 大アルカナの初期状態（悪魔の最初の宣言も、両方の画面で同じになる乱数で決める）
   arcInit(f, M, seededRng(`${ON ? ON.g : 0}|${ch}|${oppCh}|${JSON.stringify(cards)}`));
@@ -4742,10 +4773,11 @@ function startTimer() {
 const fCB = f => 1 + mz(f.M, "charBoost");
 // ガロウの逆境／ホムラの傷の炎（ホムラはシズクに封じられると無し）
 const fFury = f => { const cb = fCB(f) * echoMul(f, f.M); return f.ch === 7 ? Math.min(cb, 0.2 * cb * f.losses) : f.ab === SCAR_CH ? scarBonus(f.hp, f.max, cb) : 0; };
-const fAtkOf = f => f.atk * (1 + fFury(f))
+const fToki = f => f.ch === TOKI_CH && f.tk >= tokiN(f.M); // トキ：7手目から（教皇の逆で6手目）
+const fAtkOf = f => f.atk * (1 + fFury(f)) * (fToki(f) ? 1 + TOKI_ATK * tokiK(f.M) : 1)
   * Math.max(0.2, 1 + mz(f.M, "atk") + (f.streak >= 2 ? mz(f.M, "streak2Atk") : 0) + (f.hp <= f.max / 2 ? mz(f.M, "lowHpAtk") : 0) + arcAtk(f, f.M));
 // イワオ：いつでも−20%＋連勝ごとに10%。シズクに封じられると、いつでもの−20%だけが消える
-const fDefOf = f => { const cb = fCB(f) * echoMul(f, f.M); return f.ch === 8 ? Math.min(0.85, 0.7 * cb, ((f.ab === 8 ? 0.2 : 0) + 0.1 * f.streak) * cb) : 0; };
+const fDefOf = f => { const cb = fCB(f) * echoMul(f, f.M); return f.ch === 8 ? Math.min(0.85, 0.7 * cb, ((f.ab === 8 ? 0.2 : 0) + 0.1 * f.streak) * cb) : fToki(f) ? TOKI_DEF * tokiK(f.M) : 0; };
 function pvpResolve(F, hA, hB, mySide, rng) {
   const res = outcome(hA, hB), H = { A: hA, B: hB };
   const out = { res, pre: [], imp: [], after: [], lines: [] };
@@ -4793,6 +4825,11 @@ function pvpResolve(F, hA, hB, mySide, rng) {
   };
   // ツツミのグー強制は1ラウンドだけ（このラウンドが強制だったかを覚えて、続けて強制しない）
   for (const s of ["A", "B"]) { F[s].forcedNow = !!F[s].forceG; F[s].forceG = false; }
+  // トキ：手数を数える（あいこも数える）。7手目に発動
+  for (const s of ["A", "B"]) {
+    const f = F[s]; f.tk = (f.tk || 0) + 1;
+    if (f.ch === TOKI_CH && f.tk === tokiN(f.M)) { add(out.pre, s, { k: "fool", text: "刻の構え！" }); out.lines.push(`<span class="p">${who(s)}の刻の構え：攻撃力+${Math.round(TOKI_ATK * tokiK(f.M) * 100)}%・受けるダメージ−${Math.round(TOKI_DEF * tokiK(f.M) * 100)}%</span>`); }
+  }
   // 大アルカナ：ラウンドのはじめ（愚者など）
   for (const s of ["A", "B"]) arcTurnStart(F[s], F[s].M, rng, say(s, out.pre), F[s].ab);
   // ソードのナイト（正）：前のラウンドに負わせた傷のダメージ
@@ -4816,6 +4853,7 @@ function pvpResolve(F, hA, hB, mySide, rng) {
     for (const s of ["A", "B"]) {
       const f = F[s]; f.afterDraw = true;
       if (f.ch === 6) { f.streak++; add(out.after, s, { k: "streak", n: f.streak, calm: true }); }
+      if (f.ch === MITSU_CH && hA === P_) healS(s, mitsuHeal(f.M)); // ミツ：パーのあいこで回復
       if (mz(f.M, "drawHeal") > 0) { const amt = healS(s, mz(f.M, "drawHeal")); if (mz(f.M, "tempStore")) f.ms.temp = r2(f.ms.temp + amt); }
     }
     for (const s of ["A", "B"]) {
@@ -4862,11 +4900,13 @@ function pvpResolve(F, hA, hB, mySide, rng) {
     const pierce = fw.ch === PIERCE_CH && hw === C_;
     // 教皇（正）：ウガチのチョキ勝ち、ツツミがグーに固めた相手へのパー勝ちは、ダメージアップ
     if (!steady && (pierce || (fw.ch === FORCE_CH && hw === P_ && fl.forcedNow))) raw *= cbHitOf(M);
+    const mitsuHit = !steady && fw.ch === MITSU_CH && hw === C_; // ミツ：チョキの勝ちは×1.3（マサのグー負けには効かない）
+    if (mitsuHit) raw *= mitsuHitOf(M);
     // 魔術師（正）・隠者（逆）：相手に盾があるとき、与えるダメージアップ
     // 魔術師（正）・力・隠者（逆）：相手の盾に当たる分だけダメージアップ（HPに届く分は増えない）
     const shHit = mz(M, "shieldHit") + aw.sh;
     const breakS = !steady && !pierce && fl.ms && fl.ms.shd > 0 && shHit > 0;
-    const tag = (breakS ? `（盾崩し +${Math.round(shHit * 100)}%）` : "") + (steady ? "（不動：強化を受けない）" : (N > 0 ? `（${fw.streak}連勝 ×${fmt(mult)}）` : "") + (charged ? "（チャージ）" : "") + (bonus > 1.001 ? `（カード ×${fmt(bonus)}）` : "") + (pierce ? "（穿ち：守り無視）" : ""));
+    const tag = (breakS ? `（盾崩し +${Math.round(shHit * 100)}%）` : "") + (steady ? "（不動：強化を受けない）" : (N > 0 ? `（${fw.streak}連勝 ×${fmt(mult)}）` : "") + (charged ? "（チャージ）" : "") + (bonus > 1.001 ? `（カード ×${fmt(bonus)}）` : "") + (pierce ? "（穿ち：守り無視）" : "") + (mitsuHit ? `（三つの型 ×${fmt(mitsuHitOf(M))}）` : ""));
     if (fl.inv && !pierce) {
       fl.inv = false; add(out.imp, L, { k: "block" });
       if (cbGuardOf(fl.M) > 0) fl.ms.cbGuard = cbGuardOf(fl.M); // 教皇（正）：テツは無敵が切れたあと、次の被ダメ減
@@ -4880,6 +4920,7 @@ function pvpResolve(F, hA, hB, mySide, rng) {
       add(out.imp, L, { k: "hurtP", amt: dmg, crit: charged || foolWin || N >= 2 || pierce, def: !pierce && (def > 0 || soft) }, true);
       out.lines.push(`<span class="${W === mySide ? "g" : "r"}">ラウンド${ON.r} ${who(W)}の${HN[hw]}が勝ち！ ${who(L)}に${fmt(dmg)}ダメージ${tag}${shieldPierced ? "（盾を貫通）" : ""}</span>`);
       if (!pierce && fl.ch === 9 && dmg > 0) { const cd = minorHit(W, r2(fl.atk * KAGE_RATE)); add(out.after, L, { k: "counter", amt: cd }); out.lines.push(`<span class="p">${who(L)}の返しの刃：${fmt(cd)}反撃</span>`); }
+      if (!pierce && fl.ch === MITSU_CH && hl === G_ && dmg > 0) { const rd = minorHit(W, r2(dmg * mitsuRef(fl.M))); add(out.after, L, { k: "counter", amt: rd }); out.lines.push(`<span class="p">${who(L)}の三つの型（グー）：${fmt(rd)}反射</span>`); }
       if (!pierce && mz(fl.M, "reflect") > 0 && dmg > 0) { const rd = minorHit(W, r2(dmg * mz(fl.M, "reflect"))); add(out.after, L, { k: "counter", amt: rd }); out.lines.push(`<span class="p">${who(L)}のカードが${fmt(rd)}ダメージを返した</span>`); }
       if (fl.hp > 0 && mz(fl.M, "loseHeal") > 0) healS(L, mz(fl.M, "loseHeal"));
     }
@@ -5018,6 +5059,7 @@ function fighterChips(f) {
   if (f.ch === 7) { const v = Math.min(1, 0.2 * f.losses); s += chip(`逆境 +${Math.round(v * 100)}%`, "c-rage", v > 0); }
   if (f.ch === 8) { const v = fDefOf(f); s += chip(`防御 ${Math.round(v * 100)}%`, "c-def", v > 0); }
   if (f.ch === 9) s += chip(`返しの刃 ${fmt(f.atk * KAGE_RATE)}`, "c-def");
+  if (f.ch === TOKI_CH) s += tokiChip(f.tk || 0, f.M);
   if (mz(f.M, "judgeOn") && !f.judged) s += chip("世界（残1）", "c-guts");
   s += arcChips(f, f.M);
   return s + cardChips((f.cards || []).map(([c, r, l]) => ({ c, r, l })), isRev(f.ch));
