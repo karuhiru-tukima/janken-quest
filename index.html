@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-03-0141";
+  window.JQ_VER = "2026-11-03-0152";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -1316,7 +1316,7 @@ body.on-home .wrap { padding-top: 10px; }
     <button class="btn sm" id="tg-bgm" aria-pressed="true">BGM</button>
     <button class="btn sm" id="tg-voice" aria-pressed="true" title="オンライン対戦のスタンプを声で読み上げる">ボイス</button>
     <button class="btn sm sp-restart" id="tg-restart" title="サイトを読み込み直して、スタート画面に戻る（最新の版になる）">スタートに戻る</button>
-    <p class="sp-credit">ボイス：VOICEVOX:玄野武宏、VOICEVOX:九州そら、VOICEVOX:雨晴はう、VOICEVOX:白上虎太郎、VOICEVOX:春日部つむぎ、VOICEVOX:冥鳴ひまり、VOICEVOX:青山龍星、VOICEVOX:麒ヶ島宗麟、VOICEVOX:剣崎雌雄、VOICEVOX:櫻歌ミコ、VOICEVOX:四国めたん、VOICEVOX:黒沢冴白、VOICEVOX:中部つるぎ</p><!-- ホームを1画面に収めるため、クレジットは設定の中に -->
+    <p class="sp-credit">ボイス：VOICEVOX:玄野武宏、VOICEVOX:九州そら、VOICEVOX:雨晴はう、VOICEVOX:白上虎太郎、VOICEVOX:春日部つむぎ、VOICEVOX:冥鳴ひまり、VOICEVOX:青山龍星、VOICEVOX:麒ヶ島宗麟、VOICEVOX:剣崎雌雄、VOICEVOX:櫻歌ミコ、VOICEVOX:四国めたん、VOICEVOX:黒沢冴白、VOICEVOX:中部つるぎ、VOICEVOX:夜語トバリ、VOICEVOX:雀松朱司</p><!-- ホームを1画面に収めるため、クレジットは設定の中に -->
   </div>
 
   <!-- ホーム -->
@@ -1423,7 +1423,7 @@ body.on-home .wrap { padding-top: 10px; }
       </div>
       <div class="on-status" id="on-status" role="status"></div>
       <div class="row"><button class="btn" id="on-cancel" disabled>探すのをやめる</button><button class="btn" id="on-back">ロビー（対戦）へ戻る</button></div>
-      <p class="credit">スタンプのボイス：VOICEVOX:玄野武宏、VOICEVOX:九州そら、VOICEVOX:雨晴はう、VOICEVOX:白上虎太郎、VOICEVOX:春日部つむぎ、VOICEVOX:冥鳴ひまり、VOICEVOX:青山龍星、VOICEVOX:麒ヶ島宗麟、VOICEVOX:剣崎雌雄、VOICEVOX:櫻歌ミコ、VOICEVOX:四国めたん、VOICEVOX:黒沢冴白、VOICEVOX:中部つるぎ</p>
+      <p class="credit">スタンプのボイス：VOICEVOX:玄野武宏、VOICEVOX:九州そら、VOICEVOX:雨晴はう、VOICEVOX:白上虎太郎、VOICEVOX:春日部つむぎ、VOICEVOX:冥鳴ひまり、VOICEVOX:青山龍星、VOICEVOX:麒ヶ島宗麟、VOICEVOX:剣崎雌雄、VOICEVOX:櫻歌ミコ、VOICEVOX:四国めたん、VOICEVOX:黒沢冴白、VOICEVOX:中部つるぎ、VOICEVOX:夜語トバリ、VOICEVOX:雀松朱司</p>
     </div>
   </section>
 
@@ -1807,6 +1807,7 @@ const VOICE = {
   10: { g: "f", pitch: 1.2, rate: 0.9, v: 0 },
   11: { g: "f", pitch: 1.4, rate: 1.0, v: 1 }, 12: { g: "m", pitch: 0.9, rate: 1.05, v: 0 }, 13: { g: "f", pitch: 0.9, rate: 1.05, v: 0 },
   14: { g: "m", pitch: 0.55, rate: 0.85, v: 0 },
+  15: { g: "f", pitch: 1.0, rate: 0.95, v: 0 }, 16: { g: "m", pitch: 1.1, rate: 1.05, v: 0 },
 };
 const MALE_VOICE = /ichiro|keita|otoya|daichi|naoki|takumi|kenji|male|男/i;
 let jaVoices = [], jaMale = [], jaFemale = [];
@@ -4658,6 +4659,8 @@ const STAMP_LINES = {
   12: { hello: "よろしく。守りごと穿つ", thanks: "ありがとう。いい手合わせだった", next: "次は{h}でいく" },
   13: { hello: "よろしく。痛いほど燃えるよ", thanks: "ありがとう。熱い勝負だった", next: "次は{h}だ" },
   14: { hello: "よろしく。どっしりいこう", thanks: "ありがとう。いい勝負だった", next: "次は{h}だ" },
+  15: { hello: "よろしく。時間はたっぷりある", thanks: "ありがとう。いい時間だった", next: "次は{h}だよ" },
+  16: { hello: "よろしく！三つの型、見せてあげる", thanks: "ありがとう！いい稽古になった", next: "次は{h}でいくよ" },
 };
 function stampLine(ch, k) {
   const L = STAMP_LINES[ch]; if (!L) return STAMPS[k].text;
@@ -5216,6 +5219,8 @@ const HOME_LINES = {
   12: ["チョキで穿てば、盾も意味がない", "守りなんて、まとめて貫く", "トゲも反撃も、届かせない"],
   13: ["傷が増えるほど、燃えてくる", "痛みは全部、力に変える", "まだまだ、もっと打ってこい"],
   14: ["グーで構えれば、勢いには流されない", "どんな強化も、この拳には効かん", "動かざること、山のごとし"],
+  15: ["長い勝負ほど、こっちのもの", "七手目からが、本番", "焦らなくていい。時は味方だ"],
+  16: ["グーで返して、チョキで攻める", "パーであいこなら、ひと休み", "三つの型、どれでもいける"],
 };
 let homeTimer = 0;
 // voiced=true のときはボイス（voice/v{キャラ}_home{番号}.wav）も鳴らす
