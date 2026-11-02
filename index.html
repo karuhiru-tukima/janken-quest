@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-02-0116";
+  window.JQ_VER = "2026-11-02-1103";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -1908,7 +1908,7 @@ const CHARS = [
   { id: 3, name: "ハル", title: "癒しの掌", glyph: "癒", color: "#8ed69a",
     ab: "<b>パー</b>で勝つと、相手の攻撃<b>1.5回分</b>の体力を回復。" },
   { id: 4, name: "ゴン", title: "不屈の男", glyph: "根", color: "#ff9a4a",
-    ab: "<b>グー</b>で負けて倒れるはずのとき、<b>1回だけ</b>体力1で耐える（1ステージに1回）。さらに<b>じゃんけんで負けたとき以外のダメージ</b>（反撃・トゲ・あいこのダメージなど）では倒れず、体力1以下のときは受けない。" },
+    ab: "<b>グー</b>で負けて倒れるはずのとき、<b>1回だけ</b>体力1で耐え、<b>最大HPの20%回復</b>する（1ステージに1回）。さらに<b>じゃんけんで負けたとき以外のダメージ</b>（反撃・トゲ・あいこのダメージなど）では倒れず、体力1以下のときは受けない。" },
   { id: 5, name: "レン", title: "連撃の風", glyph: "連", color: "#9fc5ff",
     ab: "連勝倍率が ×(1+N×0.1) ではなく <b>×(1+N×0.5)</b> になる。" },
   { id: 6, name: "ナギ", title: "凪の構え", glyph: "凪", color: "#c9b6ff",
@@ -2202,7 +2202,7 @@ const MAJOR_DEF = [
     [["lowHpAtk", .10, .30], ["lowHpDef", .20, .50]], "HPが半分以下で攻撃力 +{0}。HP30%以下で受けるダメージ −{1}"],
   ["world", "世界", "wheel",
     [["worldUp", .15, .40]], "HPが多いほど攻撃力アップ（HP満タンで +{0}、HPが減ると下がる）",
-    [["judgement", .05, .15]], "1ステージ（1試合）に1回、倒れる攻撃をHP1で耐え、最大HPの{0}回復"],
+    [["worldShield", .10, .25]], "1ステージ（1試合）に1回、倒れる攻撃をHP1で耐え、最大HPの{0}の盾を得る"],
 ];
 const MINOR_DEF = {
   wand: [
@@ -2671,9 +2671,9 @@ const EFF_OF = {
   atk: ["atk", "streak2Atk", "lowHpAtk", "priGrow", "priRev", "shieldAtk", "chaWin", "lossStack", "starStack", "starRev", "moonGrow", "sunStack", "sunRev", "deathLate", "towerUp", "worldUp"],
   dmg: ["winMul", "handG", "handC", "handP", "bossDmg", "firstWin", "afterDrawWin", "revenge", "critAtk", "towerAtk", "foolWin", "foolRWin", "empDmg", "lowHpDmg",
     "hermStack", "hangWin", "hangStore", "tempStore", "devilWin", "devilRev", "moonRev"],
-  def: ["dmgTaken", "loseTaken", "lowHpDef", "bossDef", "multiDef", "abilDef", "firstHit", "luck", "foolGuard", "judgement"],
-  heal: ["heal", "regen", "winHeal", "loseHeal", "drawHeal", "killHeal", "foolHeal", "judgement"],
-  shield: ["startShield", "chaShield", "towerShield"],
+  def: ["dmgTaken", "loseTaken", "lowHpDef", "bossDef", "multiDef", "abilDef", "firstHit", "luck", "foolGuard", "worldShield"],
+  heal: ["heal", "regen", "winHeal", "loseHeal", "drawHeal", "killHeal", "foolHeal"],
+  shield: ["startShield", "chaShield", "towerShield", "worldShield"],
   counter: ["reflect", "drawHit"],
   streak: ["streakAdd", "streak2Atk", "critAtk", "streakCoin", "enemyStreakCut"],
   ability: ["charBoost", "echo"],
@@ -3230,6 +3230,7 @@ function makeActor(kind, data, k) {
 }
 const feet = a => { const r = a.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.bottom - 4 }; };
 const KAGE_RATE = 0.35; // カゲの返しの刃：基礎攻撃力の35%
+const GON_HEAL = 0.2;   // ゴンの不屈：耐えたあと最大HPの20%回復
 const HARU_RATE = 1.5;  // ハルの癒しの掌：相手の攻撃1.5回分
 // ゴン（4）がじゃんけんの負け以外で受けるダメージ：体力1より下がらない（もともと1以下なら減らない）。ほかのキャラは普通に減る
 const gonFloor = (ch, hp, dmg) => (ch === 4 ? Math.max(Math.min(hp, 1), r2(hp - dmg)) : r2(Math.max(0, hp - dmg)));
@@ -3506,15 +3507,17 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
     const ev = { k: "hurtP", amt: dmg, small, thunder: label === "雷鳴", def: def > 0 || m < 1, label: label === "トゲ" ? "トゲ" : undefined };
     if (c === 4 && kind !== "lose" && dmg === 0) { push(post, k, { k: "block", text: "不屈の体" }); lines.push(`<span class="p">不屈の体：${label || "ダメージ"}を受けない</span>`); }
     let gutsHit = false, judged = false;
-    if (nh <= 0 && c === 4 && h === G_ && !p.guts && res === "lose") { p.guts = true; nh = Math.min(p.hp, 1); gutsHit = true; }
-    if (nh <= 0 && mz(M, "judgeOn") && !p.judged) { p.judged = true; nh = r2(Math.min(p.max, 1 + p.max * mz(M, "judgement") * healMul(M))); judged = true; }
+    // ゴンの不屈：体力1で耐え、最大HPの20%回復
+    if (nh <= 0 && c === 4 && h === G_ && !p.guts && res === "lose") { p.guts = true; nh = r2(Math.min(p.max, Math.min(p.hp, 1) + p.max * GON_HEAL * healMul(M))); gutsHit = true; }
+    // 世界（逆）：体力1で耐え、盾を得る
+    if (nh <= 0 && mz(M, "judgeOn") && !p.judged) { p.judged = true; nh = 1; if (p.ms) p.ms.shd = r2(p.ms.shd + p.max * mz(M, "worldShield")); judged = true; }
     p.hp = r2(Math.max(0, nh));
     if (has(e, "drain") && dmg > 0) { const amt = r2(Math.min(e.max - e.hp, dmg / 2)); if (amt > 0) { e.hp = r2(e.hp + amt); push(post, k, { k: "eheal", amt, text: "吸血" }); } }
     // カゲの返しの刃：受けたダメージではなく、強化なしの基礎攻撃力の35%
     if (c === 9 && dmg > 0 && e.hp > 0) { const cd = r2(p.atk * KAGE_RATE); e.hp = r2(Math.max(0, e.hp - cd)); push(post, k, { k: "counter", amt: cd }); lines.push(`<span class="p">返しの刃：${e.name}に${fmt(cd)}反撃</span>`); }
     if (mz(M, "reflect") > 0 && dmg > 0 && e.hp > 0) { const rd = r2(dmg * mz(M, "reflect")); e.hp = r2(Math.max(0, e.hp - rd)); push(post, k, { k: "counter", amt: rd }); lines.push(`<span class="p">カードの反射：${e.name}に${fmt(rd)}返した</span>`); }
-    if (gutsHit) { after.unshift({ k: "guts" }); lines.push(`<span class="p">不屈！ 体力${fmt(p.hp)}で踏みとどまった</span>`); }
-    if (judged) { after.unshift({ k: "judge" }); lines.push(`<span class="p">世界！ 体力${fmt(p.hp)}で立ち上がった</span>`); }
+    if (gutsHit) { after.unshift({ k: "guts" }); lines.push(`<span class="p">不屈！ 踏みとどまって体力${fmt(p.hp)}まで回復</span>`); }
+    if (judged) { after.unshift({ k: "judge" }); lines.push(`<span class="p">世界！ 体力1で耐えて、盾を得た</span>`); }
     return { ev, dmg };
   };
 
@@ -4372,8 +4375,8 @@ function pvpResolve(F, hA, hB, mySide, rng) {
   const finishHit = (s, dmg, canGuts, isLoss = true) => {
     const f = F[s], before = f.hp;
     let nh = isLoss ? r2(f.hp - dmg) : gonFloor(f.ab, f.hp, dmg);
-    if (nh <= 0 && canGuts && f.ch === 4 && !f.guts) { f.guts = true; nh = Math.min(f.hp, 1); add(out.after, s, { k: "guts" }, true); out.lines.push(`<span class="p">${who(s)}は不屈で踏みとどまった！</span>`); }
-    if (nh <= 0 && mz(f.M, "judgeOn") && !f.judged) { f.judged = true; nh = r2(Math.min(f.max, 1 + f.max * mz(f.M, "judgement") * (1 + mz(f.M, "heal")))); add(out.after, s, { k: "judge" }, true); out.lines.push(`<span class="p">${who(s)}は世界の力でHP${fmt(nh)}から立ち上がった！</span>`); }
+    if (nh <= 0 && canGuts && f.ch === 4 && !f.guts) { f.guts = true; nh = r2(Math.min(f.max, Math.min(f.hp, 1) + f.max * GON_HEAL * (1 + mz(f.M, "heal")))); add(out.after, s, { k: "guts" }, true); out.lines.push(`<span class="p">${who(s)}は不屈で踏みとどまり、HP${fmt(nh)}まで回復！</span>`); }
+    if (nh <= 0 && mz(f.M, "judgeOn") && !f.judged) { f.judged = true; nh = 1; f.ms.shd = r2(f.ms.shd + f.max * mz(f.M, "worldShield")); add(out.after, s, { k: "judge" }, true); out.lines.push(`<span class="p">${who(s)}は世界の力でHP1で耐え、盾を得た！</span>`); }
     f.hp = r2(Math.max(0, nh));
     return r2(before - f.hp);
   };
@@ -4444,13 +4447,16 @@ function pvpResolve(F, hA, hB, mySide, rng) {
     if (!steady && (pierce || (fw.ch === FORCE_CH && hw === P_ && fl.forcedNow))) raw *= cbHitOf(M);
     const tag = steady ? "（不動：強化を受けない）" : (N > 0 ? `（${fw.streak}連勝 ×${fmt(mult)}）` : "") + (charged ? "（チャージ）" : "") + (bonus > 1.001 ? `（カード ×${fmt(bonus)}）` : "") + (pierce ? "（穿ち：守り無視）" : "");
     if (fl.inv && !pierce) {
-      fl.inv = false; if (cbGuardOf(fl.M) > 0) fl.ms.cbGuard = cbGuardOf(fl.M); // 教皇（正）：テツは無敵が切れたあと、次の被ダメ減 add(out.imp, L, { k: "block" });
+      fl.inv = false; add(out.imp, L, { k: "block" });
+      if (cbGuardOf(fl.M) > 0) fl.ms.cbGuard = cbGuardOf(fl.M); // 教皇（正）：テツは無敵が切れたあと、次の被ダメ減
       out.lines.push(`<span class="p">ラウンド${ON.r} ${who(W)}の${HN[hw]}が勝ち…でも${who(L)}は無敵で0ダメージ</span>`);
     } else {
+      // ウガチのチョキ勝ちは、軽減・アルカナの盾もまとめて無視（hurt を通さない）
+      const shieldPierced = pierce && fl.ms && fl.ms.shd > 0;
       const { dmg, soft } = pierce ? { dmg: r2(raw), soft: false } : hurt(L, raw * (1 - def), "lose");
       finishHit(L, dmg, hl === G_);
       add(out.imp, L, { k: "hurtP", amt: dmg, crit: charged || foolWin || N >= 2 || pierce, def: !pierce && (def > 0 || soft) }, true);
-      out.lines.push(`<span class="${W === mySide ? "g" : "r"}">ラウンド${ON.r} ${who(W)}の${HN[hw]}が勝ち！ ${who(L)}に${fmt(dmg)}ダメージ${tag}</span>`);
+      out.lines.push(`<span class="${W === mySide ? "g" : "r"}">ラウンド${ON.r} ${who(W)}の${HN[hw]}が勝ち！ ${who(L)}に${fmt(dmg)}ダメージ${tag}${shieldPierced ? "（盾を貫通）" : ""}</span>`);
       if (!pierce && fl.ch === 9 && dmg > 0) { const cd = minorHit(W, r2(fl.atk * KAGE_RATE)); add(out.after, L, { k: "counter", amt: cd }); out.lines.push(`<span class="p">${who(L)}の返しの刃：${fmt(cd)}反撃</span>`); }
       if (!pierce && mz(fl.M, "reflect") > 0 && dmg > 0) { const rd = minorHit(W, r2(dmg * mz(fl.M, "reflect"))); add(out.after, L, { k: "counter", amt: rd }); out.lines.push(`<span class="p">${who(L)}のカードが${fmt(rd)}ダメージを返した</span>`); }
       if (fl.hp > 0 && mz(fl.M, "loseHeal") > 0) healS(L, mz(fl.M, "loseHeal"));
