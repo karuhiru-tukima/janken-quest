@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-02-2223";
+  window.JQ_VER = "2026-11-02-2242";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -2822,15 +2822,21 @@ function paintCard(cv) {
   cv.width = src.width; cv.height = src.height;
   const g = cv.getContext("2d"); g.imageSmoothingEnabled = false; g.drawImage(src, 0, 0);
 }
-// 全カード×レアリティの絵を、手が空いているときに少しずつ先に描いておく（初めて一覧を開くときも待たないように）
+// 全カード×レアリティの絵と、敵・味方のドット絵を、手が空いているときに少しずつ先に作っておく
+// （初めて一覧やステージ選択を開くときも待たないように。ステージ選択は初回だけ約1.6秒かかっていた）
 function warmCardArt() {
-  const todo = [];
+  const todo = [], tks = new Set();
+  for (const w of WORLDS) for (const list of w.stages) for (const [tk] of list) tks.add(tk);
+  for (const tk of tks) todo.push(() => JQArt.actor("e", tk));
+  for (const ch of CHARS) todo.push(() => JQArt.actor("p", ch.id));
   for (const c of CARDS) for (let r = 0; r < 4; r++) todo.push([c, r]);
   const tmp = document.createElement("div");
   const step = deadline => {
     let n = 0;
     while (todo.length && (deadline ? deadline.timeRemaining() > 4 : n < 6)) {
-      const [c, r] = todo.shift(); tmp.innerHTML = artHTML(c, r, false); paintCard(tmp.querySelector("canvas")); n++;
+      const job = todo.shift();
+      if (typeof job === "function") job(); else { const [c, r] = job; tmp.innerHTML = artHTML(c, r, false); paintCard(tmp.querySelector("canvas")); }
+      n++;
     }
     if (todo.length) (window.requestIdleCallback ? requestIdleCallback(step, { timeout: 500 }) : setTimeout(step, 30));
   };
@@ -2934,13 +2940,27 @@ function autoEquip(ch) {
   e.min = [0, 1, 2].map(i => (minors[i] ? minors[i].u : null));
   return true;
 }
-// 強化（レベルアップか合成）がいまできるか
-function canUpgrade(x, M) {
-  const R = RAR[x.r];
-  if (x.l < R.max) return !!lvMat(x) && CS.coins >= lvCostOf(x, M);
-  return x.r < 3 && !!synthMats(x) && CS.coins >= synthCostOf(x, M);
+// 素材に使える（どのキャラも装備していない）カードの数を、カードごと・カード×レアリティごとに数えた表
+// 一覧の全カードで「強化できるか」を調べるときに、毎回全カードを見直さなくてすむように
+function upIndex() {
+  const eqSet = new Set();
+  for (const e of Object.values(CS.eq)) { if (!e) continue; if (e.maj != null) eqSet.add(e.maj); (e.min || []).forEach(u => u != null && eqSet.add(u)); }
+  const byId = {}, byIdR = {};
+  for (const x of CS.cards) if (!eqSet.has(x.u)) { byId[x.c] = (byId[x.c] || 0) + 1; const k = x.c + "|" + x.r; byIdR[k] = (byIdR[k] || 0) + 1; }
+  return { eqSet, byId, byIdR };
 }
-const upBadge = (x, M) => (canUpgrade(x, M) ? `<span class="ctag up">強化できる</span>` : "");
+// 強化（レベルアップか合成）がいまできるか。ix（upIndex の表）があれば速く調べる
+function canUpgrade(x, M, ix) {
+  const R = RAR[x.r];
+  if (!ix) {
+    if (x.l < R.max) return !!lvMat(x) && CS.coins >= lvCostOf(x, M);
+    return x.r < 3 && !!synthMats(x) && CS.coins >= synthCostOf(x, M);
+  }
+  const self = ix.eqSet.has(x.u) ? 0 : 1;
+  if (x.l < R.max) return (ix.byId[x.c] || 0) - self >= 1 && CS.coins >= lvCostOf(x, M);
+  return x.r < 3 && (ix.byIdR[x.c + "|" + x.r] || 0) - self >= 2 && CS.coins >= synthCostOf(x, M);
+}
+const upBadge = (x, M, ix) => (canUpgrade(x, M, ix) ? `<span class="ctag up">強化できる</span>` : "");
 // 装備中のカードを、素材とコインが足りるだけまとめて強化する（大アルカナから順に）。
 // 結果の回数と使ったコインを返す
 function upgradeEquipped(ch, M) {
@@ -3086,13 +3106,13 @@ function htmlOwn() {
   const M = curM();
   let h = effBar() + sortBar();
   const list = sortList(CS.cards.filter(x => (CD.filter === "all" || (CD.filter === "major" ? CARD[x.c].kind === "major" : CARD[x.c].suit === CD.filter)) && effPass(x.c)));
-  const ups = list.filter(x => canUpgrade(x, M)).length;
+  const ix = upIndex(), ups = list.filter(x => canUpgrade(x, M, ix)).length;
   h += `<div class="panel"><b>カードの強化</b>
     <div class="sub">・レベルアップ：同じカード1枚＋コイン<br>・合成：最大レベルのとき、同じカード・同じレアリティ2枚＋コインで1つ上のレアリティに（上限が上がる）<br>装備中のカードは素材にならない。</div>
     <div class="sub" style="margin-top:4px">${ups ? `<b style="color:var(--gold)">いま強化できるカード：${ups}枚</b>（「強化できる」の印）` : "いま強化できるカードはありません"}・全${list.length}枚</div>
     <div class="row" style="margin-top:8px"><button class="btn primary" data-act="bulkup" ${eqList(S.charId).some(x => canUpgrade(x, M)) ? "" : "disabled"}>${charOf(S.charId).name}の装備をまとめて強化</button><span class="sub">素材とコインが足りるだけ、装備中のカードをレベルアップ・合成します</span></div></div>`;
   if (!list.length) return h + `<p class="sub">このグループのカードはまだありません。</p>`;
-  return h + splitHTML(list.map(x => [x.u, miniTile(x, x.u, upBadge(x, M) + eqBadge(x), CD.flash === x.u ? "hl" : ""), () => tileHTML(x, ownActions(x, M), eqBadge(x))]),
+  return h + splitHTML(list.map(x => [x.u, miniTile(x, x.u, upBadge(x, M, ix) + eqBadge(x), CD.flash === x.u ? "hl" : ""), () => tileHTML(x, ownActions(x, M), eqBadge(x))]),
     "カードを選ぶと、効果を見てレベルアップ・合成ができます。");
 }
 function htmlGacha() {
