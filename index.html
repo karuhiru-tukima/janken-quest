@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-02-1906";
+  window.JQ_VER = "2026-11-02-2202";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -455,6 +455,7 @@ details.rules ul { margin: 8px 0 2px; padding-left: 1.2em; color: var(--dim); fo
 .ctag { position: absolute; top: -9px; right: 8px; font-size: .64rem; font-weight: 800; background: var(--lantern); color: var(--night); border-radius: 4px; padding: 0 6px; }
 .ctag.other { background: var(--sky); }
 .ctag.new { background: var(--sakura); }
+.ctag.up { background: var(--matcha); }
 .ctile.unseen { filter: grayscale(1) brightness(.55); }
 .slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 @media (max-width: 520px) { .slots { grid-template-columns: repeat(2, 1fr); } }
@@ -1346,7 +1347,7 @@ body.on-home .wrap { padding-top: 10px; }
   <!-- キャラ選択 -->
   <section class="screen" id="scr-char" hidden>
     <div style="display:flex;flex-direction:column;gap:12px">
-      <div><h2>キャラを選ぶ</h2><p class="sub">基本の体力・攻撃力は全員同じで（シズクだけ85%）、ワールドが進むほど上がる。違うのは特殊能力だけ。</p></div>
+      <div><h2>キャラを選ぶ</h2><p class="sub">基本の体力・攻撃力は全員同じで（シズクだけ90%）、ワールドが進むほど上がる。違うのは特殊能力だけ。</p></div>
       <div class="char-split"><div class="chars" id="chars"></div><aside class="char-detail" id="char-detail" aria-live="polite"></aside></div>
       <div class="row spread"><span class="sub" id="char-pick">選択中：なし</span><button class="btn primary" id="to-stage" disabled>決定してホームへ</button></div>
     </div>
@@ -1387,7 +1388,7 @@ body.on-home .wrap { padding-top: 10px; }
       <div class="row spread"><h2 id="cd-title">アルカナ</h2><span class="coins" id="cd-coins"></span></div>
       <div class="tabs" id="cd-tabs">
         <button class="tab" data-tab="equip">装備</button>
-        <button class="tab" data-tab="own">所持カード</button>
+        <button class="tab" data-tab="own">所持・強化</button>
         <button class="tab" data-tab="gacha">ガチャ</button>
         <button class="tab" data-tab="shop">ショップ</button>
         <button class="tab" data-tab="book">図鑑</button>
@@ -1933,7 +1934,7 @@ const CHARS = [
   { id: 9, name: "カゲ", title: "返しの刃", glyph: "返", color: "#7fd6d6",
     ab: "ダメージを受けると、<b>基礎攻撃力の35%</b>のダメージを相手に返す（カードなどの強化はのらない）。" },
   { id: 10, name: "シズク", title: "封じの札", glyph: "封", color: "#c8a0f0",
-    ab: "相手の<b>常に働く能力</b>と、敵の<b>あいこでのダメージ</b>を封じる（ほかの条件で発動する能力は封じない）。かわりに<b>体力・攻撃力85%</b>。" },
+    ab: "相手の<b>常に働く能力</b>と、敵の<b>あいこでのダメージ</b>を封じる（ほかの条件で発動する能力は封じない）。かわりに<b>体力・攻撃力90%</b>。" },
   { id: 11, name: "ツツミ", title: "包みの掌", glyph: "包", color: "#f6b8d8",
     ab: "<b>パー</b>で勝つと、次のターン相手は<b>グーしか出せない</b>（強制されたグーに勝っても、続けては強制できない）。" },
   { id: 12, name: "ウガチ", title: "穿ちの刃", glyph: "穿", color: "#e8d860",
@@ -1946,7 +1947,7 @@ const CHARS = [
 const FORCE_CH = 11, PIERCE_CH = 12, SCAR_CH = 13, STEADY_CH = 14; // ツツミ：パー勝ちでグー強制／ウガチ：チョキ勝ちで守り・反射無視／ホムラ：被ダメで攻撃アップ
 // ホムラ：減っている体力の割合ぶん攻撃力アップ（体力0に近いほど+100%。回復すると下がる）
 const scarBonus = (hp, max, cb) => Math.min(cb, cb * Math.max(0, max - hp) / max);
-const SEAL_CH = 10, SEAL_RATE = 0.85; // シズク：相手の「常時発動」の能力を封じるかわりに、体力と攻撃力が85%
+const SEAL_CH = 10, SEAL_RATE = 0.9; // シズク：相手の「常時発動」の能力を封じるかわりに、体力と攻撃力が90%
 // 封じられる（いつでも働いている）能力。「グーで勝ったら」「あいこで」「殴られたら」などの条件で発動するものは封じない
 const SEAL_ABIL = new Set(["king", "gale", "regen", "mirage", "rock", "thunder"]);  // 敵：王の連撃・疾風・再生・幻影、あいこのダメージ（岩肌・雷鳴）
 const SEAL_PASSIVE_CH = new Set([4, 5, 8, 13]);                  // 味方：ゴンの不屈の体・レンの連勝倍率・イワオの軽減・ホムラの傷の炎
@@ -2166,8 +2167,8 @@ const MAJOR_DEF = [
     [["startShield", .15, .30], ["shieldAtk", .05, .15]], "開始時に最大HPの{0}の盾を得る。盾が残っている間、攻撃力 +{1}",
     [["atk", .20, .45], ["bareTaken", .15, .15, "c"]], "攻撃力 +{0}。ただし盾がないときに負けると、受けるダメージ +{1}"],
   ["hierophant", "教皇", "crown",
-    [["charBoost", .15, .40]], "キャラ固有能力が強くなる（強さ +{0}）",
-    [["echo", .30, .60]], "能力が働いた次のターン、もう一度弱く（{0}）働く"],
+    [["charBoost", .25, .60], ["atk", .05, .10], ["maxHp", .05, .10]], "キャラ固有能力が強くなる（強さ +{0}）。攻撃力 +{1}・最大HP +{2}",
+    [["echo", .40, .80], ["atk", .05, .10], ["maxHp", .05, .10]], "能力が働いた次のターン、もう一度弱く（{0}）働く。攻撃力 +{1}・最大HP +{2}"],
   ["lovers", "恋人", "heart",
     [["loseTaken", .08, .25]], "負けたときに受けるダメージ −{0}",
     [["winMul", .10, .35]], "勝ったときに与えるダメージ +{0}"],
@@ -2521,8 +2522,8 @@ function echoKind(ch, res, h, f) {
 }
 // 教皇（逆）の余韻ターンなら 1＋強さ、それ以外は 1
 const echoMul = (f, M) => (f.ms && f.ms.echo ? 1 + mz(M, "echo") : 1);
-// 教皇（逆）：シズクの体力・攻撃力の低下（85%）がなくなる。さらにレベルで上がる（Lv1で100%、Lv20で約107%、レジェンド覚醒のLv20で110%）
-const sealRateOf = M => (mz(M, "echo") > 0 ? 1 + (mz(M, "echo") - 0.3) / 4.2 : SEAL_RATE);
+// 教皇（逆）：シズクの体力・攻撃力の低下（90%）がなくなる。さらにレベルで上がる（Lv1で100%、Lv20で約107%、レジェンド覚醒のLv20で110%）
+const sealRateOf = M => (mz(M, "echo") > 0 ? 1 + (mz(M, "echo") - 0.4) / 5.6 : SEAL_RATE);
 // 教皇（正）：テツ・ゴン・マサの守り（−）と、ツツミ・ウガチの攻め（×）。強さ+20%で −15%・×1.2
 const cbGuardOf = M => 0.75 * mz(M, "charBoost");
 const cbHitOf = M => 1 + mz(M, "charBoost");
@@ -2882,6 +2883,82 @@ const sortBar = () => `<div class="sortbar"><span class="sub">並び替え</span
   `<button class="tab sm${SORT.k === k ? " on" : ""}" data-act="sortk" data-k="${k}" aria-pressed="${SORT.k === k}">${n}</button>`).join("")}
   <button class="btn sm" data-act="sortdir" aria-label="並びの向きを切りかえ">${SORT.desc ? "▼ 降順" : "▲ 昇順"}</button></div>`;
 
+// ---- おまかせ装備 ----
+// キャラごとの相性表：オンラインと同じ計算で「そのカードを持っていたときの勝率×10−500」を出したもの（カードの並び順。全員4枚ランダム・各キャラ4万試合）
+const FIT_RAW = "1:63,-39,7,104,36,14,28,42,10,14,-28,41,85,37,83,-2,-31,-37,-13,-33,-13,-35,-35,-12,-21,-1,0,25,-21,8,-36,-10,-1,-37,0,11,37,83,65,22,32,0,25,-16,72,12,40,48,-7,82,-4,9,-24,0,-18,-3,32,28,-47,16,-9,79,13,24,-16,36,10,30,29,45,88,0,6,88,3,63,-11,37;2:39,-28,3,73,24,1,50,47,-13,26,-36,39,83,9,54,-23,-52,-40,-27,-16,-17,7,-28,-6,-3,-22,-6,-15,-31,3,-37,-17,-5,-26,-19,7,31,59,55,24,37,-8,39,-22,47,9,36,66,-32,74,-5,-1,-15,-16,-17,-24,23,-7,-57,6,-24,72,-5,5,-6,24,20,56,20,42,42,-1,1,70,13,55,2,54;3:57,-56,-9,62,11,18,81,56,15,0,-38,76,145,14,45,2,-46,-33,-31,-24,-22,-16,-22,-21,-21,-12,-28,-1,-9,-36,-6,-7,-10,-23,-7,29,28,63,43,12,45,20,26,-20,41,-7,14,79,-5,59,13,-4,-15,-18,-23,-7,36,14,-26,17,-4,71,10,16,2,34,50,54,34,47,56,16,8,93,-1,71,-18,37;4:7,-76,-49,16,-17,-11,-7,10,-35,-30,-66,-9,88,-14,30,-45,-77,-58,-69,-68,-64,-66,-72,-29,-55,-47,-48,-39,-63,-28,-58,-53,-44,-57,-58,-7,-26,44,-7,-34,-28,-37,-3,-70,2,-41,-11,18,-48,31,-58,-42,-46,-42,-54,-69,-6,10,-94,-48,-56,45,-36,-36,-39,13,-40,15,9,-8,25,-40,-49,49,-59,17,-39,-6;5:-37,43,-56,46,4,-14,29,36,-26,-35,-69,58,-26,-15,11,55,-41,-42,-44,-56,16,65,-26,-12,-15,-49,-30,-67,11,-12,17,-27,-59,29,-32,-4,10,39,17,-3,0,26,4,3,22,25,11,66,47,40,-9,-6,-41,-36,-40,-40,-10,-26,15,-41,-28,-14,-41,-6,28,-5,-36,-4,-10,-21,33,-30,-20,88,-23,11,-4,21;6:-88,-26,-97,18,-38,-55,-22,-45,-48,-76,-136,15,-54,-31,-50,23,-117,-95,-91,-80,-12,-2,-63,-85,-40,-92,-60,-103,-48,-68,-46,-56,-53,-12,-84,-62,-25,19,-24,-53,-57,-32,-32,-50,0,-65,-41,23,-27,-10,-60,-74,-46,-102,-89,-105,-49,-69,-28,-89,-82,-48,-92,-47,-38,-36,-90,-42,-45,-34,-3,-70,-53,46,-54,-54,-60,-47;7:7,97,11,104,47,70,79,97,88,51,-67,118,-6,42,56,110,50,45,45,38,118,165,29,15,23,9,51,11,83,41,71,28,9,56,19,45,116,103,92,98,48,86,80,75,115,94,79,154,105,136,56,41,41,37,23,-8,48,67,91,20,15,76,12,80,95,82,31,77,78,71,109,26,56,160,27,63,60,68;8:8,78,-13,100,43,30,64,82,45,12,-11,75,-23,38,85,120,-16,8,-5,5,106,67,28,28,10,42,23,-26,59,21,51,14,-18,99,15,12,53,89,75,36,22,48,21,29,112,73,41,158,83,76,13,36,12,6,4,-20,44,47,76,-14,0,55,-7,43,70,64,-21,47,51,63,100,15,35,158,5,58,37,33;9:-15,65,-15,58,27,86,57,59,16,2,-93,145,-30,7,57,92,-40,13,-1,-19,79,99,0,10,13,-8,14,-21,39,-3,25,-7,-13,78,-21,20,40,81,55,43,22,45,23,53,73,64,62,126,80,104,23,10,19,-20,-2,-24,8,10,44,-33,4,17,-23,35,73,90,-18,34,65,24,78,0,35,130,9,14,35,19;10:-184,-133,-222,-94,-138,-31,-165,-204,-162,-178,-279,-116,-173,-153,-144,-92,-248,-222,-229,-202,-123,-131,-190,-176,-198,-202,-193,-207,-154,-188,-150,-178,-205,-132,-185,-196,-140,-118,-123,-157,-178,-169,-171,-173,-130,-140,-160,-137,-129,-115,-157,-182,-171,-214,-190,-197,-182,-180,-140,-219,-193,-154,-183,-162,-147,-146,-203,-157,-138,-145,-97,-195,-173,-66,-171,-161,-147,-163;11:91,13,33,111,80,67,88,107,60,98,41,88,143,55,101,43,-7,42,23,30,23,13,0,41,43,16,39,37,17,35,41,28,62,27,63,46,80,139,108,83,88,45,75,40,108,54,96,97,36,114,53,20,64,36,36,38,59,83,44,56,36,118,55,82,62,68,44,70,72,82,111,44,47,145,47,95,31,75;12:-18,-100,-61,20,-31,36,-37,-12,-45,-34,-69,-16,64,-61,8,-56,-89,-90,-73,-95,-51,-59,-76,-58,-44,-70,-72,-54,-103,-56,-75,-68,-49,-61,-62,-43,-5,4,-4,-9,-56,-48,-34,-74,24,-64,-27,2,-61,35,-27,-45,-77,-68,-57,-63,-39,-35,-81,-54,-64,13,-53,-30,-67,-37,-28,-6,-41,-17,14,-36,-45,47,-58,-4,-48,-16;13:25,104,22,150,67,32,98,76,65,29,-48,123,77,75,47,102,36,53,41,42,111,166,52,71,42,32,69,4,63,56,91,45,37,75,26,68,76,123,62,51,46,82,83,84,113,91,79,160,119,105,75,55,34,57,36,31,74,94,97,32,38,59,30,80,86,89,33,69,89,63,95,51,47,141,30,69,83,68;14:41,-64,-37,77,-24,0,26,22,-27,14,-68,25,42,8,61,-34,-59,-78,-70,-44,-13,-27,-66,-24,-51,-47,-26,-30,-41,-29,-46,-32,-36,-42,-23,0,-3,61,30,-9,-33,-21,-8,-39,48,-20,18,36,-32,69,-25,-27,-31,-29,-45,-36,-20,14,-57,-32,-57,49,-15,-17,-41,26,5,34,7,23,59,-23,-34,90,-24,38,-45,17";
+const FIT = {}; FIT_RAW.split(";").forEach(row => { const [ch, v] = row.split(":"); FIT[ch] = v.split(",").map(Number); });
+// 1枚の点数：相性（同じ種類のカードの平均との差）＋カードを持つこと自体の得点 を、レベル・レアリティで大きくする
+function cardScore(x, ch) {
+  const c = CARD[x.c], row = FIT[ch]; if (!c || !row) return 0;
+  const same = CARDS.filter(d => d.kind === c.kind), avg = same.reduce((t, d) => t + row[d.order], 0) / same.length;
+  const base = Math.max(10, row[c.order] - avg + (c.kind === "major" ? 130 : 100));
+  const q = (0.4 + 0.6 * (lvS(x.l) - 1) / 4) * (c.kind === "major" ? [1, 1, 1.1, 1.2][x.r] : 1) + (c.kind === "minor" && x.r >= 2 ? (x.r === 3 ? 0.2 : 0.1) : 0);
+  return base * q;
+}
+// おまかせ装備の優先度：ランク（レアリティ）が一番、次にレベル、同じならキャラとの相性
+// ランクの重みは大きくとり（レジェンド1枚 ＞ エピック2枚）、高いランクのカードが必ず先に入るようにする
+const autoScore = (x, ch) => [1, 8, 27, 64][x.r] * 1000 + x.l * 20 + cardScore(x, ch) / 10;
+// 装備コストの上限の中で、大アルカナ1枚＋小アルカナ3枚（同じカードは1枚まで）の優先度の合計が一番高い組み合わせを選ぶ
+function autoEquip(ch) {
+  const groups = {};
+  CS.cards.forEach(x => { if (CARD[x.c] && CARD[x.c].kind === "minor") (groups[x.c] = groups[x.c] || []).push(x); });
+  let dp = Array.from({ length: 4 }, () => Array(EQUIP_COST + 1).fill(null)); dp[0][0] = { s: 0, pick: [] };
+  for (const id in groups) {
+    const nd = dp.map(r => r.slice());
+    for (let n = 0; n < 3; n++) for (let cost = 0; cost <= EQUIP_COST; cost++) {
+      const cur = dp[n][cost]; if (!cur) continue;
+      for (const x of groups[id]) {
+        const nc = cost + RAR[x.r].cost; if (nc > EQUIP_COST) continue;
+        const s = cur.s + autoScore(x, ch);
+        if (!nd[n + 1][nc] || nd[n + 1][nc].s < s) nd[n + 1][nc] = { s, pick: [...cur.pick, x] };
+      }
+    }
+    dp = nd;
+  }
+  const majors = [null, ...CS.cards.filter(x => CARD[x.c] && CARD[x.c].kind === "major")];
+  let best = null;
+  for (const m of majors) {
+    const mc = m ? RAR[m.r].cost : 0, ms = m ? autoScore(m, ch) : 0; if (mc > EQUIP_COST) continue;
+    for (let n = 0; n <= 3; n++) for (let cost = 0; cost + mc <= EQUIP_COST; cost++) {
+      const cur = dp[n][cost]; if (!cur) continue;
+      if (!best || cur.s + ms > best.s) best = { s: cur.s + ms, maj: m, min: cur.pick };
+    }
+  }
+  if (!best) return false;
+  const e = eqOf(ch);
+  e.maj = best.maj ? best.maj.u : null;
+  e.min = [0, 1, 2].map(i => (best.min[i] ? best.min[i].u : null));
+  return true;
+}
+// 強化（レベルアップか合成）がいまできるか
+function canUpgrade(x, M) {
+  const R = RAR[x.r];
+  if (x.l < R.max) return !!lvMat(x) && CS.coins >= lvCostOf(x, M);
+  return x.r < 3 && !!synthMats(x) && CS.coins >= synthCostOf(x, M);
+}
+const upBadge = (x, M) => (canUpgrade(x, M) ? `<span class="ctag up">強化できる</span>` : "");
+// 装備中のカードを、素材とコインが足りるだけまとめて強化する（大アルカナから順に）。
+// 合成は、レアリティが上がっても装備コストの上限をこえないときだけ。結果の回数と使ったコインを返す
+function upgradeEquipped(ch, M) {
+  let lv = 0, syn = 0, spent = 0, changed = true;
+  while (changed) {
+    changed = false;
+    for (const x of eqList(ch)) {
+      while (x.l < RAR[x.r].max) {
+        const mat = lvMat(x), cost = lvCostOf(x, M);
+        if (!mat || CS.coins < cost) break;
+        CS.coins -= cost; spent += cost; consume(mat.u); x.l++; lv++; changed = true;
+      }
+      if (x.l >= RAR[x.r].max && x.r < 3) {
+        const mats = synthMats(x), cost = synthCostOf(x, M);
+        if (mats && CS.coins >= cost && eqCost(ch) - RAR[x.r].cost + RAR[x.r + 1].cost <= EQUIP_COST) {
+          CS.coins -= cost; spent += cost; mats.forEach(m => consume(m.u)); x.r++; syn++; changed = true;
+        }
+      }
+    }
+  }
+  return { lv, syn, spent };
+}
 // ---- カード画面 ----
 const CARD_FILTERS = [["all", "すべて"], ["major", "大アルカナ"], ["wand", "ワンド"], ["cup", "カップ"], ["sword", "ソード"], ["coin", "ペンタクル"]]; // 所持カード・図鑑の絞り込み
 // 効果の種類での絞り込み。いま選んでいるキャラの向き（正位置・逆位置）の効果で見る。代償（下がる側）は数えない
@@ -2954,12 +3031,15 @@ function htmlEquip() {
   let h = `<div class="panel"><div class="row spread"><b>${ch.name}（${ch.title}）の装備</b><span class="pos ${isRev(S.charId) ? "down" : "up"}">${isRev(S.charId) ? "逆位置で装備" : "正位置で装備"}</span></div>
     <div class="sub">${isRev(S.charId) ? "このキャラはカードを逆さに持つので、各カードの「逆位置」の効果が出ます。" : "このキャラはカードを正しい向きで持つので、各カードの「正位置」の効果が出ます。"}装備はキャラごとに保存。</div>
     <div class="sub">装備コスト ${cost} / ${EQUIP_COST}（ノーマル1・レア2・エピック3・レジェンド4）</div>
-    <div class="costbar"><i style="width:${Math.min(100, cost / EQUIP_COST * 100)}%"></i></div></div>`;
+    <div class="costbar"><i style="width:${Math.min(100, cost / EQUIP_COST * 100)}%"></i></div>
+    <div class="row" style="margin-top:8px"><button class="btn primary" data-act="auto">おまかせ装備</button><span class="sub">ランクの高いカードから順に装備します（同じランクならレベル、キャラとの相性の順）</span></div>
+    <div class="row" style="margin-top:6px"><button class="btn" data-act="bulkup" ${eqList(S.charId).some(x => canUpgrade(x, curM())) ? "" : "disabled"}>装備をまとめて強化</button><span class="sub">素材とコインが足りるだけ、装備中のカードをレベルアップ・合成します</span></div></div>`;
   h += `<div class="slots">${slot(e.maj, 0, "大アルカナ")}${e.min.map((u, j) => slot(u, j + 1, `小アルカナ ${j + 1}`)).join("")}</div>`;
   if (CD.pick === null) {
     const list = eqList(S.charId);
-    h += `<p class="sub">枠を押すと、つけかえられます。</p>`;
-    if (list.length) h += `<div class="cgrid">${list.map(x => tileHTML(x)).join("")}</div>`;
+    const M = curM();
+    h += `<p class="sub">枠を押すと、つけかえられます。カードのレベルアップ・合成は「所持・強化」でできます。</p>`;
+    if (list.length) h += `<div class="cgrid">${list.map(x => tileHTML(x, `<div class="cact"><button class="btn sm" data-act="goown" data-u="${x.u}">このカードを強化する</button></div>`, upBadge(x, M))).join("")}</div>`;
     return h;
   }
   const i = CD.pick, major = i === 0, cur = inst(major ? e.maj : e.min[i - 1]);
@@ -3007,9 +3087,12 @@ function htmlOwn() {
   const M = curM();
   let h = effBar() + sortBar();
   const list = sortList(CS.cards.filter(x => (CD.filter === "all" || (CD.filter === "major" ? CARD[x.c].kind === "major" : CARD[x.c].suit === CD.filter)) && effPass(x.c)));
-  h += `<p class="sub">${list.length}枚。レベルアップは同じカード1枚＋コイン。最大レベルになったら、同じカード・同じレアリティ2枚＋コインで1つ上のレアリティに合成できる（レベルはそのまま、上限が上がる）。装備中のカードは素材にならない。</p>`;
+  const ups = list.filter(x => canUpgrade(x, M)).length;
+  h += `<div class="panel"><b>カードの強化</b>
+    <div class="sub">・レベルアップ：同じカード1枚＋コイン<br>・合成：最大レベルのとき、同じカード・同じレアリティ2枚＋コインで1つ上のレアリティに（上限が上がる）<br>装備中のカードは素材にならない。</div>
+    <div class="sub" style="margin-top:4px">${ups ? `<b style="color:var(--gold)">いま強化できるカード：${ups}枚</b>（「強化できる」の印）` : "いま強化できるカードはありません"}・全${list.length}枚</div></div>`;
   if (!list.length) return h + `<p class="sub">このグループのカードはまだありません。</p>`;
-  return h + splitHTML(list.map(x => [x.u, miniTile(x, x.u, eqBadge(x), CD.flash === x.u ? "hl" : ""), () => tileHTML(x, ownActions(x, M), eqBadge(x))]),
+  return h + splitHTML(list.map(x => [x.u, miniTile(x, x.u, upBadge(x, M) + eqBadge(x), CD.flash === x.u ? "hl" : ""), () => tileHTML(x, ownActions(x, M), eqBadge(x))]),
     "カードを選ぶと、効果を見てレベルアップ・合成ができます。");
 }
 function htmlGacha() {
@@ -3064,6 +3147,18 @@ function cardAct(act, d) {
     return;
   }
   if (act === "filter") { CD.filter = d.f; CD.open = null; CD.sel = null; renderCards(); return; }
+  if (act === "auto") {
+    if (autoEquip(S.charId)) { saveCS(); CD.pick = null; CD.sel = null; sfx("buff"); toast("おまかせで装備しました"); } else toast("装備できるカードがありません");
+    renderCards(); return;
+  }
+  if (act === "bulkup") {
+    const snap = JSON.stringify(CS), r = upgradeEquipped(S.charId, M);
+    if (!r.lv && !r.syn) { toast("いま強化できる装備はありません"); return; }
+    const msg = `装備をまとめて強化します。\nレベルアップ ${r.lv}回・合成 ${r.syn}回\n使うコイン ${r.spent.toLocaleString()}\nよろしいですか？`;
+    if (!window.confirm(msg)) { CS = JSON.parse(snap); renderCards(); return; }
+    saveCS(); sfx(r.syn ? "unlock" : "buff"); toast(`レベルアップ ${r.lv}回・合成 ${r.syn}回（−${r.spent.toLocaleString()}コイン）`); renderCards(); return;
+  }
+  if (act === "goown") { CD.tab = "own"; CD.pick = null; CD.sel = String(d.u); renderCards(); window.scrollTo(0, 0); return; }
   if (act === "bookpos") { CD.bookRev = d.v === "1"; renderCards(); return; }
   if (act === "fopen") { CD.open = CD.open === d.k ? null : d.k; renderCards(); return; }
   if (act === "eff") { CD.eff = d.f; CD.open = null; CD.sel = null; renderCards(); return; }
@@ -4374,7 +4469,7 @@ function cleanCards(v) {
 function mkFighter(ch, cards, oppCh) {
   // 正位置か逆位置かは、送られてきた値ではなく相手のキャラから決める
   const M = computeMods(cards.map(([c, r, l]) => ({ c, r, l, rev: isRev(ch) })), true);
-  const k = ch === SEAL_CH ? sealRateOf(M) : 1;  // シズクは体力・攻撃力85%
+  const k = ch === SEAL_CH ? sealRateOf(M) : 1;  // シズクは体力・攻撃力90%（教皇（逆）で戻る）
   const hp = half(PVP.hp * k * (1 + mz(M, "maxHp")));
   // ab：実際に働くキャラ能力。相手がシズクなら封じられて 0（なし）
   const f = { ch, ab: oppCh === SEAL_CH && SEAL_PASSIVE_CH.has(ch) ? 0 : ch, hp, max: hp, atk: PVP.atk * k, streak: 0, inv: false, charge: false, guts: false, losses: 0, M, cards,
