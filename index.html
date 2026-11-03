@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-03-1812";
+  window.JQ_VER = "2026-11-03-1832";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -1957,7 +1957,7 @@ const CHARS = [
   { id: 16, name: "ミツ", title: "三つの型", glyph: "三", color: "#7ad0c0",
     ab: "<b>グー</b>で負けると受けたダメージの<b>20%を反射</b>。<b>チョキ</b>で勝つとその一撃が<b>×1.2</b>。<b>パー</b>であいこなら最大HPの<b>8%回復</b>。" },
   { id: 17, name: "セツナ", title: "一閃の刃", glyph: "閃", color: "#e0e4f0",
-    ab: "<b>最初のじゃんけん</b>に勝つと、相手を<b>確定で倒す</b>（ステージでは最初の1回だけ）。あいこか負けなら<b>HPが1</b>になる。" },
+    ab: "<b>最初のじゃんけん</b>に勝つと、相手を<b>確定で倒す</b>（ステージでは最初の1回だけ）。あいこか負けなら<b>HPが1</b>になり、そのあとは<b>勝ち続けないと倒れる</b>（あいこでも負けでも倒れる）。" },
   { id: 18, name: "カエデ", title: "攻守の構え", glyph: "転", color: "#f08a5a",
     ab: "<b>チョキ</b>で勝つと<b>攻撃モード</b>（攻撃力<b>+30%</b>）、<b>グー</b>で負けると<b>防御モード</b>（受けるダメージ<b>−30%</b>）。モードは1つだけで、新しいほうに切り替わる。" },
 ];
@@ -1966,7 +1966,7 @@ const FORCE_CH = 11, PIERCE_CH = 12, SCAR_CH = 13, STEADY_CH = 14; // ツツミ�
 const TOKI_CH = 15, TOKI_N = 7, TOKI_ATK = 0.2, TOKI_DEF = 0.15;
 // ミツ：グー負けで受けたダメージの20%を反射／チョキ勝ちでその一撃×1.2／パーのあいこで最大HPの8%回復
 const MITSU_CH = 16, MITSU_REFLECT = 0.2, MITSU_HIT = 1.2, MITSU_HEAL = 0.08;
-// セツナ：最初のじゃんけんに勝てば相手を確定で倒す。あいこ・負けならHP1（ステージでは最初の1回だけ）
+// セツナ：最初のじゃんけんに勝てば相手を確定で倒す。あいこ・負けならHP1になり、そのあとは勝ち以外（あいこ・負け）で倒れる（ステージでは最初の1回だけ）
 const SETSU_CH = 17;
 // カエデ：チョキ勝ちで攻撃モード（攻撃+30%）、グー負けで防御モード（被ダメ−30%）。どちらか1つ
 const KAEDE_CH = 18, KAEDE_ATK = 0.3, KAEDE_DEF = 0.3;
@@ -3583,6 +3583,8 @@ const furyName = () => (S.charId === SCAR_CH ? "傷の炎" : "逆境");
 const atkMods = p => { const M = BM(); return mz(M, "atk") + (p.streak >= 2 ? mz(M, "streak2Atk") : 0) + (p.hp <= p.max / 2 ? mz(M, "lowHpAtk") : 0) + arcAtk(p, M); };
 // トキの状態表示（n は終わった手数）：次の手で発動するなら「発動中」、まだなら発動まであと何手か
 const tokiChip = (n, M) => (n + 1 >= tokiN(M) ? chip(`刻の構え 攻+${Math.round(TOKI_ATK * tokiK(M) * 100)}%・被ダメ−${Math.round(TOKI_DEF * tokiK(M) * 100)}%`, "c-def", true) : chip(`刻の構え あと${tokiN(M) - 1 - n}手`, "c-def", false));
+// セツナの状態：一閃の前／成功したあと／失敗して勝ち続けるしかない
+const setsuChip = f => (!f.ichi ? chip("一閃：最初の勝ちで確定撃破", "c-rage", true) : f.doom ? chip("一閃失敗：勝ち続けないと倒れる", "c-rage", true) : chip("一閃（使用済）", "c-rage", false));
 // カエデのいまのモード
 const kaedeChip = m => (m === "atk" ? chip(`攻撃モード 攻+${Math.round(KAEDE_ATK * 100)}%`, "c-rage", true) : m === "def" ? chip(`防御モード 被ダメ−${Math.round(KAEDE_DEF * 100)}%`, "c-def", true) : chip("モードなし", "c-def", false));
 const tokiOn = p =>S.charId === TOKI_CH && (p.tk || 0) >= tokiN(BM());
@@ -3809,6 +3811,12 @@ async function play(h) {
   }
   if (!alive(b)) return;
 
+  // セツナ：一閃に失敗したあとは、勝てなかった敵が1体でもいたら倒れる（あいこでも）
+  if (S.charId === SETSU_CH && p.doom && p.hp > 0 && live.some(x => !x.beat)) {
+    fx({ k: "hurtP", amt: p.hp, label: "一閃の代償" }); p.hp = 0;
+    lines.push(`<span class="r">一閃の代償…勝てなかったので倒れた</span>`);
+    renderBattle(); await wait(400); if (!alive(b)) return;
+  }
   // セツナ：ステージ最初のじゃんけん。勝った敵は確定で倒し、勝てなかった敵が1体でもいたらHP1
   if (S.charId === SETSU_CH && !p.ichi) {
     p.ichi = true;
@@ -3817,9 +3825,9 @@ async function play(h) {
       lines.push(`<span class="g">一閃！ ${x.e.name}を一撃で倒した</span>`);
     }
     if (live.some(x => !x.beat)) {
-      const lost = r2(Math.max(0, p.hp - 1)); p.hp = 1;
+      const lost = r2(Math.max(0, p.hp - 1)); p.hp = 1; p.doom = true;
       if (lost > 0) fx({ k: "hurtP", amt: lost, label: "一閃失敗" });
-      lines.push(`<span class="r">一閃失敗…体力が1になった</span>`);
+      lines.push(`<span class="r">一閃失敗…体力が1になった。ここからは勝ち続けないと倒れる</span>`);
     }
     renderBattle(); await wait(400); if (!alive(b)) return;
   }
@@ -4335,7 +4343,7 @@ function renderBattle() {
   if (c.id === 8) pc += chip(`防御 ${Math.round(pDef(p) * 100)}%`, "c-def", pDef(p) > 0);
   if (c.id === 9) pc += chip(`返しの刃 ${fmt(p.atk * KAGE_RATE)}`, "c-def");
   if (c.id === TOKI_CH) pc += tokiChip(p.tk || 0, b.M);
-  if (c.id === SETSU_CH) pc += chip(p.ichi ? "一閃（使用済）" : "一閃：最初の勝ちで確定撃破", "c-rage", !p.ichi);
+  if (c.id === SETSU_CH) pc += setsuChip(p);
   if (c.id === KAEDE_CH) pc += kaedeChip(p.mode);
   if (p.judged === false && mz(b.M, "judgeOn")) pc += chip("世界（残1）", "c-guts");
   pc += arcChips(p, b.M);
@@ -4985,6 +4993,11 @@ function pvpResolve(F, hA, hB, mySide, rng) {
   // ラウンドの終わり：女帝・節制などの回復、塔、悪魔の次の宣言
   for (const s of ["A", "B"]) { const f = F[s]; if (f.hp > 0 && mz(f.M, "regen") > 0) healS(s, mz(f.M, "regen")); }
   for (const s of ["A", "B"]) arcTurnEnd(F[s], F[s].M, rng, say(s));
+  // セツナ：一閃に失敗したあとは、勝ち以外（あいこ・負け）で倒れる
+  for (const s of ["A", "B"]) {
+    const f = F[s];
+    if (f.ch === SETSU_CH && f.doom && f.hp > 0 && R[s] !== "win") { add(out.after, s, { k: "hurtP", amt: f.hp, label: "一閃の代償" }); f.hp = 0; out.lines.push(`<span class="r">${who(s)}は一閃の代償で倒れた</span>`); }
+  }
   // セツナ：最初のじゃんけん。勝てば相手を確定で倒す（不屈・世界・盾も関係なし）。あいこ・負けならHP1
   const killed = new Set();
   for (const s of ["A", "B"]) {
@@ -4996,7 +5009,7 @@ function pvpResolve(F, hA, hB, mySide, rng) {
     const f = F[s];
     if (f.ch !== SETSU_CH || f.ichi) continue;
     f.ichi = true;
-    if (R[s] !== "win" && !killed.has(s)) { f.hp = 1; add(out.after, s, { k: "fool", text: "一閃失敗…HP1" }); out.lines.push(`<span class="r">${who(s)}の一閃失敗…HPが1になった</span>`); }
+    if (R[s] !== "win" && !killed.has(s)) { f.hp = 1; f.doom = true; add(out.after, s, { k: "fool", text: "一閃失敗…HP1" }); out.lines.push(`<span class="r">${who(s)}の一閃失敗…HPが1になった。ここからは勝ち続けないと倒れる</span>`); }
   }
   return out;
 }
@@ -5116,7 +5129,7 @@ function fighterChips(f) {
   if (f.ch === 8) { const v = fDefOf(f); s += chip(`防御 ${Math.round(v * 100)}%`, "c-def", v > 0); }
   if (f.ch === 9) s += chip(`返しの刃 ${fmt(f.atk * KAGE_RATE)}`, "c-def");
   if (f.ch === TOKI_CH) s += tokiChip(f.tk || 0, f.M);
-  if (f.ch === SETSU_CH) s += chip(f.ichi ? "一閃（使用済）" : "一閃：最初の勝ちで確定撃破", "c-rage", !f.ichi);
+  if (f.ch === SETSU_CH) s += setsuChip(f);
   if (f.ch === KAEDE_CH) s += kaedeChip(f.mode);
   if (mz(f.M, "judgeOn") && !f.judged) s += chip("世界（残1）", "c-guts");
   s += arcChips(f, f.M);
