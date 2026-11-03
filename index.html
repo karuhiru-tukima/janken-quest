@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-03-1832";
+  window.JQ_VER = "2026-11-03-1853";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -1352,7 +1352,7 @@ body.on-home .wrap { padding-top: 10px; }
   <!-- キャラ選択 -->
   <section class="screen" id="scr-char" hidden>
     <div style="display:flex;flex-direction:column;gap:12px">
-      <div><h2>キャラを選ぶ</h2><p class="sub">基本の体力・攻撃力は全員同じで（シズクだけ90%）、ワールドが進むほど上がる。違うのは特殊能力だけ。</p></div>
+      <div><h2>キャラを選ぶ</h2><p class="sub">基本の体力・攻撃力は全員同じで、ワールドが進むほど上がる。違うのは特殊能力だけ。</p></div>
       <div class="char-split"><div class="chars" id="chars"></div><aside class="char-detail" id="char-detail" aria-live="polite"></aside></div>
       <div class="row spread"><span class="sub" id="char-pick">選択中：なし</span><button class="btn primary" id="to-stage" disabled>決定してホームへ</button></div>
     </div>
@@ -1943,7 +1943,7 @@ const CHARS = [
   { id: 9, name: "カゲ", title: "返しの刃", glyph: "返", color: "#7fd6d6",
     ab: "ダメージを受けると、<b>基礎攻撃力の35%</b>のダメージを相手に返す（カードなどの強化はのらない）。" },
   { id: 10, name: "シズク", title: "封じの札", glyph: "封", color: "#c8a0f0",
-    ab: "相手の<b>常に働く能力</b>と、敵の<b>あいこでのダメージ</b>を封じる（ほかの条件で発動する能力は封じない）。かわりに<b>体力・攻撃力90%</b>。" },
+    ab: "相手の<b>常に働く能力</b>と、敵の<b>あいこでのダメージ</b>を封じる（ほかの条件で発動する能力は封じない）。" },
   { id: 11, name: "ツツミ", title: "包みの掌", glyph: "包", color: "#f6b8d8",
     ab: "<b>パー</b>で勝つと、次のターン相手は<b>グーしか出せない</b>（強制されたグーに勝っても、続けては強制できない）。" },
   { id: 12, name: "ウガチ", title: "穿ちの刃", glyph: "穿", color: "#e8d860",
@@ -1978,10 +1978,10 @@ const mitsuK = M => 1 + mz(M, "charBoost");
 const mitsuRef = M => MITSU_REFLECT * mitsuK(M), mitsuHitOf = M => 1 + (MITSU_HIT - 1) * mitsuK(M), mitsuHeal = M => MITSU_HEAL * mitsuK(M);
 // ホムラ：減っている体力の割合ぶん攻撃力アップ（体力0に近いほど+100%。回復すると下がる）
 const scarBonus = (hp, max, cb) => Math.min(cb, cb * Math.max(0, max - hp) / max);
-const SEAL_CH = 10, SEAL_RATE = 0.9; // シズク：相手の「常時発動」の能力を封じるかわりに、体力と攻撃力が90%
+const SEAL_CH = 10, SEAL_RATE = 1; // シズク：相手の「常時発動」の能力を封じる（体力・攻撃力の低下はなし）
 // 封じられる（いつでも働いている）能力。「グーで勝ったら」「あいこで」「殴られたら」などの条件で発動するものは封じない
 const SEAL_ABIL = new Set(["king", "gale", "regen", "mirage", "rock", "thunder"]);  // 敵：王の連撃・疾風・再生・幻影、あいこのダメージ（岩肌・雷鳴）
-const SEAL_PASSIVE_CH = new Set([4, 5, 8, 13]);                  // 味方：ゴンの不屈の体・レンの連勝倍率・イワオの軽減・ホムラの傷の炎
+const SEAL_PASSIVE_CH = new Set([4, 5, 8, 13, 15]);              // 味方：ゴンの不屈の体・レンの連勝倍率・イワオの軽減・ホムラの傷の炎・トキの刻の構え
 const sealedAbil = a => S.charId === SEAL_CH && SEAL_ABIL.has(a);
 // 敵の能力の説明（封じたものは打ち消し線と「封印中」）
 const abilText = a => (sealedAbil(a) ? `<s class="sealed">${ABIL[a]}</s> <span class="sealtag">封印中</span>` : ABIL[a]);
@@ -2429,11 +2429,13 @@ function awakenText(c, r) {
   return `覚醒：${pk.length > 1 ? pk.map(([f, v]) => `${FT_UP[f] || f} +${fmtFx(v * k)}`).join("・") : s.perkText + fmtFx(pk[0][1] * k)}`;
 }
 // 装備カードの効果を合計する。x.rev=true は逆位置。online=true のときは予測・妨害系を外す
-function computeMods(list, online) {
+// ch：装備するキャラ（セツナには教皇が効かない）
+function computeMods(list, online, ch) {
   const M = {};
   const add = (f, v) => { if (online && OFFLINE_ONLY.has(f)) return; M[f] = (M[f] || 0) + v; };
   for (const x of list) {
     const c = CARD[x.c]; if (!c) continue;
+    if (c.id === "hierophant" && ch === SETSU_CH) continue;
     cardVals(c, x.l, x.r, x.rev).forEach(([v, , f]) => add(f, v));
     if (c.id === "world" && x.rev) add("judgeOn", 1);
     if (c.kind === "minor" && x.r >= 2) { const pk = SUITS[c.suit].perk; (Array.isArray(pk[0]) ? pk : [pk]).forEach(([f, v]) => add(f, v * (x.r === 3 ? 2 : 1))); }
@@ -2552,8 +2554,10 @@ function echoKind(ch, res, h, f) {
 }
 // 教皇（逆）の余韻ターンなら 1＋強さ、それ以外は 1
 const echoMul = (f, M) => (f.ms && f.ms.echo ? 1 + mz(M, "echo") : 1);
-// 教皇（逆）：シズクの体力・攻撃力の低下（90%）がなくなる。さらにレベルで上がる（Lv1で100%、Lv20で約107%、レジェンド覚醒のLv20で110%）
+// 教皇（逆）：シズクの体力・攻撃力がレベルで上がる（Lv1で100%、Lv20で約107%、レジェンド覚醒のLv20で110%）
 const sealRateOf = M => (mz(M, "echo") > 0 ? 1 + (mz(M, "echo") - 0.4) / 5.6 : SEAL_RATE);
+// 教皇（逆）：シズクが能力を封じている相手に与えるダメージ +（強さ×25%）。Lv1で+10%、Lv20で+20%
+const sealHitOf = M => 0.25 * mz(M, "echo");
 // 教皇（正）：テツ・ゴン・マサの守り（−）と、ツツミ・ウガチの攻め（×）。強さ+20%で −15%・×1.2
 const cbGuardOf = M => 0.75 * mz(M, "charBoost");
 const cbHitOf = M => 1 + mz(M, "charBoost");
@@ -2815,7 +2819,7 @@ function eqOf(ch) {
 }
 const eqList = ch => { const e = eqOf(ch); return [e.maj, ...e.min].map(inst).filter(Boolean); };
 const equippedBy = u => CHARS.filter(ch => { const e = CS.eq[ch.id]; return e && (e.maj === u || (e.min || []).includes(u)); }).map(ch => ch.id);
-const curM = () => computeMods(eqList(S.charId), false);
+const curM = () => computeMods(eqList(S.charId), false, S.charId);
 function consume(u) {
   CS.cards = CS.cards.filter(x => x.u !== u);
   for (const e of Object.values(CS.eq)) { if (e.maj === u) e.maj = null; e.min = (e.min || []).map(v => (v === u ? null : v)); }
@@ -2900,8 +2904,8 @@ const HIERO_UP = {
 const HIERO_REV = {
   5: v => `2連勝以上で勝った次のターン、連撃 ×${numS(1 + v)}`, 6: v => `あいこの次のターン、${pctS(v)}の確率で連勝+1`,
   7: v => `負けた次のターン、逆境 ×${numS(1 + v)}`, 8: v => `勝った次のターン、岩の守り ×${numS(1 + v)}`,
-  9: v => `負けた次のターン、返しの刃（${pctS(v)}）がもう一度`, 10: v => `体力・攻撃力 ${pctS(sealRateOf({ echo: v }))}（低下なし）`,
-  13: v => `HPが減った状態で勝った次のターン、傷の炎 ×${numS(1 + v)}`,
+  9: v => `負けた次のターン、返しの刃（${pctS(v)}）がもう一度`, 10: v => `封じている相手への与ダメ +${pctS(0.25 * v)}・体力・攻撃力 ${pctS(sealRateOf({ echo: v }))}`,
+  13: v => `HPが減った状態で勝った次のターン、傷の炎 ×${numS(1 + v)}`, 17: () => "効かない（教皇の効果はすべて出ない）",
   15: v => `${TOKI_N - 1}手目から発動、攻撃力 +${pctS(TOKI_ATK * (1 + v))}・被ダメ −${pctS(TOKI_DEF * (1 + v))}`,
 };
 const pctS = v => `${Math.round(v * 1000) / 10}%`, numS = v => String(Math.round(v * 100) / 100);
@@ -3509,7 +3513,7 @@ async function startBattle(w, i) {
   const list = W.stages[i];
   const ps = pStats(w);
   const cards = eqList(S.charId).map(x => ({ c: x.c, r: x.r, l: x.l, rev: isRev(S.charId) }));
-  const M = computeMods(cards, false);
+  const M = computeMods(cards, false, S.charId);
   const sealK = S.charId === SEAL_CH ? sealRateOf(M) : 1;
   const maxHp = half(ps.max * sealK * (1 + mz(M, "maxHp")));
   const b = S.battle = {
@@ -4014,6 +4018,8 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
       // 教皇（正）：ウガチのチョキ勝ち、ツツミがグーに固めた相手へのパー勝ちは、ダメージアップ
       if ((pierce || (c === FORCE_CH && h === P_ && e.forcedNow)) && mz(M, "charBoost")) { dmg *= cbHitOf(M); nt2 += `（教皇 ×${fmt(cbHitOf(M))}）`; }
       if (c === MITSU_CH && h === C_) { dmg *= mitsuHitOf(M); nt2 += `（三つの型 ×${fmt(mitsuHitOf(M))}）`; }
+      // シズク＋教皇（逆）：封じる能力を持つ敵には与ダメアップ
+      if (c === SEAL_CH && sealHitOf(M) > 0 && e.abil.some(a => SEAL_ABIL.has(a))) { dmg *= 1 + sealHitOf(M); nt2 += `（封じ ×${fmt(1 + sealHitOf(M))}）`; }
       if (pierce) { if (e.shield) nt2 += "（身構えを貫通）"; }
       else if (e.shield) {
         // 敵の身構え（次の被ダメ半減）。アルカナの盾崩し・通りぬけは効かない
@@ -4605,8 +4611,8 @@ function cleanCards(v) {
 }
 function mkFighter(ch, cards, oppCh) {
   // 正位置か逆位置かは、送られてきた値ではなく相手のキャラから決める
-  const M = computeMods(cards.map(([c, r, l]) => ({ c, r, l, rev: isRev(ch) })), true);
-  const k = ch === SEAL_CH ? sealRateOf(M) : 1;  // シズクは体力・攻撃力90%（教皇（逆）で戻る）
+  const M = computeMods(cards.map(([c, r, l]) => ({ c, r, l, rev: isRev(ch) })), true, ch);
+  const k = ch === SEAL_CH ? sealRateOf(M) : 1;  // シズク：教皇（逆）で体力・攻撃力アップ
   const hp = half(PVP.hp * k * (1 + mz(M, "maxHp")));
   // ab：実際に働くキャラ能力。相手がシズクなら封じられて 0（なし）
   const f = { ch, ab: oppCh === SEAL_CH && SEAL_PASSIVE_CH.has(ch) ? 0 : ch, hp, max: hp, atk: PVP.atk * k, streak: 0, inv: false, charge: false, guts: false, losses: 0, tk: 0, M, cards,
@@ -4821,7 +4827,7 @@ function startTimer() {
 const fCB = f => 1 + mz(f.M, "charBoost");
 // ガロウの逆境／ホムラの傷の炎（ホムラはシズクに封じられると無し）
 const fFury = f => { const cb = fCB(f) * echoMul(f, f.M); return f.ch === 7 ? Math.min(cb, 0.2 * cb * f.losses) : f.ab === SCAR_CH ? scarBonus(f.hp, f.max, cb) : 0; };
-const fToki = f => f.ch === TOKI_CH && f.tk >= tokiN(f.M); // トキ：7手目から（教皇の逆で6手目）
+const fToki = f => f.ab === TOKI_CH && f.tk >= tokiN(f.M); // トキ：7手目から（教皇の逆で6手目）。シズクには封じられる
 const fAtkOf = f => f.atk * (1 + fFury(f)) * (fToki(f) ? 1 + TOKI_ATK * tokiK(f.M) : 1) * (f.ch === KAEDE_CH && f.mode === "atk" ? 1 + KAEDE_ATK : 1)
   * Math.max(0.2, 1 + mz(f.M, "atk") + (f.streak >= 2 ? mz(f.M, "streak2Atk") : 0) + (f.hp <= f.max / 2 ? mz(f.M, "lowHpAtk") : 0) + arcAtk(f, f.M));
 // イワオ：いつでも−20%＋連勝ごとに10%。シズクに封じられると、いつでもの−20%だけが消える
@@ -4876,7 +4882,7 @@ function pvpResolve(F, hA, hB, mySide, rng) {
   // トキ：手数を数える（あいこも数える）。7手目に発動
   for (const s of ["A", "B"]) {
     const f = F[s]; f.tk = (f.tk || 0) + 1;
-    if (f.ch === TOKI_CH && f.tk === tokiN(f.M)) { add(out.pre, s, { k: "fool", text: "刻の構え！" }); out.lines.push(`<span class="p">${who(s)}の刻の構え：攻撃力+${Math.round(TOKI_ATK * tokiK(f.M) * 100)}%・受けるダメージ−${Math.round(TOKI_DEF * tokiK(f.M) * 100)}%</span>`); }
+    if (f.ab === TOKI_CH && f.tk === tokiN(f.M)) { add(out.pre, s, { k: "fool", text: "刻の構え！" }); out.lines.push(`<span class="p">${who(s)}の刻の構え：攻撃力+${Math.round(TOKI_ATK * tokiK(f.M) * 100)}%・受けるダメージ−${Math.round(TOKI_DEF * tokiK(f.M) * 100)}%</span>`); }
   }
   // 大アルカナ：ラウンドのはじめ（愚者など）
   for (const s of ["A", "B"]) arcTurnStart(F[s], F[s].M, rng, say(s, out.pre), F[s].ab);
@@ -4950,11 +4956,14 @@ function pvpResolve(F, hA, hB, mySide, rng) {
     if (!steady && (pierce || (fw.ch === FORCE_CH && hw === P_ && fl.forcedNow))) raw *= cbHitOf(M);
     const mitsuHit = !steady && fw.ch === MITSU_CH && hw === C_; // ミツ：チョキの勝ちは×1.3（マサのグー負けには効かない）
     if (mitsuHit) raw *= mitsuHitOf(M);
+    // シズク＋教皇（逆）：能力を封じている相手には与ダメアップ
+    const sealHit = !steady && fw.ch === SEAL_CH && fl.ab === 0 && sealHitOf(M) > 0;
+    if (sealHit) raw *= 1 + sealHitOf(M);
     // 魔術師（正）・隠者（逆）：相手に盾があるとき、与えるダメージアップ
     // 魔術師（正）・力・隠者（逆）：相手の盾に当たる分だけダメージアップ（HPに届く分は増えない）
     const shHit = mz(M, "shieldHit") + aw.sh;
     const breakS = !steady && !pierce && fl.ms && fl.ms.shd > 0 && shHit > 0;
-    const tag = (breakS ? `（盾崩し +${Math.round(shHit * 100)}%）` : "") + (steady ? "（不動：強化を受けない）" : (N > 0 ? `（${fw.streak}連勝 ×${fmt(mult)}）` : "") + (charged ? "（チャージ）" : "") + (bonus > 1.001 ? `（カード ×${fmt(bonus)}）` : "") + (pierce ? "（穿ち：守り無視）" : "") + (mitsuHit ? `（三つの型 ×${fmt(mitsuHitOf(M))}）` : ""));
+    const tag = (breakS ? `（盾崩し +${Math.round(shHit * 100)}%）` : "") + (steady ? "（不動：強化を受けない）" : (N > 0 ? `（${fw.streak}連勝 ×${fmt(mult)}）` : "") + (charged ? "（チャージ）" : "") + (bonus > 1.001 ? `（カード ×${fmt(bonus)}）` : "") + (pierce ? "（穿ち：守り無視）" : "") + (mitsuHit ? `（三つの型 ×${fmt(mitsuHitOf(M))}）` : "") + (sealHit ? `（封じ ×${fmt(1 + sealHitOf(M))}）` : ""));
     if (fl.inv && !pierce) {
       fl.inv = false; add(out.imp, L, { k: "block" });
       if (cbGuardOf(fl.M) > 0) fl.ms.cbGuard = cbGuardOf(fl.M); // 教皇（正）：テツは無敵が切れたあと、次の被ダメ減
@@ -5119,7 +5128,7 @@ function oppLeft() {
 
 function fighterChips(f) {
   let s = chip(`${f.streak}連勝`, "c-streak", f.streak > 0);
-  if (!f.ab) s += chip(`${{ 4: "不屈の体", 5: "連撃", 8: "常時−20%", 13: "傷の炎" }[f.ch]} 封印中`, "c-read");
+  if (!f.ab) s += chip(`${{ 4: "不屈の体", 5: "連撃", 8: "常時−20%", 13: "傷の炎", 15: "刻の構え" }[f.ch]} 封印中`, "c-read");
   if (f.forceG) s += chip("次はグーだけ", "c-read");
   if (f.ab === SCAR_CH) { const v = fFury(f); s += chip(`傷の炎 +${Math.round(v * 100)}%`, "c-rage", v > 0); }
   if (f.ch === 1) s += chip("無敵", "c-inv", f.inv);
@@ -5128,7 +5137,7 @@ function fighterChips(f) {
   if (f.ch === 7) { const v = Math.min(1, 0.2 * f.losses); s += chip(`逆境 +${Math.round(v * 100)}%`, "c-rage", v > 0); }
   if (f.ch === 8) { const v = fDefOf(f); s += chip(`防御 ${Math.round(v * 100)}%`, "c-def", v > 0); }
   if (f.ch === 9) s += chip(`返しの刃 ${fmt(f.atk * KAGE_RATE)}`, "c-def");
-  if (f.ch === TOKI_CH) s += tokiChip(f.tk || 0, f.M);
+  if (f.ab === TOKI_CH) s += tokiChip(f.tk || 0, f.M);
   if (f.ch === SETSU_CH) s += setsuChip(f);
   if (f.ch === KAEDE_CH) s += kaedeChip(f.mode);
   if (mz(f.M, "judgeOn") && !f.judged) s += chip("世界（残1）", "c-guts");
