@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-03-1233";
+  window.JQ_VER = "2026-11-03-1313";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -295,6 +295,8 @@ details.rules ul { margin: 8px 0 2px; padding-left: 1.2em; color: var(--dim); fo
 .pxi.efc, .pxi.cfc { height: auto; aspect-ratio: 48 / 50; }
 .badge { overflow: hidden; }
 .badge .cfc { width: 92%; margin-top: 6%; }
+.pxi.cfc.fc { aspect-ratio: 1; object-fit: cover; }
+.badge .cfc.fc { width: 100%; height: 100%; margin: 0; }
 .badge .cfc.ph { width: 100%; height: 100%; margin: 0; aspect-ratio: auto; background-size: 230% auto; background-position: 52% 14%; background-repeat: no-repeat; image-rendering: pixelated; }
 .hbtn .e .pxi { width: 48px; height: 48px; }
 .stamp.sticker .sk-ico .pxi { width: 34px; height: 34px; }
@@ -1526,7 +1528,9 @@ const handImg = h => `<span class="hemo" role="img" aria-label="${["グー", "�
 const iconImg = (n, cls = "pxi") => `<img class="${cls}" src="${JQArt.icon(n)}" alt="">`;
 const enemyFace = tk => `<img class="pxi efc" src="${JQArt.actor("e", tk).face}" alt="">`;
 // 顔アイコン：画像ファイルがあれば全身画の頭のあたりを拡大して見せる
-const charFace = id => (hasImg(`chars/c${id}`)
+// アイコン：img/faces/c{id}.png（胸から上。目の高さと顔の大きさをそろえて切ったもの）があればそれ、なければ立ち絵の上のほう
+const charFace = id => (hasImg(`faces/c${id}`) ? `<img class="pxi cfc fc" data-cid="${id}" src="${imgSrc(`faces/c${id}`)}" alt="">`
+  : hasImg(`chars/c${id}`)
   ? `<span class="pxi cfc ph" data-cid="${id}" style="background-image:url('${imgSrc(`chars/c${id}`)}')"></span>`
   : `<img class="pxi cfc" data-cid="${id}" src="${JQArt.actor("p", id).face}" alt="">`);
 // ---- 画像ファイル：img/list.json に載っている画像があれば、ドット絵の代わりに使う ----
