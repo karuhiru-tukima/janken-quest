@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-03-1853";
+  window.JQ_VER = "2026-11-05-1113";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -3660,6 +3660,19 @@ function makeActor(kind, data, k) {
   applyPhoto(a);
   return a;
 }
+// かえで：防御モードのときは青い姿（chars/c18d）、それ以外は赤い姿（chars/c18）。切り替わったら変身の演出
+function kaedeLook(a, mode) {
+  if (!a || a._kind !== "p" || a._key !== KAEDE_CH) return;
+  const want = mode === "def" ? "chars/c18d" : "chars/c18";
+  if (!hasImg(want) || !a.classList.contains("photo") || a._look === want) return;
+  const first = !a._look; a._look = want;
+  a.querySelector(".spr").src = imgSrc(want);
+  if (first) return;
+  const c = center(a._head), col = mode === "def" ? "#6aa8ff" : "#ff6a5a";
+  sfx("buff"); flash(mode === "def" ? "rgba(106,168,255,.3)" : "rgba(255,106,90,.3)", .3);
+  ring(c, col, { r: 30, grow: 1.6, life: 30, w: 6 }); burst(c, { n: 26, colors: [col, "#fff"], speed: 4, shape: "star", grav: 0 });
+  play_(a._bob, [{ transform: "none" }, { transform: "scale(1.12)" }, { transform: "none" }], 360, "ease-out");
+}
 const feet = a => { const r = a.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.bottom - 4 }; };
 const KAGE_RATE = 0.35; // カゲの返しの刃：基礎攻撃力の35%
 const GON_HEAL = 0.2;   // ゴンの不屈：耐えたあと最大HPの20%回復
@@ -4360,6 +4373,7 @@ function renderBattle() {
   ensureActors(b);
   PA.classList.toggle("inv", p.inv); PA.classList.toggle("charged", p.charge);
   PA.classList.toggle("hard", pDef(p) > 0); PA.classList.toggle("fury", furyBonus(p) > 0);
+  if (S.charId === KAEDE_CH) kaedeLook(PA, p.mode);
   for (let k = 0; k < 2; k++) {
     const e = b.slots[k], a = EA[k]; if (!e || !a) continue;
     a.classList.toggle("shielded", e.shield);
@@ -5180,6 +5194,7 @@ function renderOnline() {
   for (const [a, f] of [[PA, me], [EA[0], op]]) {
     a.classList.toggle("inv", f.inv); a.classList.toggle("charged", f.charge);
     a.classList.toggle("hard", fDefOf(f) > 0); a.classList.toggle("fury", fFury(f) > 0);
+    if (f.ch === KAEDE_CH) kaedeLook(a, f.mode);
   }
 
   const boostHand = { 1: G_, 2: C_, 3: P_, 4: G_, 11: P_, 12: C_, 14: G_ }[cm.id];
@@ -5379,8 +5394,12 @@ document.querySelectorAll("#bnav button").forEach(b => b.onclick = () => {
 
 /* ---------- 起動（更新時に状態を引き継ぐ） ---------- */
 function start(data) {
+  if (data && data.cdTab) CD.tab = data.cdTab; // カード画面のタブ（装備・所持・ガチャ・図鑑）
   if (data && data.S) {
-    S = Object.assign({ unlockAll: false }, data.S);
+    // クリア状況・選んでいるキャラは、進行の保存（いまの S）のほうを正とする。キャラが変わっていたら途中の戦闘は捨てる
+    const prog = { cleared: S.cleared, unlockAll: S.unlockAll, charId: S.charId };
+    S = Object.assign({ unlockAll: false }, data.S, prog);
+    if (data.S.charId !== prog.charId) S.battle = null;
     if (S.online) { S.online = false; if (S.screen === "battle") S.screen = "online"; }
     if (S.battle) {
       const W = WORLDS[S.battle.w - 1];
@@ -5407,7 +5426,19 @@ window.JQ_BOOT = {
 // 起動画面が出なかったとき（古い版が残っている等）でも、最初に画面を触った時点で音を出してBGMを流す
 document.addEventListener("pointerdown", () => window.JQ_BOOT.begin(), { once: true, capture: true });
 window.claude?.hot?.snapshot?.(() => ({ S }));
-window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+// サイトを開き直したとき：前に開いていた画面と、途中のステージ戦闘を元に戻す（オンライン対戦は相手との接続が切れるのでロビーに戻る）
+// 戦闘の途中（手の結果を出している最中）は保存せず、ひとつ前の手が終わった状態を残す
+const RESUME_KEY = "jq-resume";
+let resumeLast = "";
+function saveResume() {
+  if (S.battle && S.battle.busy && !S.battle.over) return;
+  try { const s = JSON.stringify({ S, cdTab: CD.tab }); if (s !== resumeLast) { localStorage.setItem(RESUME_KEY, s); resumeLast = s; } } catch {}
+}
+function loadResume() { try { return JSON.parse(localStorage.getItem(RESUME_KEY) || "null") || {}; } catch { return {}; } }
+document.addEventListener("visibilitychange", () => { if (document.hidden) saveResume(); });
+addEventListener("pagehide", saveResume);
+setInterval(saveResume, 3000);
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data?.S ? window.claude.hot.data : loadResume());
 })();
 </script>
 
