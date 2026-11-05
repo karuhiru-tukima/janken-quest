@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-05-1113";
+  window.JQ_VER = "2026-11-05-1634";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -945,6 +945,7 @@ body.on-home .wrap { padding-top: 10px; }
 .hm-start, .hm-sub { border: 3px solid var(--line); border-radius: 10px; color: var(--ink); font-family: var(--f-display); cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: transform .1s; }
 .hm-start { padding: 12px 6px 10px; }
 .hm-start b { font-size: 2.1rem; font-weight: 400; line-height: 1.1; }
+.hm-start.resume b { font-size: 1.55rem; white-space: nowrap; padding: 6px 0 4px; } /* 「続きから」は4文字なので小さめにして1行に収める */
 .hm-start span { font-size: .85rem; text-shadow: 2px 2px 0 var(--line); }
 .hm-sub { gap: 2px; padding: 6px 4px; font-size: .78rem; text-shadow: 2px 2px 0 var(--line); }
 .hm-sub .pxi { width: 32px; height: 32px; }
@@ -5342,8 +5343,11 @@ function renderHome() {
   const [nw, ni] = nx || all[all.length - 1];
   $("hm-rec").textContent = `クリア ${S.cleared.length} / ${all.length}`;
   $("hm-stage").textContent = `${key(nw, ni)}　${WORLDS[nw - 1].name}`;
-  $("h-start-sub").textContent = nx ? `${key(nw, ni)} へ` : "全制覇！";
-  $("h-start").onclick = () => openStagePreview(nw, ni);
+  // 途中のステージ戦闘があれば、開始ボタンは「続きから」になる
+  const rb = S.battle && !S.battle.over ? S.battle : null;
+  $("h-start").querySelector("b").textContent = rb ? "続きから" : "開始"; $("h-start").classList.toggle("resume", !!rb);
+  $("h-start-sub").textContent = rb ? `${key(rb.w, rb.i)} ターン${rb.turn}` : nx ? `${key(nw, ni)} へ` : "全制覇！";
+  $("h-start").onclick = () => (rb ? resumeBattle() : openStagePreview(nw, ni));
   // PCの左右に出す情報：次のステージの敵、キャラの能力
   $("hm-next").innerHTML = `<h3>次の敵（${key(nw, ni)}）</h3>` + WORLDS[nw - 1].stages[ni].map(([t], n) => enemyPrevHTML(TPL[t], `${n + 1}体目`)).join("");
   $("hm-prof").innerHTML = `<h3>${c.name}の能力</h3><p>${c.ab}</p>`;
@@ -5392,9 +5396,15 @@ document.querySelectorAll("#bnav button").forEach(b => b.onclick = () => {
   ({ home: () => show("home"), chara: () => openChar(from === "stage" || from === "online" ? "stage" : "home"), arcana: () => openCards("equip"), gacha: () => openCards("gacha"), book: () => openCards("book") })[b.dataset.go]();
 });
 
+// ホームの「続きから」：保存しておいた途中のステージ戦闘に戻る
+function resumeBattle() {
+  const b = S.battle; if (!b || b.over) { renderHome(); return; }
+  WORLDS[b.w - 1].sky.forEach((c, n) => $("stage").style.setProperty(`--sky${n + 1}`, c)); applyStageBg($("stage"), `bg/w${b.w}`);
+  b.busy = false; show("battle");
+  EA.forEach(a => a && (a.style.visibility = "visible")); // 敵の登場の演出はしないので、すぐ見えるように
+}
 /* ---------- 起動（更新時に状態を引き継ぐ） ---------- */
 function start(data) {
-  if (data && data.cdTab) CD.tab = data.cdTab; // カード画面のタブ（装備・所持・ガチャ・図鑑）
   if (data && data.S) {
     // クリア状況・選んでいるキャラは、進行の保存（いまの S）のほうを正とする。キャラが変わっていたら途中の戦闘は捨てる
     const prog = { cleared: S.cleared, unlockAll: S.unlockAll, charId: S.charId };
@@ -5407,6 +5417,7 @@ function start(data) {
       else { S.battle.busy = false; S.battle.slots = S.battle.slots.map(e => (e && e.hp > 0 ? e : null)); if (!S.battle.slots.some(Boolean)) spawn(S.battle); }
     }
     if (S.screen === "battle" && !S.battle) S.screen = "stage";
+    if (data.resume) S.screen = "home"; // サイトを開き直したときはホームから。途中の戦闘はホームの「続きから」で再開
     if (!charOf(S.charId)) S.charId = 1;
   }
   if (S.screen === "battle" && S.battle) { WORLDS[S.battle.w - 1].sky.forEach((c, n) => $("stage").style.setProperty(`--sky${n + 1}`, c)); applyStageBg($("stage"), `bg/w${S.battle.w}`); }
@@ -5426,15 +5437,15 @@ window.JQ_BOOT = {
 // 起動画面が出なかったとき（古い版が残っている等）でも、最初に画面を触った時点で音を出してBGMを流す
 document.addEventListener("pointerdown", () => window.JQ_BOOT.begin(), { once: true, capture: true });
 window.claude?.hot?.snapshot?.(() => ({ S }));
-// サイトを開き直したとき：前に開いていた画面と、途中のステージ戦闘を元に戻す（オンライン対戦は相手との接続が切れるのでロビーに戻る）
+// サイトを開き直したとき：いつもホームから始め、途中のステージ戦闘はホームの「続きから」で再開できるようにする
 // 戦闘の途中（手の結果を出している最中）は保存せず、ひとつ前の手が終わった状態を残す
 const RESUME_KEY = "jq-resume";
 let resumeLast = "";
 function saveResume() {
   if (S.battle && S.battle.busy && !S.battle.over) return;
-  try { const s = JSON.stringify({ S, cdTab: CD.tab }); if (s !== resumeLast) { localStorage.setItem(RESUME_KEY, s); resumeLast = s; } } catch {}
+  try { const s = JSON.stringify({ S }); if (s !== resumeLast) { localStorage.setItem(RESUME_KEY, s); resumeLast = s; } } catch {}
 }
-function loadResume() { try { return JSON.parse(localStorage.getItem(RESUME_KEY) || "null") || {}; } catch { return {}; } }
+function loadResume() { try { const d = JSON.parse(localStorage.getItem(RESUME_KEY) || "null"); return d && d.S ? Object.assign(d, { resume: true }) : {}; } catch { return {}; } }
 document.addEventListener("visibilitychange", () => { if (document.hidden) saveResume(); });
 addEventListener("pagehide", saveResume);
 setInterval(saveResume, 3000);
