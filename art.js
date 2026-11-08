@@ -260,6 +260,18 @@ const ALLY = {
     hair: p => { const H = "#d8d0c0"; capH(p, H); bangs(p, H, [[10, 15, 11.5, 14], [15, 21, 18, 13.5], [21, 26, 23.5, 14], [26, 30, 28.5, 13.5]]);
       p.rect(9, 10, 2.2, 10, H); p.rect(28.8, 10, 2.2, 10, H); p.rect(10, 8.8, 20, 1.4, "#e8c070"); },
     mouth: p => p.hrect(38, 42, 4, 1, OUT) },
+  17: { /* セツナ：一閃の居合い（白い羽織と刀） */ hairColor: "#c8ccd8", cloth: "#2a2e40", pants: "#1e2030", belt: "#e0e4f0", shoes: "#1a1a24", sleeve: "#e0e4f0", trim: "#e0e4f0",
+    face: { brow: "sharp", eye: "#4a8ae0", slit: true },
+    back: p => { p.line(9, 33, 33, 14, "#e8ecf4"); p.line(10, 34, 32, 15, "#9aa4b8"); p.rect(7.5, 32, 4, 2.5, "#3a3050"); },
+    body: p => { p.tri(14, 23, 26, 23, 20, 31, "#e0e4f0"); p.tri(16, 23, 24, 23, 20, 29, "#2a2e40"); },
+    hair: p => { const H = "#c8ccd8"; capH(p, H); bangs(p, H, [[10, 15, 12, 15], [15, 21, 18, 14.5], [21, 26, 23, 15], [26, 30, 28, 14]]); p.rect(28.5, 10, 2.2, 9, H); },
+    mouth: p => p.hrect(38, 42, 4, 1, OUT) },
+  18: { /* カエデ：攻めと守りを切りかえる、盾と剣の子 */ hairColor: "#e86a3a", cloth: "#f4ead8", pants: "#5a3a2a", belt: "#f08a5a", shoes: "#3a2418", trim: "#f08a5a",
+    face: { brow: "kind", eye: "#c85a2a", shape: "big" },
+    back: p => { p.ell(31, 26, 5.5, 6.5, "#a05a3a"); p.ell(31, 26, 3.8, 4.8, "#f0c070"); p.line(6, 34, 6, 18, "#d8dce8"); p.rect(4.5, 32, 3, 2, "#5a3a2a"); },
+    body: p => { p.rect(14, 23, 12, 2.5, "#f08a5a"); p.ell(20, 28.5, 2.4, 2.4, "#f08a5a"); p.stroke([[17, 26], [17, 32]], "#d8ccb8", "#f4ead8"); },
+    hair: p => { const H = "#e86a3a"; capH(p, H); bangs(p, H, [[10, 16, 12, 14], [16, 22, 19, 13.5], [22, 30, 27, 14]]); p.ell(30, 9, 3.2, 4.5, H); p.tri(22, 3, 26, 3, 24, -1, "#f0a040"); },
+    mouth: p => p.hrect(38, 42, 4, 1, OUT) },
   16: { /* ミツ：三色の帯を締めた型の使い手 */ hairColor: "#3a5a54", cloth: "#f0ece4", pants: "#3a4a48", belt: "#7ad0c0", shoes: "#2a3230", trim: "#7ad0c0",
     face: { brow: "kind", eye: "#3aa090" },
     body: p => { p.rect(14, 30, 12, 2.2, "#7ad0c0"); p.rect(14.5, 30.4, 3, 1.4, "#e86a6a"); p.rect(18.5, 30.4, 3, 1.4, "#f0c040"); p.rect(22.5, 30.4, 3, 1.4, "#6aa8e8");
