@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-05-1634";
+  window.JQ_VER = "2026-11-08-0044";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -278,11 +278,17 @@ details.rules ul { margin: 8px 0 2px; padding-left: 1.2em; color: var(--dim); fo
 /* 画像ファイル版（img/）：キャラは 128×160 の全身画（足元が下端・右向き）。腕の画像は使わず、手だけ腕の先で動く */
 .actor .spr, .actor .hand, .arm.front .armimg { max-width: none; } /* 全体の img { max-width:100% } で細く潰れないように */
 .actor.photo .spr { left: -22px; bottom: -4px; width: 128px; height: 160px; }
+/* 一枚の立ち絵のまま呼吸する。拡縮によるドットのにじみも避ける。 */
+.actor.photo .bob { animation: photoBreathe 2.4s steps(1, end) infinite; }
+.actor.photo .spr { image-rendering: pixelated; }
+.actor.motion-rendered .bob { animation: none; }
+@keyframes photoBreathe { 0%, 100% { transform: translateY(0); } 35%, 65% { transform: translateY(-1px); } }
 .actor.photo .armimg { visibility: hidden; }
 .actor.photo .arm.front { display: none; } /* 立ち絵（画像）のキャラは、腕の先の手を出さない（出した手は頭の上の吹き出しで見せる） */
 .actor.photo .arm.front { left: 42px; bottom: 70px; }   /* 肩の位置（全身画の上から45%あたり） */
 .actor.photo .hand { left: 4px; }
 /* コマ送りアニメ版：体も手もコマの絵で動かすので、画像と腕は隠す */
+.actor:not(.framed) .sprf { visibility: hidden; } /* 立ち絵を出しているときは、最後のコマを残さない（二重に見えるため） */
 .actor .sprf { position: absolute; left: -22px; bottom: -4px; width: 128px; height: 160px; background-repeat: no-repeat; image-rendering: pixelated; image-rendering: crisp-edges; pointer-events: none; }
 .actor.framed .spr, .actor.framed .arm.front { visibility: hidden; }
 .actor.framed .bob { animation: none; } /* コマ自体が呼吸するので、上下の揺れは重ねない */
@@ -1505,6 +1511,8 @@ body.on-home .wrap { padding-top: 10px; }
 <script>
   // ドット絵の描画（art.js）は毎回ちがうアドレスで読み、古い保存を使わない（版の番号を上げ忘れても最新になる）
   document.write('<script src="art.js?r=' + Date.now() + '"><\/script>');
+  document.write('<script src="character-atlases.js?v=' + window.JQ_VER + '"><\/script>');
+  document.write('<script src="character-motion.js?v=' + window.JQ_VER + '"><\/script>');
 </script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -1546,7 +1554,14 @@ const FRIMG = {};
 const frameUrl = (a, name) => `${a._base}/${name}.png?v=${window.JQ_VER}`;
 function frameImg(url) { let im = FRIMG[url]; if (!im) { im = FRIMG[url] = new Image(); im.src = url; } return im; }
 function playFrames(a, name, o = {}) {
-  if (!a || !a._fr) return;
+  if (!a) return;
+  if (name !== "tf" && a._tfUntil && Date.now() < a._tfUntil) return; // かえでの変身中は、ほかの動きで上書きしない
+  // キャラは待機も含めて同じシートの全身コマで再生する。
+  if (a._kind === "p" && a.classList.contains("photo")) {
+    clearTimeout(a._ft); a._ftok = {}; a.classList.remove("framed");
+    return JQMotion.play(a, name, { ...o, rate: FT(1) });
+  }
+  if (!a._fr) return;
   const n = a._set[name];
   if (!n) { if (name !== "idle") idle(a); return; }
   clearTimeout(a._ft); a._cur = name;
@@ -1567,10 +1582,15 @@ function playFrames(a, name, o = {}) {
   };
   step();
 }
-// 待機は動かさない（呼吸のコマ送りは不自然だったので、1コマ目で止めておく）
-const idle = a => playFrames(a, "idle", { still: true });
+// キャラは全モーションで同じ絵柄のコマを使う。待機に戻すと前の動きを解除する
+// 立ち絵がないとき（敵など）は、待機のアニメの1コマ目で止めておく
+const idle = a => {
+  if (a && a._tfUntil && Date.now() < a._tfUntil) return;
+  if (a && a._kind === "p" && a.classList.contains("photo")) { playFrames(a, "idle"); return; }
+  playFrames(a, "idle", { still: true });
+};
 function setupFrames(a, set, base, widths) {
-  if (a._fr) return;
+  if (a._fr || (a._kind === "p" && a.classList.contains("photo"))) return;
   a._set = set; a._base = base; a._w = widths || {}; // "framed"（立ち絵を隠す）は最初のコマが出せたときに付ける
   a._fr = document.createElement("div"); a._fr.className = "sprf";
   a.querySelector(".spr").after(a._fr);
@@ -1581,10 +1601,9 @@ const hasImg = p => IMGS.has(p);
 const imgSrc = p => "img/" + p + ".png?v=" + window.JQ_VER;
 function applyPhoto(a) {
   const ak = a._kind === "p" ? `c${a._key}` : a._key;
-  if (ANIMS[ak]) setupFrames(a, ANIMS[ak], `img/anim/${ak}`, ANIMW[ak]);
   const p = a._kind === "p" ? `chars/c${a._key}` : `enemies/${a._key}`;
-  if (!hasImg(p) || a.classList.contains("photo")) return;
-  a.classList.add("photo"); a.querySelector(".spr").src = imgSrc(p);
+  if (hasImg(p) && !a.classList.contains("photo")) { a.classList.add("photo"); a.querySelector(".spr").src = imgSrc(p); idle(a); }
+  if (ANIMS[ak]) setupFrames(a, ANIMS[ak], `img/anim/${ak}`, ANIMW[ak]); // コマ送りは専用の立ち絵がない敵用
 }
 function applyStageBg(st, file) {
   const on = hasImg(file); st.classList.toggle("photo-bg", on);
@@ -3665,14 +3684,17 @@ function makeActor(kind, data, k) {
 function kaedeLook(a, mode) {
   if (!a || a._kind !== "p" || a._key !== KAEDE_CH) return;
   const want = mode === "def" ? "chars/c18d" : "chars/c18";
+  // 変身も二つの立ち絵だけを使い、専用コマで質感が変わるのを防ぐ。
+  if (!a._kaedePre) { a._kaedePre = true; for (const p of ["chars/c18", "chars/c18d"]) frameImg(imgSrc(p)); }
   if (!hasImg(want) || !a.classList.contains("photo") || a._look === want) return;
   const first = !a._look; a._look = want;
   a.querySelector(".spr").src = imgSrc(want);
   if (first) return;
+  a._tfUntil = 0; playFrames(a, "tf", { then: "idle" }); a._tfUntil = Date.now() + FT(360);
   const c = center(a._head), col = mode === "def" ? "#6aa8ff" : "#ff6a5a";
   sfx("buff"); flash(mode === "def" ? "rgba(106,168,255,.3)" : "rgba(255,106,90,.3)", .3);
   ring(c, col, { r: 30, grow: 1.6, life: 30, w: 6 }); burst(c, { n: 26, colors: [col, "#fff"], speed: 4, shape: "star", grav: 0 });
-  play_(a._bob, [{ transform: "none" }, { transform: "scale(1.12)" }, { transform: "none" }], 360, "ease-out");
+  // 上下の動きは JQMotion に任せ、拡大縮小を重ねない。
 }
 const feet = a => { const r = a.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.bottom - 4 }; };
 const KAGE_RATE = 0.35; // カゲの返しの刃：基礎攻撃力の35%
@@ -3708,7 +3730,7 @@ function ensureActors(b) {
 
 function pump(a) {
   playFrames(a, "jump", { fps: 12, then: "idle" });
-  play_(a._bob, [{ transform: "translateY(0)" }, { transform: "translateY(-12px)" }, { transform: "translateY(2px) scaleY(.95)" }, { transform: "none" }], 320, "ease-in-out");
+  if (!(a._kind === "p" && a.classList.contains("photo"))) play_(a._bob, [{ transform: "translateY(0)" }, { transform: "translateY(-12px)" }, { transform: "translateY(2px) scaleY(.95)" }, { transform: "none" }], 320, "ease-in-out");
   play_(a._arm, [{ transform: "rotate(62deg)" }, { transform: "rotate(-80deg)" }, { transform: "rotate(50deg)" }, { transform: "rotate(62deg)" }], 320, "ease-in-out");
 }
 function thrust(a, h) {
@@ -3716,7 +3738,7 @@ function thrust(a, h) {
   playFrames(a, ["G", "C", "P"][h], { fps: 26 }); // 最後のコマ（手を出した形）で止める
   stopAnims(a._arm);
   play_(a._arm, [{ transform: "rotate(-80deg)" }, { transform: "rotate(-6deg)" }], 170, "cubic-bezier(.2,1.6,.4,1)", "forwards");
-  play_(a._bob, [{ transform: "translateY(-6px)" }, { transform: "translateX(6px) scaleY(.94)" }, { transform: "none" }], 260, "ease-out");
+  if (!(a._kind === "p" && a.classList.contains("photo"))) play_(a._bob, [{ transform: "translateY(-6px)" }, { transform: "translateX(6px) scaleY(.94)" }, { transform: "none" }], 260, "ease-out");
   a._bubble.innerHTML = handImg(h); a._bubble.className = "bubble"; a._bubble.hidden = false;
   fitBubble(a);
   play_(a._bubble, [{ transform: "translateX(-50%) scale(.2)", opacity: 0 }, { transform: "translateX(-50%) scale(1.2)", opacity: 1, offset: .6 }, { transform: "translateX(-50%)" }], 300, "ease-out");
@@ -3730,17 +3752,18 @@ async function attack(A, D, dir, high, onImpact) {
   const lift = high ? -70 : -30;
   stopAnims(A._arm);
   play_(A._arm, [{ transform: "rotate(62deg)" }, { transform: "rotate(-125deg)" }], 160, "ease-out", "forwards");
-  playFrames(A, "G", { fps: 18 });
+  playFrames(A, A._kind === "p" && A.classList.contains("photo") ? "run" : "G", { fps: 12, loop: true });
   sfx("whoosh");
   const dash = play_(A._rig, [{ transform: "none" }, { transform: `translate(${dx * 0.55}px,${lift}px)` }, { transform: `translate(${dx}px,0)` }], 320, "ease-in", "forwards");
   await done(dash);
+  playFrames(A, "G", { fps: 40 });
   play_(A._arm, [{ transform: "rotate(-125deg)" }, { transform: "rotate(70deg)" }], 110, "ease-in", "forwards");
-  await wait(70);
+  await wait(100);
   slash(center(D._head));
   onImpact();
   playFrames(D, "hurt", { fps: 10, then: "idle", hold: 250 });
   play_(D._rig, [{ transform: "none" }, { transform: `translate(${dir * 36 / scaleOf(D)}px,-8px) rotate(${dir * 14}deg)` }, { transform: "none" }], 430, "ease-out");
-  play_(D._bob, [{ filter: "brightness(3)" }, { filter: "brightness(1)" }], 260, "ease-out");
+  if (!(D._kind === "p" && D.classList.contains("photo"))) play_(D._bob, [{ filter: "brightness(3)" }, { filter: "brightness(1)" }], 260, "ease-out");
   await wait(300);
   const back = play_(A._rig, [{ transform: `translate(${dx}px,0)` }, { transform: `translate(${dx * 0.5}px,-22px)` }, { transform: "none" }], 340, "ease-out");
   dash.cancel();
@@ -4276,7 +4299,7 @@ async function koPlayer(b) {
   await done(play_(PA._rig, [
     { transform: "none" },
     { transform: "translate(-10px,-30px) rotate(-15deg)", offset: .3 },
-    { transform: "translate(-30px,20px) rotate(-90deg)", opacity: .4, filter: "grayscale(1)" }], 800, "ease-in", "forwards"));
+    { transform: PA.classList.contains("photo") ? "translate(-20px,0)" : "translate(-30px,20px) rotate(-90deg)", opacity: .6 }], 800, "ease-in", "forwards"));
   await wait(400);
 }
 
@@ -5093,7 +5116,7 @@ async function koActor(a, dir) {
   await done(play_(a._rig, [
     { transform: "none" },
     { transform: `translate(${dir * 12}px,-34px) rotate(${dir * 18}deg)`, offset: .3 },
-    { transform: `translate(${dir * 40}px,24px) rotate(${dir * 90}deg)`, opacity: .35, filter: "grayscale(1)" }], 800, "ease-in", "forwards"));
+    { transform: a.classList.contains("photo") ? `translate(${dir * 20}px,0)` : `translate(${dir * 40}px,24px) rotate(${dir * 90}deg)`, opacity: .6 }], 800, "ease-in", "forwards"));
 }
 
 function onlineGameOver(kind, msg, allowRematch) {
@@ -5475,7 +5498,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
   async function preload() {
     let list = []; try { const r = await fetch("img/list.json?v=" + VER, { cache: "no-cache" }); if (r.ok) list = await r.json(); } catch {}
     const srcs = ["icon-192.png", ...(Array.isArray(list) ? list : []).map(p => { const m = /^anim\/([\w-]+)\/(\w+):\d+/.exec(p); return (m ? `img/anim/${m[1]}/${m[2]}.png` : `img/${String(p).replace(/\.png$/, "")}.png`) + "?v=" + VER; })];
-    const tasks = [document.fonts ? document.fonts.ready : Promise.resolve(), ...srcs.map(loadImg)];
+    const tasks = [document.fonts ? document.fonts.ready : Promise.resolve(), ...srcs.map(loadImg), ...Object.keys(window.JQMotionAtlases || {}).map(k => JQMotion.preload(k).catch(() => {}))];
     let done = 0; const step = () => { done++; $b("boot-fill").style.width = Math.round(done / tasks.length * 100) + "%"; };
     await Promise.all(tasks.map(t => t.then(step)));
   }
