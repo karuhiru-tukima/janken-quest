@@ -63,7 +63,9 @@
     raf = 0;
     for (const r of running) {
       if (!r.actor.isConnected) { running.delete(r); continue; }
-      const frameMs = 1000 / (r.options.fps || rates[r.name] || 5) * r.rate;
+      const homeStandard = r.rate >= 1 && r.actor.classList.contains('home-actor');
+      const homePace = homeStandard && (r.name === 'jump' || r.name === 'tf') ? 1.8 : 1;
+      const frameMs = 1000 / (r.options.fps || rates[r.name] || 5) * r.rate * homePace;
       const elapsed = Math.max(0, now - r.start);
       const loop = r.name === 'idle' || !!r.options.loop;
       if (!loop && r.options.then && elapsed >= frameMs * 4 + (r.options.hold || 0) * r.rate) {
@@ -73,8 +75,8 @@
       // ホームの標準待機は立ち姿を長めに保ち、まばたきだけ短くする。
       // 戦闘中と「演出：速い」の既存のテンポは変えない。
       if (r.name === 'idle' && !r.options.still && r.rate >= 1 && r.actor.classList.contains('home-actor')) {
-        const phase = elapsed % 3200;
-        n = phase < 2400 ? 0 : phase < 2620 ? 1 : phase < 2750 ? 2 : 3;
+        const phase = elapsed % 4800;
+        n = phase < 4000 ? 0 : phase < 4260 ? 1 : phase < 4400 ? 2 : 3;
       }
       // 全身のポーズに跳躍の高さを加える。canvas内をずらさず、髪の見切れを防ぐ。
       const jumpProgress = r.options.still ? 0 : (loop ? elapsed % (frameMs * 4) : Math.min(elapsed, frameMs * 4)) / (frameMs * 4);
