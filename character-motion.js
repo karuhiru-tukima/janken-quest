@@ -23,7 +23,7 @@
         } catch (error) { reject(error); }
       };
       image.onerror = () => reject(new Error('Cannot load motion atlas: ' + key));
-      image.src = config.src + (config.src.startsWith('data:') ? '' : '?v=' + (window.JQ_VER || '2026-11-08-0044'));
+      image.src = config.src + (config.src.startsWith('data:') ? '' : '?v=' + (window.JQ_MOTION_VER || window.JQ_VER || '2026-11-08-0044'));
     });
     cache.set(key, promise);
     promise.catch(() => cache.delete(key));

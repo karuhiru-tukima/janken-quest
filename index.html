@@ -6,7 +6,10 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-09-0046";
+  window.JQ_VER = "2026-11-09-0047";
+  // 画像を変更していない更新では、再ダウンロードせず保存済みの画像を使う。
+  window.JQ_ASSET_VER = "2026-11-08-0045";
+  window.JQ_MOTION_VER = "2026-11-08-0044";
   // 起動するたびに1回だけ、毎回ちがうアドレスで読み込み直して、保存された古いページ（GitHub Pages やホーム画面アプリ）を使わせない。
   // 版の番号を上げ忘れても更新が入る。?r= が付いているとき（読み直した後）や枠（view.html）の中では何もしない
   (function () {
@@ -1548,7 +1551,7 @@ const HANDS = ["✊", "✌️", "✋"]; // 文字として使う場面（読み�
 // 手もキャラと同じ絵柄の専用アイコンを使う
 const handImg = h => `<img class="pxi hand-art" src="${JQArt.handIcon(h)}" alt="${["グー", "チョキ", "パー"][h]}">`;
 const iconImg = (n, cls = "pxi") => `<img class="${cls}" src="${JQArt.icon(n)}" alt="">`;
-const enemyFace = tk => `<img class="pxi efc" src="${JQArt.actor("e", tk).face}" alt="">`;
+const enemyFace = tk => `<img class="pxi efc" data-enemy-key="${tk}" src="${JQArt.actor("e", tk).face}" alt="">`;
 // 顔アイコン：画像ファイルがあれば全身画の頭のあたりを拡大して見せる
 // アイコン：img/faces/c{id}.png（胸から上。目の高さと顔の大きさをそろえて切ったもの）があればそれ、なければ立ち絵の上のほう
 const charFace = id => (hasImg(`faces/c${id}`) ? `<img class="pxi cfc fc" data-cid="${id}" src="${imgSrc(`faces/c${id}`)}" alt="">`
@@ -1557,7 +1560,7 @@ const charFace = id => (hasImg(`faces/c${id}`) ? `<img class="pxi cfc fc" data-c
   : `<img class="pxi cfc" data-cid="${id}" src="${JQArt.actor("p", id).face}" alt="">`);
 // ---- 画像ファイル：img/list.json に載っている画像があれば、ドット絵の代わりに使う ----
 // chars/c1.png〜c9.png・enemies/<種類>.png（右向き・背景透過）、bg/w1.png〜w10.png・bg/home.png、ui/〜.png
-const IMGS = new Set();
+const IMGS = new Set(["chars/c1","chars/c2","chars/c3","chars/c4","chars/c5","chars/c6","chars/c7","chars/c8","chars/c9","chars/c10","chars/c11","chars/c12","chars/c13","chars/c14","chars/c15","chars/c16","chars/c17","chars/c18","chars/c18d","faces/c1","faces/c2","faces/c3","faces/c4","faces/c5","faces/c6","faces/c7","faces/c8","faces/c9","faces/c10","faces/c11","faces/c12","faces/c13","faces/c14","faces/c15","faces/c16","faces/c17","faces/c18"]);
 // コマ送りアニメ：img/anim/<c1 や frog>/<idle|G|C|P|win|lose|hurt|jump>.png（横に並んだ 128×160 のコマ）。list.json には "anim/c1/idle:6" の形で載せる
 const ANIMS = {}, ANIMW = {};
 // コマの時間：「演出：速い」では短くするが、動きを減らす設定で速くなってしまわないよう reduce は使わない
@@ -1611,7 +1614,7 @@ function setupFrames(a, set, base, widths) {
   idle(a);
 }
 const hasImg = p => IMGS.has(p);
-const imgSrc = p => "img/" + p + ".png?v=" + window.JQ_VER;
+const imgSrc = p => "img/" + p + ".png?v=" + (window.JQ_ASSET_VER || window.JQ_VER);
 function applyPhoto(a) {
   const ak = a._kind === "p" ? `c${a._key}` : a._key;
   const p = a._kind === "p" ? `chars/c${a._key}` : `enemies/${a._key}`;
@@ -1628,7 +1631,7 @@ function applyUiImgs() {
     el.dataset.done = 1; el.innerHTML = `<img class="pxi uimg" src="${imgSrc(el.dataset.img)}" alt="${el.textContent.trim()}">`;
   });
 }
-fetch("img/list.json?v=" + window.JQ_VER, { cache: "no-cache" }).then(r => (r.ok ? r.json() : [])).catch(() => []).then(list => {
+Promise.resolve([...IMGS]).then(list => {
   (Array.isArray(list) ? list : []).forEach(p => {
     // "anim/c8/G:2:160" の3つ目は1コマの表示幅（px、省略時128）。腕を前に出すコマは横に広い
     const m = /^anim\/([\w-]+)\/(\w+):(\d+)(?::(\d+))?$/.exec(String(p));
@@ -2972,7 +2975,7 @@ const cardChips = (list, rev) => list.length ? `<span class="cmarks">${list.map(
 // ---- 一覧＋詳細：一覧は絵と名前だけ、押したカードの効果・ボタンは詳細に出す（PCは右に並べる、スマホは下から出す）----
 const miniTile = (x, k, badge = "", cls = "") => { const c = CARD[x.c];
   return `<button class="ctile mini${CD.sel === String(k) ? " on" : ""} ${cls}" style="--rc:${RAR[x.r].color}" data-act="pick" data-k="${k}" aria-pressed="${CD.sel === String(k)}">${badge}
-    <span class="cfig"><img class="cart" src="${cardURL(c, x.r)}" alt=""></span><span class="mname">${c.name}</span><span class="mlv">${stars(x.r)} Lv${x.l}</span></button>`; }; // 一覧は見分けやすいよう正しい向きで（逆位置の表示は詳細で）
+    <span class="cfig"><img class="cart" data-card-id="${c.id}" data-r="${x.r}" src="${cardURL(c, x.r)}" alt=""></span><span class="mname">${c.name}</span><span class="mlv">${stars(x.r)} Lv${x.l}</span></button>`; }; // 一覧は見分けやすいよう正しい向きで（逆位置の表示は詳細で）
 const unseenMini = c => `<button class="ctile mini unseen" style="--rc:var(--line)" disabled><span class="cfig"><canvas class="cart" width="${CW}" height="${CH}" data-art="unknown" data-r="0" data-label="${c.kind === "minor" ? RANK_GLYPH[c.rank] : ROMAN[c.no]}"></canvas></span><span class="mname">？？？</span></button>`;
 // items：[キー, 一覧の絵, 詳細のHTMLを作る関数]
 function splitHTML(items, hint) {
@@ -5461,7 +5464,7 @@ function start(data) {
   }
   if (S.screen === "battle" && S.battle) { WORLDS[S.battle.w - 1].sky.forEach((c, n) => $("stage").style.setProperty(`--sky${n + 1}`, c)); applyStageBg($("stage"), `bg/w${S.battle.w}`); }
   show(S.screen);
-  warmCardArt();
+  window.JQVisual.ready.then(warmCardArt);
   EA.forEach(a => a && (a.style.visibility = "visible"));
 }
 // 起動画面（下の別スクリプト）から呼ぶもの：はじめるを押したら音を出せるようにして、今の画面の曲を流す
@@ -5488,7 +5491,29 @@ function loadResume() { try { const d = JSON.parse(localStorage.getItem(RESUME_K
 document.addEventListener("visibilitychange", () => { if (document.hidden) saveResume(); });
 addEventListener("pagehide", saveResume);
 setInterval(saveResume, 3000);
-const startWithArt = data => window.JQVisual.ready.then(() => start(data));
+// 起動は全画像の完了を待たない。画像は届いた分から表示に反映する。
+const startWithArt = data => { start(data); return Promise.resolve(); };
+document.addEventListener('jq-art-loaded', event => {
+  const key = event.detail;
+  if (key.startsWith('cards-')) {
+    CARD_ART.clear();
+    const oldURLs = [...CARD_URL.values()]; CARD_URL.clear();
+    paintAll(document);
+    document.querySelectorAll('img[data-card-id]').forEach(im => {
+      if (CARD[im.dataset.cardId]) im.src = cardURL(CARD[im.dataset.cardId], +im.dataset.r);
+    });
+    setTimeout(() => oldURLs.forEach(url => URL.revokeObjectURL(url)), 1000);
+  }
+  if (key.startsWith('enemies-')) {
+    document.querySelectorAll('.actor').forEach(a => {
+      if (a._kind !== 'e' || !JQVisual.hasEnemy(a._key)) return;
+      const art = JQArt.actor('e', a._key);
+      a._art = art; a.querySelector('.spr').src = art.body;
+      a.classList.add('photo', 'enemy-art');
+    });
+    document.querySelectorAll('img[data-enemy-key]').forEach(im => { im.src = JQArt.actor('e', im.dataset.enemyKey).face; });
+  }
+});
 window.claude?.hot?.ready ? window.claude.hot.ready(startWithArt) : startWithArt(window.claude?.hot?.data?.S ? window.claude.hot.data : loadResume());
 })();
 </script>
@@ -5500,9 +5525,23 @@ window.claude?.hot?.ready ? window.claude.hot.ready(startWithArt) : startWithArt
   const APP_VERSION = window.JQ_VER, VER = APP_VERSION;
   const $b = id => document.getElementById(id);
   // 新しい版が公開されていたら、読み直す（同じ版で何度も読み直さないよう、1回だけ）
+  // 通信が応答しない場合も必ず起動へ進む。
+  function within(promise, ms, fallback) {
+    return new Promise(resolve => {
+      const timer = setTimeout(() => resolve(fallback), ms);
+      Promise.resolve(promise).then(value => { clearTimeout(timer); resolve(value); }, () => { clearTimeout(timer); resolve(fallback); });
+    });
+  }
   async function newerVersion() {
-    // 途中のサーバー（GitHub Pages など）に古い版の番号を返されないよう、毎回ちがうアドレスで問い合わせる
-    try { const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) return null; const v = (await r.json()).v; return v && v !== APP_VERSION ? v : null; } catch { return null; }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 1500);
+    const query = (async () => {
+      const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store", signal: controller.signal });
+      if (!r.ok) return null;
+      const v = (await r.json()).v;
+      return v && v !== APP_VERSION ? v : null;
+    })();
+    try { return await within(query, 1500, null); } finally { clearTimeout(timer); }
   }
   function reloadTo(v) {
     const key = "jq-reloaded-" + v;
@@ -5510,19 +5549,15 @@ window.claude?.hot?.ready ? window.claude.hot.ready(startWithArt) : startWithArt
     $b("boot-msg").textContent = "新しい版を読み込んでいます…";
     location.replace(location.pathname + "?v=" + encodeURIComponent(v)); return true;
   }
-  // 画像を先に読み込んで、進み具合をバーで見せる
-  const loadImg = src => new Promise(res => { const i = new Image(); i.onload = i.onerror = res; i.src = src; });
+  // 全キャラ・全カード・フォントは起動を妨げず、裏で必要なものから読み込む。
   async function preload() {
-    let list = []; try { const r = await fetch("img/list.json?v=" + VER, { cache: "no-cache" }); if (r.ok) list = await r.json(); } catch {}
-    const srcs = ["icon-192.png", ...(Array.isArray(list) ? list : []).map(p => { const m = /^anim\/([\w-]+)\/(\w+):\d+/.exec(p); return (m ? `img/anim/${m[1]}/${m[2]}.png` : `img/${String(p).replace(/\.png$/, "")}.png`) + "?v=" + VER; })];
-    const tasks = [window.JQVisual.ready, document.fonts ? document.fonts.ready : Promise.resolve(), ...srcs.map(loadImg), ...Object.keys(window.JQMotionAtlases || {}).map(k => JQMotion.preload(k).catch(() => {}))];
-    let done = 0; const step = () => { done++; $b("boot-fill").style.width = Math.round(done / tasks.length * 100) + "%"; };
-    await Promise.all(tasks.map(t => t.then(step)));
+    await within(window.JQVisual?.ready, 1200, null);
+    $b("boot-fill").style.width = "100%";
   }
   async function boot() {
     $b("boot-ver").textContent = "ver " + APP_VERSION;
-    const v = await newerVersion(); if (v && reloadTo(v)) return;
-    await preload();
+    const [v] = await Promise.all([newerVersion(), preload()]);
+    if (v && reloadTo(v)) return;
     $b("boot-msg").textContent = ""; $b("boot-bar").hidden = true;
     const btn = $b("boot-start"); btn.hidden = false; btn.focus({ preventScroll: true });
     window.JQ_BOOT?.title();

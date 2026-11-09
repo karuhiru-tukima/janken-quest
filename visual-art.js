@@ -5,9 +5,21 @@
   const old = {actor: art.actor, icon: art.icon, handIcon: art.handIcon, paintCard: art.paintCard};
   const sheets = new Map(), icons = new Map(), actors = new Map();
   const canvas = (w, h) => Object.assign(document.createElement('canvas'), {width:w, height:h});
+  const refresh = key => {
+    if (key === 'ui-icons') {
+      document.querySelectorAll('[data-ico]').forEach(el=>{el.innerHTML='<img class="pxi" src="'+art.icon(el.dataset.ico)+'" alt="">';});
+      document.querySelectorAll('[data-hand]').forEach(el=>{const h=+el.dataset.hand;el.innerHTML='<img class="pxi hand-art" src="'+art.handIcon(h)+'" alt="'+['グー','チョキ','パー'][h]+'">';});
+    }
+    document.dispatchEvent(new CustomEvent('jq-art-loaded', {detail:key}));
+  };
   const load = ([key, file]) => new Promise(resolve => {
     const im = new Image();
+    let settled = false;
+    const finish = () => { if (settled) return; settled=true; clearTimeout(timer); resolve(); };
+    const timer=setTimeout(()=>{finish();im.src='';},12000);
     im.onload = () => {
+      if (settled) return;
+      try {
       const cv=canvas(im.naturalWidth, im.naturalHeight), g=cv.getContext('2d');
       g.drawImage(im,0,0);
       if (!key.startsWith('cards-')) {
@@ -15,10 +27,12 @@
         for(let i=3;i<pixels.data.length;i+=4) pixels.data[i]=pixels.data[i]>=224?255:0;
         g.putImageData(pixels,0,0);
       }
-      sheets.set(key,cv); resolve();
+      sheets.set(key,cv); refresh(key);
+      } catch (error) { console.warn('Artwork unavailable: '+key, error); }
+      finish();
     };
-    im.onerror=()=>resolve();
-    im.src=file.startsWith('data:')?file:file+'?v='+encodeURIComponent(window.JQ_VER||'');
+    im.onerror=finish;
+    im.src=file.startsWith('data:')?file:file+'?v='+encodeURIComponent(window.JQ_ASSET_VER||window.JQ_VER||'');
   });
   function draw(g, item, x,y,w,h) {
     const sheet=sheets.get(item.sheet); if(!sheet)return false;
@@ -92,9 +106,13 @@
     frame(2,'#111931');frame(5,rc);frame(9,'#26304a');
     cv.dataset.visualArt='v2';
   };
-  const ready=Promise.all(Object.entries(config.sheets).map(load)).then(()=>{
-    document.querySelectorAll('[data-ico]').forEach(el=>{el.innerHTML='<img class="pxi" src="'+art.icon(el.dataset.ico)+'" alt="">';});
-    document.querySelectorAll('[data-hand]').forEach(el=>{const h=+el.dataset.hand;el.innerHTML='<img class="pxi hand-art" src="'+art.handIcon(h)+'" alt="'+['グー','チョキ','パー'][h]+'">';});
+  // ホームで使う画像を先に読み込み、一度に大量の通信を発生させない。
+  const priority=['ui-icons','cards-01','cards-04','enemies-01'];
+  const pending=Object.entries(config.sheets).sort((a,b)=>{
+    const rank=k=>priority.includes(k)?priority.indexOf(k):priority.length;
+    return rank(a[0])-rank(b[0]);
   });
+  const worker=async()=>{while(pending.length)await load(pending.shift());};
+  const ready=Promise.all(Array.from({length:Math.min(4,pending.length)},worker));
   window.JQVisual={ready,hasEnemy:key=>!!config.enemies[key]&&sheets.has(config.enemies[key].sheet),loaded:()=>sheets.size};
 })();
