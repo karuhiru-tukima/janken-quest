@@ -69,7 +69,17 @@
       if (!loop && r.options.then && elapsed >= frameMs * 4 + (r.options.hold || 0) * r.rate) {
         play(r.actor, r.options.then, { rate: r.rate }); continue;
       }
-      const n = r.options.still ? 0 : loop ? Math.floor(elapsed / frameMs) % 4 : Math.min(3, Math.floor(elapsed / frameMs));
+      let n = r.options.still ? 0 : loop ? Math.floor(elapsed / frameMs) % 4 : Math.min(3, Math.floor(elapsed / frameMs));
+      // ホームの標準待機は立ち姿を長めに保ち、まばたきだけ短くする。
+      // 戦闘中と「演出：速い」の既存のテンポは変えない。
+      if (r.name === 'idle' && !r.options.still && r.rate >= 1 && r.actor.classList.contains('home-actor')) {
+        const phase = elapsed % 3200;
+        n = phase < 2400 ? 0 : phase < 2620 ? 1 : phase < 2750 ? 2 : 3;
+      }
+      // 全身のポーズに跳躍の高さを加える。canvas内をずらさず、髪の見切れを防ぐ。
+      const jumpProgress = r.options.still ? 0 : (loop ? elapsed % (frameMs * 4) : Math.min(elapsed, frameMs * 4)) / (frameMs * 4);
+      const lift = r.name === 'jump' ? Math.round(Math.sin(Math.PI * jumpProgress) * 32) : 0;
+      r.canvas.style.transform = lift ? 'translateY(-' + lift + 'px)' : '';
       const offset = r.name === 'tf' ? [0, -4, -8, 0][n] : 0;
       render(r, (rows[r.name] || 0) * 4 + n, offset);
     }
@@ -105,6 +115,7 @@
       records.set(actor, r); image.addEventListener('load', () => prepare(r));
     }
     r.name = name; r.start = performance.now(); r.rate = options.rate || 1; r.options = options; r.drawn = null;
+    r.canvas.style.transform = '';
     actor._cur = name; prepare(r);
     if (r.atlas) { running.add(r); render(r, (rows[name] || 0) * 4); schedule(); }
   }
