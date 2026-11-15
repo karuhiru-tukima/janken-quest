@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-09-0048";
+  window.JQ_VER = "2026-11-15-0049";
   // 画像を変更していない更新では、再ダウンロードせず保存済みの画像を使う。
   window.JQ_ASSET_VER = "2026-11-08-0045";
   window.JQ_MOTION_VER = "2026-11-08-0044";
@@ -1329,6 +1329,7 @@ body.on-home .wrap { padding-top: 10px; }
 @media(max-width:599px) { .hbtn .e { width:3.6rem; height:3.6rem; } }
 @media(min-width:1080px) { .kaede-home-controls { display:flex; border-top:0; border-left:1px solid #bda05b88; padding:0 0 0 12px; } }
 </style>
+<link rel="stylesheet" href="account.css?v=2026-11-15-0049">
 </head>
 <body>
 <!-- 起動画面：新しい版の確認と画像の読み込みが終わったら「タップしてはじめる」（ここで音も出せるようになる） -->
@@ -1359,7 +1360,7 @@ body.on-home .wrap { padding-top: 10px; }
     <button class="btn sm" id="tg-se" aria-pressed="true">効果音</button>
     <button class="btn sm" id="tg-bgm" aria-pressed="true">BGM</button>
     <button class="btn sm" id="tg-voice" aria-pressed="true" title="オンライン対戦のスタンプを声で読み上げる">ボイス</button>
-    <button class="btn sm sp-restart" id="tg-restart" title="サイトを読み込み直して、スタート画面に戻る（最新の版になる）">スタートに戻る</button>
+    <button class="btn sm sp-restart" id="tg-restart" title="サイトを読み込み直して、スタート画面に戻る（最新の版になる）">スタート・ログイン画面へ</button>
     <p class="sp-credit">ボイス：VOICEVOX:玄野武宏、VOICEVOX:九州そら、VOICEVOX:雨晴はう、VOICEVOX:白上虎太郎、VOICEVOX:春日部つむぎ、VOICEVOX:冥鳴ひまり、VOICEVOX:青山龍星、VOICEVOX:麒ヶ島宗麟、VOICEVOX:剣崎雌雄、VOICEVOX:櫻歌ミコ、VOICEVOX:四国めたん、VOICEVOX:黒沢冴白、VOICEVOX:中部つるぎ、VOICEVOX:夜語トバリ、VOICEVOX:雀松朱司、VOICEVOX:†聖騎士 紅桜†、VOICEVOX:春歌ナナ</p><!-- ホームを1画面に収めるため、クレジットは設定の中に -->
   </div>
 
@@ -1566,7 +1567,13 @@ const FIREBASE_CONFIG = {
 </script>
 
 <script>
-(() => {
+  document.write('<script src="account-core.js?v=' + window.JQ_VER + '"><\/script>');
+  document.write('<script src="account.js?v=' + window.JQ_VER + '"><\/script>');
+</script>
+<script>
+window.JQ_GAME_READY = (async () => {
+await window.JQAccount.ready;
+const playerStorage = window.JQAccount.storage;
 const HANDS = ["✊", "✌️", "✋"]; // 文字として使う場面（読み上げの除去など）用。画面の表示はドット絵
 // ドット絵の画像タグ（art.js）
 // 手もキャラと同じ絵柄の専用アイコンを使う
@@ -2031,7 +2038,7 @@ const MITSU_CH = 16, MITSU_REFLECT = 0.2, MITSU_HIT = 1.2, MITSU_HEAL = 0.08;
 const SETSU_CH = 17;
 // カエデ：チョキ勝ちで攻撃モード（攻撃+30%）、グー負けで防御モード（被ダメ−30%）。どちらか1つ
 const KAEDE_CH = 18, KAEDE_ATK = 0.3, KAEDE_DEF = 0.3;
-let homeKaedeLook = (()=>{try{return localStorage.getItem('jq-home-kaede') === 'def' ? 'def' : 'atk';}catch{return 'atk';}})();
+let homeKaedeLook = (()=>{try{return playerStorage.getItem('jq-home-kaede') === 'def' ? 'def' : 'atk';}catch{return 'atk';}})();
 // 教皇（逆）のトキ：6手目から発動し、バフが ×(1＋強さ)
 const tokiN = M => (mz(M, "echo") > 0 ? TOKI_N - 1 : TOKI_N);
 const tokiK = M => 1 + mz(M, "echo");
@@ -2173,8 +2180,8 @@ const slotsOf = W => (W.mode === "solo" ? 1 : 2);
 const pStats = w => ({ max: 10 + 2 * (w - 1), atk: 1 + 0.25 * (w - 1) });
 
 const store = {
-  get() { try { return JSON.parse(localStorage.getItem("jq-progress") || "{}"); } catch { return {}; } },
-  set(v) { try { localStorage.setItem("jq-progress", JSON.stringify(v)); } catch {} },
+  get() { try { return JSON.parse(playerStorage.getItem("jq-progress") || "{}"); } catch { return {}; } },
+  set(v) { try { playerStorage.setItem("jq-progress", JSON.stringify(v)); } catch {} },
 };
 const saved = store.get();
 let S = { screen: "home", charId: CHARS.some(c => c.id === saved.charId) ? saved.charId : 1, cleared: saved.cleared || [], unlockAll: !!saved.unlockAll, battle: null };
@@ -2855,7 +2862,7 @@ function addCard(cs, c, r) {
 }
 function loadCS() {
   try {
-    const v = JSON.parse(localStorage.getItem("jq-cards") || "null");
+    const v = JSON.parse(playerStorage.getItem("jq-cards") || "null");
     if (v && Array.isArray(v.cards)) {
       v.cards = v.cards.filter(x => CARD[x.c] && RAR[x.r]);
       v.cards.forEach(x => { x.l = Math.max(1, Math.min(RAR[x.r].max, x.l | 0)); });
@@ -2870,7 +2877,7 @@ function loadCS() {
   return cs;
 }
 let CS = loadCS();
-const saveCS = () => { try { localStorage.setItem("jq-cards", JSON.stringify(CS)); } catch {} };
+const saveCS = () => { try { playerStorage.setItem("jq-cards", JSON.stringify(CS)); } catch {} };
 const inst = u => CS.cards.find(x => x.u === u);
 function eqOf(ch) {
   const e = CS.eq[ch] = CS.eq[ch] || { maj: null, min: [null, null, null] };
@@ -3018,8 +3025,8 @@ const SORTS = {
   lv: ["レベル順", (a, b) => a.l - b.l || a.r - b.r || CARD[b.c].order - CARD[a.c].order],
   rank: ["ランク順", (a, b) => a.r - b.r || a.l - b.l || CARD[b.c].order - CARD[a.c].order],
 };
-const SORT = (() => { try { const v = JSON.parse(localStorage.getItem("jq-sort") || "{}"); return { k: SORTS[v.k] ? v.k : "got", desc: v.desc !== false }; } catch { return { k: "got", desc: true }; } })();
-const saveSort = () => { try { localStorage.setItem("jq-sort", JSON.stringify(SORT)); } catch {} };
+const SORT = (() => { try { const v = JSON.parse(playerStorage.getItem("jq-sort") || "{}"); return { k: SORTS[v.k] ? v.k : "got", desc: v.desc !== false }; } catch { return { k: "got", desc: true }; } })();
+const saveSort = () => { try { playerStorage.setItem("jq-sort", JSON.stringify(SORT)); } catch {} };
 const sortList = list => list.sort((a, b) => (SORT.desc ? -1 : 1) * (SORTS[SORT.k][1](a, b) || a.u - b.u));
 const sortBar = () => `<div class="sortbar"><span class="sub">並び替え</span>${Object.entries(SORTS).map(([k, [n]]) =>
   `<button class="tab sm${SORT.k === k ? " on" : ""}" data-act="sortk" data-k="${k}" aria-pressed="${SORT.k === k}">${n}</button>`).join("")}
@@ -4576,20 +4583,21 @@ async function getRoom() {
   try {
     if (!window.firebase || !FIREBASE_CONFIG.apiKey || !FIREBASE_CONFIG.databaseURL) { NET.err = "config"; return null; }
     if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-    const auth = firebase.auth();
-    await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION); // タブごとに別プレイヤー
-    const user = auth.currentUser || (await auth.signInAnonymously()).user;
+    const user = await window.JQAccount.onlineUser();
     NET.room = fireAdapter(firebase.database(), user.uid);
   } catch (e) { NET.err = (e && e.code) || "error"; NET.room = null; }
   return NET.room;
 }
 function dropSubs() { NET.unsubs.forEach(u => { try { u(); } catch {} }); NET.unsubs = []; }
 function leaveAll() {
+  const leaving = [];
   dropSubs(); clearTimeout(NET.waitTimer);
-  if (NET.named) { NET.named.leave().catch(() => {}); NET.named = null; }
-  if (NET.lobby) { NET.lobby.leave().catch(() => {}); NET.lobby = null; }
+  if (NET.named) { leaving.push(NET.named.leave()); NET.named = null; }
+  if (NET.lobby) { leaving.push(NET.lobby.leave()); NET.lobby = null; }
   NET.pairing = false; ON = null; S.online = false;
   clearInterval(onTick); onTick = 0;
+  NET.room = undefined;
+  return Promise.allSettled(leaving);
 }
 
 async function renderOnlineLobby() {
@@ -4597,7 +4605,7 @@ async function renderOnlineLobby() {
   $("on-who").innerHTML = `<span class="badge" style="color:${c.color}">${charFace(c.id)}</span>
     <span class="grow"><b>${c.name}</b> <span class="sub">${c.title}</span><br><span class="sub" style="font-size:.8rem">${c.ab.replace(/<[^>]+>/g, "")}</span></span>
 `;
-  if (!$("on-nick").value) { try { $("on-nick").value = localStorage.getItem("jq-nick") || ""; } catch {} }
+  if (!$("on-nick").value) { try { $("on-nick").value = playerStorage.getItem("jq-nick") || ""; } catch {} }
   if (NET.named || NET.lobby) return;
   setOnlineButtons(false); $("on-cancel").disabled = true;
   onStatus("接続を確認中…");
@@ -4612,17 +4620,17 @@ async function renderOnlineLobby() {
   onStatus("あいことばを入れて「部屋に入る」か、「相手を探す」を押してください。");
   setOnlineButtons(true);
 }
-$("on-nick").addEventListener("change", () => { try { localStorage.setItem("jq-nick", nickOf()); } catch {} });
+$("on-nick").addEventListener("change", () => { try { playerStorage.setItem("jq-nick", nickOf()); } catch {} });
 $("on-pw").addEventListener("keydown", ev => { if (ev.key === "Enter") $("on-pw-go").click(); });
 $("on-pw-go").onclick = async () => {
   const pw = $("on-pw").value.trim();
   if (!pw) { onStatus("あいことばを入れてください。"); $("on-pw").focus(); return; }
-  try { localStorage.setItem("jq-nick", nickOf()); } catch {}
+  try { playerStorage.setItem("jq-nick", nickOf()); } catch {}
   setOnlineButtons(false);
   leaveAll();
   joinMatch("jq-p-" + (await sha("jq|" + pw)).slice(0, 40), "pw");
 };
-$("on-rand").onclick = () => { try { localStorage.setItem("jq-nick", nickOf()); } catch {} setOnlineButtons(false); seekRandom(); };
+$("on-rand").onclick = () => { try { playerStorage.setItem("jq-nick", nickOf()); } catch {} setOnlineButtons(false); seekRandom(); };
 $("on-cancel").onclick = () => { leaveAll(); onStatus("探すのをやめました。"); setOnlineButtons(true); };
 $("on-back").onclick = () => { leaveAll(); show("stage"); };
 $("to-online").onclick = () => show("online");
@@ -5420,7 +5428,7 @@ function renderHome() {
   looks.querySelectorAll('button').forEach(button => button.onclick = () => {
     if (homeKaedeLook === button.dataset.look) return;
     homeKaedeLook = button.dataset.look;
-    try { localStorage.setItem('jq-home-kaede',homeKaedeLook); } catch {}
+    try { playerStorage.setItem('jq-home-kaede',homeKaedeLook); } catch {}
     lastHomeAction=Date.now(); syncLook();
   });
   // 上：顔・名前・コイン
@@ -5526,21 +5534,26 @@ window.JQ_BOOT = {
 };
 // 起動画面が出なかったとき（古い版が残っている等）でも、最初に画面を触った時点で音を出してBGMを流す
 document.addEventListener("pointerdown", () => window.JQ_BOOT.begin(), { once: true, capture: true });
-window.claude?.hot?.snapshot?.(() => ({ S }));
+window.claude?.hot?.snapshot?.(() => ({ S, accountUid: window.JQAccount.user?.uid || null }));
 // サイトを開き直したとき：いつもホームから始め、途中のステージ戦闘はホームの「続きから」で再開できるようにする
 // 戦闘の途中（手の結果を出している最中）は保存せず、ひとつ前の手が終わった状態を残す
 const RESUME_KEY = "jq-resume";
 let resumeLast = "";
 function saveResume() {
   if (S.battle && S.battle.busy && !S.battle.over) return;
-  try { const s = JSON.stringify({ S }); if (s !== resumeLast) { localStorage.setItem(RESUME_KEY, s); resumeLast = s; } } catch {}
+  try { const s = JSON.stringify({ S }); if (s !== resumeLast) { playerStorage.setItem(RESUME_KEY, s); resumeLast = s; } } catch {}
 }
-function loadResume() { try { const d = JSON.parse(localStorage.getItem(RESUME_KEY) || "null"); return d && d.S ? Object.assign(d, { resume: true }) : {}; } catch { return {}; } }
+function loadResume() { try { const d = JSON.parse(playerStorage.getItem(RESUME_KEY) || "null"); return d && d.S ? Object.assign(d, { resume: true }) : {}; } catch { return {}; } }
 document.addEventListener("visibilitychange", () => { if (document.hidden) saveResume(); });
 addEventListener("pagehide", saveResume);
 setInterval(saveResume, 3000);
 // 起動は全画像の完了を待たない。画像は届いた分から表示に反映する。
-const startWithArt = data => { start(data); return Promise.resolve(); };
+const startWithArt = data => { start(data && data.accountUid === (window.JQAccount.user?.uid || null) ? data : loadResume()); return Promise.resolve(); };
+window.JQAccount.bind({
+  save() { saveProgress(); saveCS(); saveResume(); },
+  leave() { return leaveAll(); },
+  summary() { return {character:charOf(S.charId).name,cleared:S.cleared.length,coins:CS.coins,cards:CS.cards.length}; },
+});
 document.addEventListener('jq-art-loaded', event => {
   const key = event.detail;
   if (key.startsWith('cards-')) {
@@ -5599,7 +5612,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(startWithArt) : startWithArt
   }
   // 全キャラ・全カード・フォントは起動を妨げず、裏で必要なものから読み込む。
   async function preload() {
-    await within(window.JQVisual?.ready, 1200, null);
+    await Promise.all([window.JQ_GAME_READY, within(window.JQVisual?.ready, 1200, null)]);
     $b("boot-fill").style.width = "100%";
   }
   async function boot() {
@@ -5607,11 +5620,18 @@ window.claude?.hot?.ready ? window.claude.hot.ready(startWithArt) : startWithArt
     const [v] = await Promise.all([newerVersion(), preload()]);
     if (v && reloadTo(v)) return;
     $b("boot-msg").textContent = ""; $b("boot-bar").hidden = true;
-    const btn = $b("boot-start"); btn.hidden = false; btn.focus({ preventScroll: true });
+    const btn = $b("boot-start"); btn.hidden = false;
+    if (!document.getElementById("account-panel")?.contains(document.activeElement)) {
+      const focus = window.JQAccount.user ? btn : document.getElementById("account-login-email");
+      focus?.focus({ preventScroll: true });
+    }
     window.JQ_BOOT?.title();
     btn.onclick = () => { $b("boot").classList.add("out"); window.JQ_BOOT?.begin(); setTimeout(() => $b("boot")?.remove(), 400); };
   }
-  boot();
+  boot().catch(() => {
+    $b("boot-msg").textContent = "起動できませんでした。再読み込みをお試しください。";
+    const button = $b("boot-start"); button.hidden=false; button.textContent="再読み込み"; button.onclick=()=>location.reload();
+  });
   // ホーム画面に追加したアプリは、閉じても裏で止まっているだけで、開くと前の状態から再開する（更新が入らない）。
   // そこで「閉じて（見えなくなって）から RELOAD_AFTER 秒以上たって開いた」ときは、最新を読み込み直す。
   // バトル中・オンライン対戦の画面では、途中で消えると困るので読み直さない

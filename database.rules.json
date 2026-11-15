@@ -18,6 +18,42 @@
           ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.hasChildren(['v'])"
         }
+      },
+      "users": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.hasChildren(['data', 'updatedAt'])",
+          "data": {
+            "jq-progress": {
+              ".validate": "newData.isString() && newData.val().length <= 64000"
+            },
+            "jq-cards": {
+              ".validate": "newData.isString() && newData.val().length <= 1048576"
+            },
+            "jq-resume": {
+              ".validate": "newData.isString() && newData.val().length <= 262144"
+            },
+            "jq-home-kaede": {
+              ".validate": "newData.isString() && newData.val().length <= 32"
+            },
+            "jq-sort": {
+              ".validate": "newData.isString() && newData.val().length <= 2048"
+            },
+            "jq-nick": {
+              ".validate": "newData.isString() && newData.val().length <= 128"
+            },
+            "$other": {
+              ".validate": false
+            }
+          },
+          "updatedAt": {
+            ".validate": "newData.isNumber() && newData.val() <= now + 60000"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
       }
     }
   }

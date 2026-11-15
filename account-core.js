@@ -1,0 +1,172 @@
+/* Firebase owns credentials. This module stores only allowlisted game data. */
+(function (root) {
+  'use strict';
+  const LIMITS = Object.freeze({
+    'jq-progress': 64000, 'jq-cards': 1048576, 'jq-resume': 262144,
+    'jq-home-kaede': 32, 'jq-sort': 2048, 'jq-nick': 128,
+  });
+  const KEYS = Object.keys(LIMITS);
+  const allowed = key => typeof key === 'string' && Object.hasOwn(LIMITS, key);
+  const identity = user => user && !user.isAnonymous ? user.uid : null;
+  function bounded(promise, ms, fallback) {
+    return new Promise(resolve => {
+      const timer = setTimeout(() => resolve(fallback), ms);
+      Promise.resolve(promise).then(value => { clearTimeout(timer); resolve(value); }, () => { clearTimeout(timer); resolve(fallback); });
+    });
+  }
+  function create(options) {
+    const local = options.local, auth = options.auth, database = options.database;
+    const notify = options.onChange || (() => {}), mask = options.mask || (() => {});
+    let owner = null, user = null, initialized = false, seen = false, generation = 0;
+    let timer = 0, writing = null, switching = false, hooks = {}, status = '確認中';
+    let resolveReady;
+    const ready = new Promise(resolve => { resolveReady = resolve; });
+    const keyFor = (key, uid = owner) => uid ? 'jq-user:' + uid + ':' + key : key;
+    const memory = new Map();
+    const readRaw = key => { if (memory.has(key)) return memory.get(key); try { return local.getItem(key); } catch { return null; } };
+    const writeRaw = (key, value) => {
+      memory.set(key, value);
+      try { value === null ? local.removeItem(key) : local.setItem(key, value); return true; } catch { return false; }
+    };
+    const dirtyKey = () => 'jq-user:' + owner + ':pending';
+    const dirty = new Map();
+    function changed(message) { if (message) status = message; notify(); }
+    function persistDirty() { if (owner) writeRaw(dirtyKey(), JSON.stringify([...dirty])); }
+    function schedule() { clearTimeout(timer); timer = setTimeout(() => { flush(); }, 700); }
+    const storage = {
+      getItem(key) { if (!allowed(key)) throw new Error('Unsupported game-data key'); return readRaw(keyFor(key)); },
+      setItem(key, value) {
+        if (!allowed(key)) throw new Error('Unsupported game-data key');
+        value = String(value);
+        if (value.length > LIMITS[key]) throw new Error('Game data exceeds the save limit');
+        if (readRaw(keyFor(key)) === value) return;
+        if (!writeRaw(keyFor(key), value)) changed('この端末に保存できません（一時保存中）');
+        if (owner) { dirty.set(key, value); persistDirty(); changed('保存待ち'); schedule(); }
+      },
+      removeItem(key) {
+        if (!allowed(key)) throw new Error('Unsupported game-data key');
+        writeRaw(keyFor(key), null);
+        if (owner) { dirty.set(key, null); persistDirty(); schedule(); }
+      },
+    };
+    function profileRef(uid) { return database().ref('jq/users/' + uid); }
+    async function hydrate(current, token) {
+      const uid = identity(current), pending = new Map();
+      if (uid) {
+        try {
+          const saved = JSON.parse(readRaw('jq-user:' + uid + ':pending') || '[]');
+          for (const [key, value] of saved) if (allowed(key) && (value === null || typeof value === 'string' && value.length <= LIMITS[key])) pending.set(key, value);
+        } catch {}
+        const result = await bounded(profileRef(uid).child('data').once('value').then(snapshot => ({ok: true, data: snapshot.val()})), 2500, {ok: false});
+        if (token !== generation) return;
+        if (result.ok) {
+          for (const key of KEYS) {
+            const value = result.data && result.data[key];
+            if (!pending.has(key)) writeRaw(keyFor(key, uid), typeof value === 'string' && value.length <= LIMITS[key] ? value : null);
+          }
+          status = 'アカウントに保存済み';
+        } else status = 'この端末に保存中（接続時に再試行）';
+      }
+      if (token !== generation) return;
+      owner = uid; user = uid ? {uid, email: current.email || '', name: current.displayName || ''} : null;
+      for (const [key, value] of pending) dirty.set(key, value);
+      initialized = true;
+      if (!uid) status = auth ? 'ゲスト・この端末に保存' : 'ゲスト・ログインに接続できません';
+      changed(); resolveReady();
+      if (dirty.size) schedule();
+    }
+    async function saveBeforeChange() {
+      if (hooks.save) await hooks.save();
+      await bounded(drain(), 1800, null);
+      if (hooks.leave) await bounded(hooks.leave(), 1500, null);
+    }
+    function observe(current) {
+      seen = true;
+      if (!initialized) {
+        const token = ++generation;
+        hydrate(current, token).catch(() => {
+          if (token !== generation) return;
+          owner = identity(current); user = owner ? {uid: owner, email: current.email || '', name: current.displayName || ''} : null;
+          initialized = true; changed('この端末に保存中（接続時に再試行）'); resolveReady();
+        });
+        return;
+      }
+      if (identity(current) !== owner) {
+        mask(true);
+        // The page's owner is immutable: late saves can never target the next account.
+        Promise.resolve(hooks.save && hooks.save()).catch(() => {}).finally(() => options.reload());
+      }
+    }
+    async function flush() {
+      clearTimeout(timer);
+      if (!owner || !auth || identity(auth.currentUser) !== owner || !dirty.size) return;
+      if (writing) return writing;
+      const uid = owner, batch = new Map(dirty), updates = {updatedAt: options.timestamp()};
+      for (const [key, value] of batch) updates['data/' + key] = value;
+      writing = profileRef(uid).update(updates).then(() => {
+        for (const [key, value] of batch) if (dirty.get(key) === value) dirty.delete(key);
+        persistDirty(); changed(dirty.size ? '保存待ち' : 'アカウントに保存済み');
+      }).catch(() => { changed('この端末に保存中（接続時に再試行）'); }).finally(() => {
+        writing = null;
+        if (dirty.size && status === '保存待ち') schedule();
+      });
+      return writing;
+    }
+    async function drain() {
+      for (let count = 0; count < 4; count++) {
+        await flush();
+        if (!dirty.size || !owner || identity(auth?.currentUser) !== owner || status !== '保存待ち') break;
+      }
+    }
+    async function change(operation) {
+      await ready;
+      if (!auth) throw Object.assign(new Error('Authentication unavailable'), {code:'auth/unavailable'});
+      if (switching) throw Object.assign(new Error('Authentication in progress'), {code:'auth/busy'});
+      switching = true; mask(true);
+      try {
+        await saveBeforeChange();
+        // Do not put an email or password into storage, URLs, logs or the game database.
+        return await request(operation(auth));
+      } finally { switching = false; mask(identity(auth.currentUser) !== owner); }
+    }
+    async function request(promise) {
+      const result = await bounded(Promise.resolve(promise).then(value => ({value}), error => ({error})), 15000,
+        {error: Object.assign(new Error('Authentication timed out'), {code:'auth/network-request-failed'})});
+      if (result.error) throw result.error;
+      return result.value;
+    }
+    const api = {
+      ready, storage,
+      get user() { return user && {...user}; },
+      get status() { return status; },
+      bind(value) { hooks = value; changed(); },
+      summary() { return hooks.summary ? hooks.summary() : null; },
+      flush: () => bounded(drain(), 2200, null),
+      async save() { if (hooks.save) await hooks.save(); await bounded(drain(), 2200, null); },
+      signIn(email, password) { return change(a => a.signInWithEmailAndPassword(email, password)); },
+      register(email, password) { return change(a => a.createUserWithEmailAndPassword(email, password)); },
+      signOut() { return change(a => a.signOut()); },
+      async resetPassword(email) {
+        await ready;
+        if (!auth) throw Object.assign(new Error('Authentication unavailable'), {code:'auth/unavailable'});
+        try { await request(auth.sendPasswordResetEmail(email)); }
+        catch (error) { if (error.code !== 'auth/user-not-found') throw error; }
+      },
+      async onlineUser() {
+        await ready;
+        if (!auth) throw Object.assign(new Error('Authentication unavailable'), {code:'auth/unavailable'});
+        if (identity(auth.currentUser) !== owner) throw Object.assign(new Error('Account changed'), {code:'auth/account-changed'});
+        return auth.currentUser || (await auth.signInAnonymously()).user;
+      },
+      retry() { if (owner) flush(); },
+    };
+    (async () => {
+      if (!auth) { await hydrate(null, ++generation); return; }
+      await bounded(auth.setPersistence(options.persistence), 1200, null);
+      auth.onAuthStateChanged(observe, () => { if (!initialized) observe(null); });
+      setTimeout(() => { if (!seen && !initialized) observe(null); }, 2200);
+    })().catch(() => { if (!initialized) hydrate(null, ++generation); });
+    return api;
+  }
+  root.JQAccountCore = Object.freeze({create, keys: KEYS, limits: LIMITS});
+})(typeof window !== 'undefined' ? window : globalThis);
