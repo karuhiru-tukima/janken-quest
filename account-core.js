@@ -18,7 +18,7 @@
     const local = options.local, auth = options.auth, database = options.database;
     const notify = options.onChange || (() => {}), mask = options.mask || (() => {});
     let owner = null, user = null, initialized = false, seen = false, generation = 0;
-    let timer = 0, writing = null, switching = false, hooks = {}, status = '確認中';
+    let timer = 0, writing = null, switching = false, replaced = false, hooks = {}, status = '確認中';
     let resolveReady;
     const ready = new Promise(resolve => { resolveReady = resolve; });
     const keyFor = (key, uid = owner) => uid ? 'jq-user:' + uid + ':' + key : key;
@@ -37,6 +37,7 @@
       getItem(key) { if (!allowed(key)) throw new Error('Unsupported game-data key'); return readRaw(keyFor(key)); },
       setItem(key, value) {
         if (!allowed(key)) throw new Error('Unsupported game-data key');
+        if (replaced) return;
         value = String(value);
         if (value.length > LIMITS[key]) throw new Error('Game data exceeds the save limit');
         if (readRaw(keyFor(key)) === value) return;
@@ -45,6 +46,7 @@
       },
       removeItem(key) {
         if (!allowed(key)) throw new Error('Unsupported game-data key');
+        if (replaced) return;
         writeRaw(keyFor(key), null);
         if (owner) { dirty.set(key, null); persistDirty(); schedule(); }
       },
@@ -137,6 +139,34 @@
     }
     const api = {
       ready, storage,
+      guestData() {
+        const data = {};
+        for (const key of KEYS) {
+          const value = readRaw(key);
+          if (typeof value === 'string' && value.length <= LIMITS[key]) data[key] = value;
+        }
+        return data;
+      },
+      async importGuest() {
+        await ready;
+        if (!owner || identity(auth?.currentUser) !== owner) throw {code:'auth/account-changed'};
+        if (switching) throw {code:'auth/busy'};
+        const data = api.guestData();
+        if (!Object.keys(data).length) throw {code:'game/no-guest-data'};
+        switching = true; mask(true);
+        try {
+          await saveBeforeChange();
+          if (dirty.size) throw {code:'auth/network-request-failed'};
+          if (identity(auth.currentUser) !== owner) throw {code:'auth/account-changed'};
+          replaced = true; clearTimeout(timer);
+          // Replace the entire save together; a missing guest key must not retain account data.
+          try { await profileRef(owner).update({data, updatedAt:options.timestamp()}); }
+          catch (error) { replaced = false; throw Object.assign(new Error('Import failed'), {code:'game/import-failed'}); }
+          for (const key of KEYS) writeRaw(keyFor(key), data[key] ?? null);
+          dirty.clear(); persistDirty();
+          options.reload();
+        } finally { switching = false; if (!replaced) mask(false); }
+      },
       get user() { return user && {...user}; },
       get status() { return status; },
       bind(value) { hooks = value; changed(); },

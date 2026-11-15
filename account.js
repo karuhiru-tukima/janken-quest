@@ -9,10 +9,18 @@
       <p class="account-email" id="account-email"></p><p id="account-summary"></p>
       <p class="account-hint">キャラ・進行・所持カード・コインは、このアカウント専用です。</p>
       <p id="account-save-status" role="status"></p>
+      <section id="account-import" hidden>
+        <button type="button" id="account-import-open">この端末のゲストデータを引き継ぐ</button>
+        <div id="account-import-confirm" hidden>
+          <p id="account-guest-summary" class="account-hint"></p>
+          <p class="account-hint">このアカウントの進行・カード・コインを、ゲストのデータに置き換えます。両方のデータは合算されません。元のゲストデータはこの端末に残ります。</p>
+          <div class="account-actions"><button type="button" id="account-import-yes">ゲストのデータで引き継ぐ</button><button type="button" id="account-import-cancel">やめる</button></div>
+        </div>
+      </section>
       <div class="account-actions"><button type="button" id="account-save">今すぐ保存</button><button type="button" id="account-reset-member">パスワード再設定メールを送る</button><button type="button" id="account-logout">ログアウト</button></div>
     </section>
     <section id="account-guest">
-      <p class="account-hint">ログインすると、あなた専用の冒険を保存できます。ゲストの進行はこの端末に残ります。</p>
+      <p class="account-hint">ログインすると、あなた専用の冒険を保存できます。ゲストで遊んだ続きは、ログイン・新規登録後に「ゲストデータを引き継ぐ」から移せます。</p>
       <div class="account-tabs" role="tablist" aria-label="アカウント操作"><button type="button" role="tab" data-account-mode="login" aria-selected="true">ログイン</button><button type="button" role="tab" data-account-mode="register" aria-selected="false">新規登録</button><button type="button" role="tab" data-account-mode="reset" aria-selected="false">パスワード再設定</button></div>
       <form id="account-form">
         <label for="account-login-email">メールアドレス</label><input id="account-login-email" name="email" type="email" autocomplete="username" maxlength="254" required>
@@ -54,6 +62,12 @@
     $('account-member').hidden = !user; $('account-guest').hidden = !!user;
     $('account-email').textContent = user ? user.email : '';
     $('account-save-status').textContent = api.status;
+    const guest = api.guestData();
+    $('account-import').hidden = !user || !Object.keys(guest).length;
+    let progress = {}, cards = {};
+    try { progress = JSON.parse(guest['jq-progress'] || '{}') || {}; } catch {}
+    try { cards = JSON.parse(guest['jq-cards'] || '{}') || {}; } catch {}
+    $('account-guest-summary').textContent = `ゲストの進行：クリア ${Array.isArray(progress.cleared) ? progress.cleared.length : 0} / 50・所持 ${Number(cards.coins) || 0} コイン・カード ${Array.isArray(cards.cards) ? cards.cards.length : 0} 枚`;
     const summary = api.summary();
     $('account-summary').textContent = summary ? `${summary.character}・クリア ${summary.cleared} / 50・所持 ${summary.coins} コイン・カード ${summary.cards} 枚` : '';
     $('boot-start').textContent = user ? 'このアカウントで冒険をはじめる' : 'ゲストで冒険をはじめる';
@@ -74,6 +88,8 @@
     if (code === 'auth/invalid-email') return 'メールアドレスの形式を確認してください。';
     if (code === 'auth/too-many-requests') return '試行回数が多いため、少し待ってからお試しください。';
     if (code === 'auth/network-request-failed') return '通信できませんでした。接続を確認してお試しください。';
+    if (code === 'game/no-guest-data') return '引き継げるゲストデータがありません。';
+    if (code === 'game/import-failed') return '引き継ぎを保存できませんでした。データは変更していません。接続を確認してお試しください。';
     if (code === 'auth/operation-not-allowed' || code === 'auth/unavailable') return '現在ログイン機能に接続できません。しばらくしてからお試しください。';
     if (mode === 'register') return '登録できませんでした。アカウントをお持ちの場合はログインまたはパスワード再設定をお試しください。';
     return 'ログインできませんでした。入力内容を確認するか、パスワードを再設定してください。';
@@ -106,6 +122,9 @@
     });
   };
   $('account-logout').onclick = () => run(() => api.signOut());
+  $('account-import-open').onclick = () => { $('account-import-confirm').hidden = false; };
+  $('account-import-cancel').onclick = () => { $('account-import-confirm').hidden = true; };
+  $('account-import-yes').onclick = () => run(() => api.importGuest());
   $('account-save').onclick = () => run(async () => { await api.save(); showMessage(api.status); });
   $('account-reset-member').onclick = () => run(async () => { if (api.user?.email) { await api.resetPassword(api.user.email); showMessage('再設定メールを送信しました。メール内のリンクから新しいパスワードを設定できます。'); } });
   window.addEventListener('online', () => api.retry());
