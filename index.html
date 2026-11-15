@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-15-0050";
+  window.JQ_VER = "2026-11-16-0051";
   // 画像を変更していない更新では、再ダウンロードせず保存済みの画像を使う。
   window.JQ_ASSET_VER = "2026-11-08-0045";
   window.JQ_MOTION_VER = "2026-11-08-0044";
@@ -1329,7 +1329,7 @@ body.on-home .wrap { padding-top: 10px; }
 @media(max-width:599px) { .hbtn .e { width:3.6rem; height:3.6rem; } }
 @media(min-width:1080px) { .kaede-home-controls { display:flex; border-top:0; border-left:1px solid #bda05b88; padding:0 0 0 12px; } }
 </style>
-<link rel="stylesheet" href="account.css?v=2026-11-15-0050">
+<link rel="stylesheet" href="account.css?v=2026-11-16-0051">
 </head>
 <body>
 <!-- 起動画面：新しい版の確認と画像の読み込みが終わったら「タップしてはじめる」（ここで音も出せるようになる） -->
@@ -1357,11 +1357,15 @@ body.on-home .wrap { padding-top: 10px; }
   <div class="settings-pop" id="settings-pop" hidden role="dialog" aria-label="設定">
     <div class="sp-title">設定</div>
     <button class="btn sm" id="tg-speed">演出：標準</button>
+    <details id="sound-settings"><summary class="btn sm">音量</summary><div class="sound-controls">
     <button class="btn sm" id="tg-se" aria-pressed="true">効果音</button>
     <button class="btn sm" id="tg-bgm" aria-pressed="true">BGM</button>
     <button class="btn sm" id="tg-voice" aria-pressed="true" title="オンライン対戦のスタンプを声で読み上げる">ボイス</button>
-    <button class="btn sm sp-restart" id="tg-restart" title="サイトを読み込み直して、スタート画面に戻る（最新の版になる）">スタート・ログイン画面へ</button>
     <p class="sp-credit">ボイス：VOICEVOX:玄野武宏、VOICEVOX:九州そら、VOICEVOX:雨晴はう、VOICEVOX:白上虎太郎、VOICEVOX:春日部つむぎ、VOICEVOX:冥鳴ひまり、VOICEVOX:青山龍星、VOICEVOX:麒ヶ島宗麟、VOICEVOX:剣崎雌雄、VOICEVOX:櫻歌ミコ、VOICEVOX:四国めたん、VOICEVOX:黒沢冴白、VOICEVOX:中部つるぎ、VOICEVOX:夜語トバリ、VOICEVOX:雀松朱司、VOICEVOX:†聖騎士 紅桜†、VOICEVOX:春歌ナナ</p><!-- ホームを1画面に収めるため、クレジットは設定の中に -->
+    </div></details>
+    <button class="btn sm" id="tg-account">アカウント</button>
+    <button class="btn sm sp-restart" id="tg-restart" title="進行を保存して、スタート・ログイン画面へ戻る">ログイン</button>
+
   </div>
 
   <!-- ホーム -->
@@ -5483,7 +5487,9 @@ $("h-abil").onclick = () => openInfo("能力", charInfoHTML(S.charId, "", eqList
 function toggleSettings(open) {
   const pop = $("settings-pop"), on = open ?? pop.hidden;
   pop.hidden = !on; document.querySelectorAll("[data-gear]").forEach(g => g.setAttribute("aria-expanded", on));
+  if (!on) $("sound-settings").open = false;
 }
+$("tg-account").onclick = () => { toggleSettings(false); window.JQAccount.openPanel(); };
 document.querySelectorAll("[data-gear]").forEach(g => g.onclick = ev => { ev.stopPropagation(); toggleSettings(); });
 document.addEventListener("click", ev => { if (!$("settings-pop").hidden && !ev.target.closest("#settings-pop")) toggleSettings(false); });
 document.addEventListener("keydown", ev => { if (ev.key === "Escape" && !$("settings-pop").hidden) toggleSettings(false); });
@@ -5637,7 +5643,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(startWithArt) : startWithArt
   // バトル中・オンライン対戦の画面では、途中で消えると困るので読み直さない
   const RELOAD_AFTER = 30;
   let hiddenAt = 0;
-  const busy = () => !!document.querySelector("#scr-battle:not([hidden]), #scr-online:not([hidden])");
+  const busy = () => !!document.querySelector("#scr-battle:not([hidden]), #scr-online:not([hidden]), #account-dialog[open]");
   const freshReload = () => location.replace(location.pathname + "?r=" + Date.now()); // 毎回ちがうアドレスにして、保存された古いページを使わせない
   document.addEventListener("visibilitychange", async () => {
     if (document.hidden) { hiddenAt = Date.now(); return; }
@@ -5647,10 +5653,11 @@ window.claude?.hot?.ready ? window.claude.hot.ready(startWithArt) : startWithArt
   });
   // 戻る・進むで保存されたページがそのまま出たときも、最新を読み込む
   addEventListener("pageshow", ev => { if (ev.persisted && !busy()) freshReload(); });
-  // 設定の「スタートに戻る」：サイトを読み込み直してスタート画面へ（バトル中・オンライン中は確認してから）
+  // 歯車 → ログイン。アカウント窓とは別にスタート画面へ戻れる。
   $b("tg-restart").onclick = () => {
-    if (busy() && window.JQ_BOOT?.ask) { window.JQ_BOOT.ask("いまの対戦は終わります。スタートに戻りますか？", "スタートに戻る", freshReload); return; }
-    freshReload();
+    const openLogin = async () => { await window.JQAccount.save(); freshReload(); };
+    if (busy() && window.JQ_BOOT?.ask) { window.JQ_BOOT.ask("いまの対戦は終わります。スタート・ログイン画面に戻りますか？", "ログイン画面へ", openLogin); return; }
+    openLogin();
   };
 })();
 </script>

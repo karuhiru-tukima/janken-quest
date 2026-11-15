@@ -35,3 +35,11 @@
 .account-start-panel .account-tabs { margin:12px 0; }
 #account-message:empty { display:none; }
 .boot-start { width:100%; padding:12px 14px; font-size:1.05rem; }
+#account-dialog { width:min(440px,calc(100% - 24px)); max-height:90dvh; padding:0; border:0; background:transparent; color:#f4ecdc; overflow:auto; }
+#account-dialog::backdrop { background:#080e22c9; }
+#account-dialog .account-start-panel { width:100%; }
+
+#sound-settings > summary { list-style:none; cursor:pointer; box-sizing:border-box; }
+#sound-settings > summary::-webkit-details-marker { display:none; }
+.sound-controls { display:grid; gap:6px; margin:6px 0; padding-left:10px; border-left:2px solid #65779d; }
+.settings-pop { max-height:calc(100dvh - 110px); overflow-y:auto; max-width:calc(100vw - 24px); }

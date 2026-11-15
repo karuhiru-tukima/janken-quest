@@ -4,7 +4,7 @@
   const element = document.createElement('section');
   element.id = 'account-panel'; element.className = 'account-start-panel';
   element.setAttribute('aria-labelledby', 'account-title');
-  element.innerHTML = `<div class="account-head"><h2 id="account-title">冒険のアカウント</h2></div>
+  element.innerHTML = `<div class="account-head"><h2 id="account-title">冒険のアカウント</h2><button type="button" id="account-close" aria-label="アカウントを閉じる" hidden>×</button></div>
     <section id="account-member" hidden>
       <p class="account-email" id="account-email"></p><p id="account-summary"></p>
       <p class="account-hint">キャラ・進行・所持カード・コインは、このアカウント専用です。</p>
@@ -20,16 +20,22 @@
       <div class="account-actions"><button type="button" id="account-save">今すぐ保存</button><button type="button" id="account-reset-member">パスワード再設定メールを送る</button><button type="button" id="account-logout">ログアウト</button></div>
     </section>
     <section id="account-guest">
-      <p class="account-hint">ログインすると、あなた専用の冒険を保存できます。ゲストで遊んだ続きは、ログイン・新規登録後に「ゲストデータを引き継ぐ」から移せます。</p>
+      <p class="account-hint">ゲストの冒険を連携するには、ログイン・新規登録後に「この端末のゲストデータを引き継ぐ」を押してください。ゲーム中は歯車 → アカウントから開けます。</p>
       <div class="account-tabs" role="tablist" aria-label="アカウント操作"><button type="button" role="tab" data-account-mode="login" aria-selected="true">ログイン</button><button type="button" role="tab" data-account-mode="register" aria-selected="false">新規登録</button><button type="button" role="tab" data-account-mode="reset" aria-selected="false">パスワード再設定</button></div>
       <form id="account-form">
         <label for="account-login-email">メールアドレス</label><input id="account-login-email" name="email" type="email" autocomplete="username" maxlength="254" required>
         <div id="account-password-row"><label for="account-password">パスワード</label><input id="account-password" name="password" type="password" autocomplete="current-password" maxlength="128" required><p id="account-password-hint" class="account-hint" hidden>8文字以上で設定してください。</p></div>
         <button class="account-submit" id="account-submit" type="submit">ログインする</button>
       </form>
+      <p class="account-hint">登録済みのメールアドレスで重複登録はできません。アカウントを削除すると、同じメールアドレスで新しく登録できます。</p>
       <p class="account-hint">パスワードはゲーム内やブラウザの保存データには保管しません。</p>
     </section><p id="account-message" role="status" aria-live="polite"></p>`;
   document.getElementById('boot-start').before(element);
+  const dialog = document.createElement('dialog'); dialog.id = 'account-dialog';
+  dialog.setAttribute('aria-labelledby', 'account-title'); document.body.append(dialog);
+  function closePanel() { if (busy) return; $('account-password').value = ''; dialog.close(); }
+  dialog.addEventListener('cancel', event => { event.preventDefault(); closePanel(); });
+  dialog.addEventListener('click', event => { if (event.target === dialog) closePanel(); });
   const cover = document.createElement('div'); cover.id = 'account-switch-cover'; cover.hidden = true;
   cover.setAttribute('role', 'status'); cover.textContent = 'アカウントを切り替えています…'; document.body.append(cover);
   const $ = id => document.getElementById(id);
@@ -56,6 +62,14 @@
     onChange: render,
   });
   window.JQAccount = api;
+  api.openPanel = async () => {
+    await api.ready;
+    if (!dialog.open) {
+      dialog.append(element); $('account-close').hidden = false;
+      render(); dialog.showModal(); $('account-close').focus();
+    }
+    api.save();
+  };
   function render() {
     if (!api || !element.isConnected) return;
     const user = api.user;
@@ -70,7 +84,7 @@
     $('account-guest-summary').textContent = `ゲストの進行：クリア ${Array.isArray(progress.cleared) ? progress.cleared.length : 0} / 50・所持 ${Number(cards.coins) || 0} コイン・カード ${Array.isArray(cards.cards) ? cards.cards.length : 0} 枚`;
     const summary = api.summary();
     $('account-summary').textContent = summary ? `${summary.character}・クリア ${summary.cleared} / 50・所持 ${summary.coins} コイン・カード ${summary.cards} 枚` : '';
-    $('boot-start').textContent = user ? 'このアカウントで冒険をはじめる' : 'ゲストで冒険をはじめる';
+    if ($('boot-start')) $('boot-start').textContent = user ? 'このアカウントで冒険をはじめる' : 'ゲストで冒険をはじめる';
   }
   function showMessage(text, failed = false) { $('account-message').textContent = text; $('account-message').className = failed ? 'account-error' : ''; }
   function setMode(value) {
@@ -86,6 +100,7 @@
   function errorMessage(code) {
     if (code === 'auth/weak-password' || code === 'auth/password-does-not-meet-requirements') return 'パスワードが条件を満たしていません。8文字以上で設定してください。';
     if (code === 'auth/invalid-email') return 'メールアドレスの形式を確認してください。';
+    if (code === 'auth/email-already-in-use') return 'このメールアドレスは登録済みです。ログインするか、パスワードを再設定してください。';
     if (code === 'auth/too-many-requests') return '試行回数が多いため、少し待ってからお試しください。';
     if (code === 'auth/network-request-failed') return '通信できませんでした。接続を確認してお試しください。';
     if (code === 'game/no-guest-data') return '引き継げるゲストデータがありません。';
@@ -97,19 +112,24 @@
   async function run(operation) {
     if (busy) return;
     busy = true; element.setAttribute('aria-busy', 'true'); showMessage('処理中…');
-    $('boot-start').disabled = true;
+    if ($('boot-start')) $('boot-start').disabled = true;
     element.querySelectorAll('button,input').forEach(control => { control.disabled = true; });
     try { await operation(); }
     catch (error) { showMessage(errorMessage(error && error.code), true); }
     finally {
       $('account-password').value = '';
       busy = false; element.removeAttribute('aria-busy');
-      $('boot-start').disabled = false;
+      if ($('boot-start')) $('boot-start').disabled = false;
       element.querySelectorAll('button,input').forEach(control => { control.disabled = false; });
       render();
     }
   }
-  $('boot-start').addEventListener('click', () => { $('account-password').value = ''; });
+  $('account-close').onclick = closePanel;
+  $('boot-start').addEventListener('click', () => {
+    $('account-password').value = '';
+    // Keep one account form alive after the title screen is removed.
+    dialog.append(element); $('account-close').hidden = false;
+  });
   element.querySelectorAll('[data-account-mode]').forEach(button => button.onclick = () => setMode(button.dataset.accountMode));
   $('account-form').onsubmit = event => {
     event.preventDefault();
