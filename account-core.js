@@ -95,6 +95,7 @@
       }
       if (identity(current) !== owner) {
         mask(true);
+        if (switching) return; // Finish registration and its guest transfer before reloading.
         // The page's owner is immutable: late saves can never target the next account.
         Promise.resolve(hooks.save && hooks.save()).catch(() => {}).finally(() => options.reload());
       }
@@ -129,7 +130,12 @@
         await saveBeforeChange();
         // Do not put an email or password into storage, URLs, logs or the game database.
         return await request(operation(auth));
-      } finally { switching = false; mask(identity(auth.currentUser) !== owner); }
+      } finally {
+        switching = false;
+        const changedOwner = identity(auth.currentUser) !== owner;
+        mask(changedOwner);
+        if (changedOwner) options.reload();
+      }
     }
     async function request(promise) {
       const result = await bounded(Promise.resolve(promise).then(value => ({value}), error => ({error})), 15000,
@@ -175,6 +181,21 @@
       async save() { if (hooks.save) await hooks.save(); await bounded(drain(), 2200, null); },
       signIn(email, password) { return change(a => a.signInWithEmailAndPassword(email, password)); },
       register(email, password) { return change(a => a.createUserWithEmailAndPassword(email, password)); },
+      registerWithGuest(email, password) {
+        return change(async a => {
+          const data = api.guestData();
+          const result = await a.createUserWithEmailAndPassword(email, password);
+          const uid = identity(result.user);
+          if (uid && Object.keys(data).length) {
+            // Persist the transfer first so it survives a stalled/offline cloud write.
+            for (const key of KEYS) writeRaw(keyFor(key, uid), data[key] ?? null);
+            writeRaw('jq-user:' + uid + ':pending', JSON.stringify(Object.entries(data)));
+            const saved = await bounded(profileRef(uid).update({data, updatedAt:options.timestamp()}).then(() => true, () => false), 2200, false);
+            if (saved) writeRaw('jq-user:' + uid + ':pending', '[]');
+          }
+          return result;
+        });
+      },
       signOut() { return change(a => a.signOut()); },
       async resetPassword(email) {
         await ready;

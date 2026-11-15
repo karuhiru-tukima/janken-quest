@@ -20,12 +20,13 @@
       <div class="account-actions"><button type="button" id="account-save">今すぐ保存</button><button type="button" id="account-reset-member">パスワード再設定メールを送る</button><button type="button" id="account-logout">ログアウト</button></div>
     </section>
     <section id="account-guest">
-      <p class="account-hint">ゲストの冒険を連携するには、ログイン・新規登録後に「この端末のゲストデータを引き継ぐ」を押してください。ゲーム中は歯車 → アカウントから開けます。</p>
+      <p class="account-hint" id="account-guest-hint">ゲストの冒険を連携するには、ログイン・新規登録後に「この端末のゲストデータを引き継ぐ」を押してください。ゲーム中は歯車 → アカウントから開けます。</p>
       <div class="account-tabs" role="tablist" aria-label="アカウント操作"><button type="button" role="tab" data-account-mode="login" aria-selected="true">ログイン</button><button type="button" role="tab" data-account-mode="register" aria-selected="false">新規登録</button><button type="button" role="tab" data-account-mode="reset" aria-selected="false">パスワード再設定</button></div>
       <form id="account-form">
         <label for="account-login-email">メールアドレス</label><input id="account-login-email" name="email" type="email" autocomplete="username" maxlength="254" required>
         <div id="account-password-row"><label for="account-password">パスワード</label><input id="account-password" name="password" type="password" autocomplete="current-password" maxlength="128" required><p id="account-password-hint" class="account-hint" hidden>8文字以上で設定してください。</p></div>
         <button class="account-submit" id="account-submit" type="submit">ログインする</button>
+        <p class="account-hint" id="account-auto-link-hint" hidden>ここで新規登録すると、いまのゲストの進行・コイン・カードを自動で引き継ぎます。</p>
       </form>
       <p class="account-hint">登録済みのメールアドレスで重複登録はできません。アカウントを削除すると、同じメールアドレスで新しく登録できます。</p>
       <p class="account-hint">パスワードはゲーム内やブラウザの保存データには保管しません。</p>
@@ -66,7 +67,7 @@
     await api.ready;
     if (!dialog.open) {
       dialog.append(element); $('account-close').hidden = false;
-      render(); dialog.showModal(); $('account-close').focus();
+      render(); dialog.showModal(); setMode(mode); $('account-close').focus();
     }
     api.save();
   };
@@ -89,11 +90,15 @@
   function showMessage(text, failed = false) { $('account-message').textContent = text; $('account-message').className = failed ? 'account-error' : ''; }
   function setMode(value) {
     mode = value; $('account-password').value = ''; showMessage('');
+    $('account-guest-hint').textContent = dialog.open
+      ? 'ここで新規登録すると、いまのゲストの冒険を自動で引き継ぎます。登録済みのアカウントへは、ログイン後に引き継ぎ内容を確認して連携できます。'
+      : 'ゲストの冒険は、ゲーム中の歯車 → アカウントから新規登録すると自動で引き継げます。登録済みアカウントへは、ログイン後に「この端末のゲストデータを引き継ぐ」を押してください。';
     $('account-password-row').hidden = mode === 'reset';
     $('account-password').required = mode !== 'reset';
     $('account-password').minLength = mode === 'register' ? 8 : 1;
     $('account-password').autocomplete = mode === 'register' ? 'new-password' : 'current-password';
     $('account-password-hint').hidden = mode !== 'register';
+    $('account-auto-link-hint').hidden = mode !== 'register' || !dialog.open;
     $('account-submit').textContent = {login:'ログインする', register:'新規登録する', reset:'再設定メールを送る'}[mode];
     element.querySelectorAll('[data-account-mode]').forEach(button => button.setAttribute('aria-selected', String(button.dataset.accountMode === mode)));
   }
@@ -137,7 +142,7 @@
     $('account-password').value = '';
     run(async () => {
       if (mode === 'reset') { await api.resetPassword(email); showMessage('アカウントがある場合、再設定メールを送信しました。受信箱と迷惑メールをご確認ください。'); }
-      else if (mode === 'register') await api.register(email, password);
+      else if (mode === 'register') await (dialog.open ? api.registerWithGuest(email, password) : api.register(email, password));
       else await api.signIn(email, password);
     });
   };
