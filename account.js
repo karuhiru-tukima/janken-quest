@@ -5,6 +5,8 @@
   element.id = 'account-panel'; element.className = 'account-start-panel';
   element.setAttribute('aria-labelledby', 'account-title');
   element.innerHTML = `<div class="account-head"><h2 id="account-title">冒険のアカウント</h2><button type="button" id="account-close" aria-label="アカウントを閉じる" hidden>×</button></div>
+    <p class="account-hint" id="account-auth-state" role="status">ログイン状態を確認しています…</p>
+    <button type="button" id="account-auth-retry" hidden>ログイン状態を確認し直す</button>
     <section id="account-member" hidden>
       <p class="account-email" id="account-email"></p><p id="account-summary"></p>
       <p class="account-hint">キャラ・進行・所持カード・コインは、このアカウント専用です。</p>
@@ -29,7 +31,7 @@
         <p class="account-hint" id="account-auto-link-hint" hidden>ここで新規登録すると、いまのゲストの進行・コイン・カードを自動で引き継ぎます。</p>
       </form>
       <p class="account-hint">登録済みのメールアドレスで重複登録はできません。アカウントを削除すると、同じメールアドレスで新しく登録できます。</p>
-      <p class="account-hint">このブラウザではログイン状態を保持します。ログアウトしたとき、または90日間利用しなかったときに再ログインが必要です。パスワードはゲーム内に保存しません。</p>
+      <p class="account-hint" id="account-persistence-hint">ログイン状態の保存先を確認しています…</p>
     </section><p id="account-message" role="status" aria-live="polite"></p>`;
   document.getElementById('boot-start').before(element);
   const dialog = document.createElement('dialog'); dialog.id = 'account-dialog';
@@ -74,9 +76,16 @@
   function render() {
     if (!api || !element.isConnected) return;
     const user = api.user;
-    $('account-member').hidden = !user; $('account-guest').hidden = !!user;
+    $('account-member').hidden = !user; $('account-guest').hidden = !!user || api.authState !== 'confirmed';
+    $('account-auth-state').hidden = api.authState === 'confirmed';
+    $('account-auth-state').textContent = api.authState === 'checking' ? 'ログイン状態を確認しています…' : 'ログイン状態を確認できませんでした。通信を確認して、確認し直してください。ゲストでは遊べます。';
+    $('account-auth-retry').hidden = api.authState !== 'unavailable';
     $('account-email').textContent = user ? user.email : '';
     $('account-save-status').textContent = api.status;
+    $('account-persistence-hint').textContent = api.persistenceStatus === 'unavailable'
+      ? 'このブラウザではログイン状態を保存できません。通常モードのChrome・Safariなどで開いてください。ゲストでは遊べます。'
+      : api.persistenceStatus === 'checking' ? 'ログイン状態の保存先を確認しています…'
+      : 'このブラウザではログイン状態を保持します。ログアウトしたとき、または90日間利用しなかったときに再ログインが必要です。パスワードはゲーム内に保存しません。';
     const guest = api.guestData();
     $('account-import').hidden = !user || !Object.keys(guest).length;
     let progress = {}, cards = {};
@@ -108,6 +117,7 @@
     if (code === 'auth/email-already-in-use') return 'このメールアドレスは登録済みです。ログインするか、パスワードを再設定してください。';
     if (code === 'auth/too-many-requests') return '試行回数が多いため、少し待ってからお試しください。';
     if (code === 'auth/network-request-failed') return '通信できませんでした。接続を確認してお試しください。';
+    if (code === 'auth/persistence-unavailable') return 'ログイン状態を保存できませんでした。通常モードのChrome・Safariなどで開き直してください。';
     if (code === 'game/no-guest-data') return '引き継げるゲストデータがありません。';
     if (code === 'game/import-failed') return '引き継ぎを保存できませんでした。データは変更していません。接続を確認してお試しください。';
     if (code === 'auth/operation-not-allowed' || code === 'auth/unavailable') return '現在ログイン機能に接続できません。しばらくしてからお試しください。';
@@ -130,6 +140,7 @@
     }
   }
   $('account-close').onclick = closePanel;
+  $('account-auth-retry').onclick = () => location.reload();
   $('boot-start').addEventListener('click', () => {
     $('account-password').value = '';
     // Keep one account form alive after the title screen is removed.
@@ -157,4 +168,5 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden) api.touch(); });
   window.addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
   api.ready.then(render);
+  render();
 })();

@@ -17,7 +17,7 @@
   function create(options) {
     const local = options.local, auth = options.auth, database = options.database;
     const notify = options.onChange || (() => {}), mask = options.mask || (() => {});
-    let owner = null, user = null, initialized = false, seen = false, generation = 0;
+    let owner = null, user = null, initialized = false, seen = false, generation = 0, authState = auth ? 'checking' : 'unavailable';
     let timer = 0, writing = null, switching = false, replaced = false, hooks = {}, status = '確認中';
     let resolveReady;
     const ready = new Promise(resolve => { resolveReady = resolve; });
@@ -53,6 +53,10 @@
       if (!last || now() - last >= 60000) writeRaw(activityKey(owner), String(now()));
     }
     function changed(message) { if (message) status = message; notify(); }
+    let persistenceStatus = auth ? 'checking' : 'unavailable';
+    const persistenceReady = auth ? Promise.resolve().then(() => auth.setPersistence(options.persistence)).then(() => {
+      persistenceStatus = 'persistent'; notify(); return true;
+    }, () => { persistenceStatus = 'unavailable'; notify(); return false; }) : Promise.resolve(false);
     function persistDirty() { if (owner) writeRaw(dirtyKey(), JSON.stringify([...dirty])); }
     function schedule() { clearTimeout(timer); timer = setTimeout(() => { flush(); }, 700); }
     const storage = {
@@ -107,6 +111,7 @@
     }
     function observe(current) {
       seen = true;
+      authState = 'confirmed';
       const uid = identity(current);
       if (!initialized && uid && !expiryCheck) {
         expiryCheck = true;
@@ -161,6 +166,9 @@
       switching = true; mask(true);
       try {
         await saveBeforeChange();
+        if (operation !== logoutOperation && !await bounded(persistenceReady, 10000, false)) {
+          throw Object.assign(new Error('Login persistence unavailable'), {code:'auth/persistence-unavailable'});
+        }
         // Do not put an email or password into storage, URLs, logs or the game database.
         return await request(operation(auth));
       } finally {
@@ -211,6 +219,8 @@
       },
       get user() { return user && {...user}; },
       get status() { return status; },
+      get persistenceStatus() { return persistenceStatus; },
+      get authState() { return authState; },
       bind(value) { hooks = value; changed(); },
       summary() { return hooks.summary ? hooks.summary() : null; },
       flush: () => bounded(drain(), 2200, null),
@@ -232,7 +242,7 @@
           return result;
         });
       },
-      signOut() { return change(a => a.signOut()); },
+      signOut() { return change(logoutOperation); },
       async resetPassword(email) {
         await ready;
         if (!auth) throw Object.assign(new Error('Authentication unavailable'), {code:'auth/unavailable'});
@@ -249,11 +259,16 @@
     };
     (async () => {
       if (!auth) { await hydrate(null, ++generation); return; }
-      await bounded(auth.setPersistence(options.persistence), 1200, null);
-      auth.onAuthStateChanged(observe, () => { if (!initialized) observe(null); });
-      setTimeout(() => { if (!seen && !initialized) observe(null); }, 2200);
+      await bounded(persistenceReady, 1200, false);
+      auth.onAuthStateChanged(observe, () => {
+        if (!initialized) { authState = 'unavailable'; hydrate(null, ++generation); }
+      });
+      setTimeout(() => {
+        if (!seen && !initialized) { authState = 'unavailable'; hydrate(null, ++generation); }
+      }, 10000);
     })().catch(() => { if (!initialized) hydrate(null, ++generation); });
     return api;
+    function logoutOperation(a) { return a.signOut(); }
   }
   root.JQAccountCore = Object.freeze({create, keys: KEYS, limits: LIMITS});
 })(typeof window !== 'undefined' ? window : globalThis);
