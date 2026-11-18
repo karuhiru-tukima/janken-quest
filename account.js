@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const element = document.createElement('section');
-  element.id = 'account-panel'; element.className = 'account-start-panel';
+  element.id = 'account-panel'; element.className = 'account-start-panel'; element.hidden = true;
   element.setAttribute('aria-labelledby', 'account-title');
   element.innerHTML = `<div class="account-head"><h2 id="account-title">冒険のアカウント</h2><button type="button" id="account-close" aria-label="アカウントを閉じる" hidden>×</button></div>
     <p class="account-hint" id="account-auth-state" role="status">ログイン状態を確認しています…</p>
@@ -56,7 +56,9 @@
     auth, local, database: () => firebase.database(),
     persistence: window.firebase?.auth?.Auth?.Persistence?.LOCAL || 'local',
     timestamp: () => firebase.database.ServerValue.TIMESTAMP,
-    reload: () => location.reload(),
+    reload: () => {
+      const next = new URL(location.href); next.searchParams.delete('start'); location.replace(next.href);
+    },
     mask(on) {
       cover.hidden = !on;
       element.style.visibility = on ? 'hidden' : '';
@@ -76,6 +78,7 @@
   function render() {
     if (!api || !element.isConnected) return;
     const user = api.user;
+    element.hidden = api.authState === 'checking' || (!!$('boot') && !!user && new URLSearchParams(location.search).get('start') !== '1');
     $('account-member').hidden = !user; $('account-guest').hidden = !!user || api.authState !== 'confirmed';
     $('account-auth-state').hidden = api.authState === 'confirmed';
     $('account-auth-state').textContent = api.authState === 'checking' ? 'ログイン状態を確認しています…' : 'ログイン状態を確認できませんでした。通信を確認して、確認し直してください。ゲストでは遊べます。';
@@ -142,6 +145,7 @@
   $('account-close').onclick = closePanel;
   $('account-auth-retry').onclick = () => location.reload();
   $('boot-start').addEventListener('click', () => {
+    const next = new URL(location.href); next.searchParams.delete('start'); history.replaceState(null, '', next.href);
     $('account-password').value = '';
     // Keep one account form alive after the title screen is removed.
     dialog.append(element); $('account-close').hidden = false;

@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-18-1809";
+  window.JQ_VER = "2026-11-18-1810";
   // 画像を変更していない更新では、再ダウンロードせず保存済みの画像を使う。
   window.JQ_ASSET_VER = "2026-11-08-0045";
   window.JQ_MOTION_VER = "2026-11-08-0044";
@@ -1364,7 +1364,7 @@ body.on-home .wrap { padding-top: 10px; }
     <p class="sp-credit">ボイス：VOICEVOX:玄野武宏、VOICEVOX:九州そら、VOICEVOX:雨晴はう、VOICEVOX:白上虎太郎、VOICEVOX:春日部つむぎ、VOICEVOX:冥鳴ひまり、VOICEVOX:青山龍星、VOICEVOX:麒ヶ島宗麟、VOICEVOX:剣崎雌雄、VOICEVOX:櫻歌ミコ、VOICEVOX:四国めたん、VOICEVOX:黒沢冴白、VOICEVOX:中部つるぎ、VOICEVOX:夜語トバリ、VOICEVOX:雀松朱司、VOICEVOX:暁記ミタマ、VOICEVOX:春歌ナナ</p><!-- ホームを1画面に収めるため、クレジットは設定の中に -->
     </div></details>
     <button class="btn sm" id="tg-account">アカウント</button>
-    <button class="btn sm sp-restart" id="tg-restart" title="進行を保存して、スタート・ログイン画面へ戻る">ログイン</button>
+    <button class="btn sm sp-restart" id="tg-restart" title="進行を保存して、スタート・ログイン画面へ戻る">スタート・ログイン画面</button>
 
   </div>
 
@@ -5590,6 +5590,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(startWithArt) : startWithArt
    公開するたびに、先頭の window.JQ_VER・version.json・art.js?v= を同じ値に上げる（bump-version.ps1 で一度に変わる） */
 (function () {
   const APP_VERSION = window.JQ_VER, VER = APP_VERSION;
+  const showStartRequested = () => new URLSearchParams(location.search).get('start') === '1';
   const $b = id => document.getElementById(id);
   // 新しい版が公開されていたら、読み直す（同じ版で何度も読み直さないよう、1回だけ）
   // 通信が応答しない場合も必ず起動へ進む。
@@ -5614,7 +5615,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(startWithArt) : startWithArt
     const key = "jq-reloaded-" + v;
     try { if (sessionStorage.getItem(key)) return false; sessionStorage.setItem(key, "1"); } catch {}
     $b("boot-msg").textContent = "新しい版を読み込んでいます…";
-    location.replace(location.pathname + "?v=" + encodeURIComponent(v)); return true;
+    location.replace(location.pathname + "?v=" + encodeURIComponent(v) + (showStartRequested() ? "&start=1" : "")); return true;
   }
   // 全キャラ・全カード・フォントは起動を妨げず、裏で必要なものから読み込む。
   async function preload() {
@@ -5627,12 +5628,14 @@ window.claude?.hot?.ready ? window.claude.hot.ready(startWithArt) : startWithArt
     if (v && reloadTo(v)) return;
     $b("boot-msg").textContent = ""; $b("boot-bar").hidden = true;
     const btn = $b("boot-start"); btn.hidden = false;
+    btn.onclick = () => { $b("boot").classList.add("out"); window.JQ_BOOT?.begin(); setTimeout(() => $b("boot")?.remove(), 400); };
+    // A restored account enters the game directly. Only the explicit menu action opens this screen.
+    if (window.JQAccount.user && !showStartRequested()) { btn.hidden = true; btn.click(); return; }
     if (!document.getElementById("account-panel")?.contains(document.activeElement)) {
       const focus = window.JQAccount.user ? btn : document.getElementById("account-login-email");
       focus?.focus({ preventScroll: true });
     }
     window.JQ_BOOT?.title();
-    btn.onclick = () => { $b("boot").classList.add("out"); window.JQ_BOOT?.begin(); setTimeout(() => $b("boot")?.remove(), 400); };
   }
   boot().catch(() => {
     $b("boot-msg").textContent = "起動できませんでした。再読み込みをお試しください。";
@@ -5644,7 +5647,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(startWithArt) : startWithArt
   const RELOAD_AFTER = 30;
   let hiddenAt = 0;
   const busy = () => !!document.querySelector("#scr-battle:not([hidden]), #scr-online:not([hidden]), #account-dialog[open]");
-  const freshReload = () => location.replace(location.pathname + "?r=" + Date.now()); // 毎回ちがうアドレスにして、保存された古いページを使わせない
+  const freshReload = () => location.replace(location.pathname + "?r=" + Date.now() + (showStartRequested() ? "&start=1" : "")); // 古いページを使わせない
   document.addEventListener("visibilitychange", async () => {
     if (document.hidden) { hiddenAt = Date.now(); return; }
     if (busy()) return;
@@ -5655,7 +5658,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(startWithArt) : startWithArt
   addEventListener("pageshow", ev => { if (ev.persisted && !busy()) freshReload(); });
   // 歯車 → ログイン。アカウント窓とは別にスタート画面へ戻れる。
   $b("tg-restart").onclick = () => {
-    const openLogin = async () => { await window.JQAccount.save(); freshReload(); };
+    const openLogin = async () => { await window.JQAccount.save(); location.replace(location.pathname + "?r=" + Date.now() + "&start=1"); };
     if (busy() && window.JQ_BOOT?.ask) { window.JQ_BOOT.ask("いまの対戦は終わります。スタート・ログイン画面に戻りますか？", "ログイン画面へ", openLogin); return; }
     openLogin();
   };
