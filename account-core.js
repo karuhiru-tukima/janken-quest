@@ -30,6 +30,22 @@
     };
     const dirtyKey = () => 'jq-user:' + owner + ':pending';
     const dirty = new Map();
+    const now = options.now || (() => Date.now());
+    const idleLimit = 90 * 24 * 60 * 60 * 1000;
+    const activityKey = uid => 'jq-auth:' + uid + ':last-active';
+    let expiryCheck = false, expiring = false;
+    function touch() {
+      if (!owner || identity(auth?.currentUser) !== owner) return;
+      const last = Number(readRaw(activityKey(owner)));
+      if (initialized && last > 0 && now() - last >= idleLimit) {
+        if (!expiring) {
+          expiring = true; mask(true);
+          Promise.resolve(auth.signOut()).catch(() => { expiring = false; mask(false); });
+        }
+        return;
+      }
+      if (!last || now() - last >= 60000) writeRaw(activityKey(owner), String(now()));
+    }
     function changed(message) { if (message) status = message; notify(); }
     function persistDirty() { if (owner) writeRaw(dirtyKey(), JSON.stringify([...dirty])); }
     function schedule() { clearTimeout(timer); timer = setTimeout(() => { flush(); }, 700); }
@@ -71,6 +87,7 @@
       }
       if (token !== generation) return;
       owner = uid; user = uid ? {uid, email: current.email || '', name: current.displayName || ''} : null;
+      touch();
       for (const [key, value] of pending) dirty.set(key, value);
       initialized = true;
       if (!uid) status = auth ? 'ゲスト・この端末に保存' : 'ゲスト・ログインに接続できません';
@@ -84,6 +101,16 @@
     }
     function observe(current) {
       seen = true;
+      const uid = identity(current);
+      if (!initialized && uid && !expiryCheck) {
+        expiryCheck = true;
+        const last = Number(readRaw(activityKey(uid)));
+        if (last > 0 && now() - last >= idleLimit) {
+          // Expire the saved login before reading any of this account's game data.
+          Promise.resolve(auth.signOut()).catch(() => observe(null));
+          return;
+        }
+      }
       if (!initialized) {
         const token = ++generation;
         hydrate(current, token).catch(() => {
@@ -133,6 +160,8 @@
       } finally {
         switching = false;
         const changedOwner = identity(auth.currentUser) !== owner;
+        const nextUid = identity(auth.currentUser);
+        if (nextUid) writeRaw(activityKey(nextUid), String(now()));
         mask(changedOwner);
         if (changedOwner) options.reload();
       }
@@ -145,6 +174,7 @@
     }
     const api = {
       ready, storage,
+      touch,
       guestData() {
         const data = {};
         for (const key of KEYS) {

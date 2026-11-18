@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-16-0052";
+  window.JQ_VER = "2026-11-18-1807";
   // 画像を変更していない更新では、再ダウンロードせず保存済みの画像を使う。
   window.JQ_ASSET_VER = "2026-11-08-0045";
   window.JQ_MOTION_VER = "2026-11-08-0044";
@@ -1361,7 +1361,7 @@ body.on-home .wrap { padding-top: 10px; }
     <button class="btn sm" id="tg-se" aria-pressed="true">効果音</button>
     <button class="btn sm" id="tg-bgm" aria-pressed="true">BGM</button>
     <button class="btn sm" id="tg-voice" aria-pressed="true" title="オンライン対戦のスタンプを声で読み上げる">ボイス</button>
-    <p class="sp-credit">ボイス：VOICEVOX:玄野武宏、VOICEVOX:九州そら、VOICEVOX:雨晴はう、VOICEVOX:白上虎太郎、VOICEVOX:春日部つむぎ、VOICEVOX:冥鳴ひまり、VOICEVOX:青山龍星、VOICEVOX:麒ヶ島宗麟、VOICEVOX:剣崎雌雄、VOICEVOX:櫻歌ミコ、VOICEVOX:四国めたん、VOICEVOX:黒沢冴白、VOICEVOX:中部つるぎ、VOICEVOX:夜語トバリ、VOICEVOX:雀松朱司、VOICEVOX:†聖騎士 紅桜†、VOICEVOX:春歌ナナ</p><!-- ホームを1画面に収めるため、クレジットは設定の中に -->
+    <p class="sp-credit">ボイス：VOICEVOX:玄野武宏、VOICEVOX:九州そら、VOICEVOX:雨晴はう、VOICEVOX:白上虎太郎、VOICEVOX:春日部つむぎ、VOICEVOX:冥鳴ひまり、VOICEVOX:青山龍星、VOICEVOX:麒ヶ島宗麟、VOICEVOX:剣崎雌雄、VOICEVOX:櫻歌ミコ、VOICEVOX:四国めたん、VOICEVOX:黒沢冴白、VOICEVOX:中部つるぎ、VOICEVOX:夜語トバリ、VOICEVOX:雀松朱司、VOICEVOX:暁記ミタマ、VOICEVOX:春歌ナナ</p><!-- ホームを1画面に収めるため、クレジットは設定の中に -->
     </div></details>
     <button class="btn sm" id="tg-account">アカウント</button>
     <button class="btn sm sp-restart" id="tg-restart" title="進行を保存して、スタート・ログイン画面へ戻る">ログイン</button>
@@ -1472,7 +1472,7 @@ body.on-home .wrap { padding-top: 10px; }
       </div>
       <div class="on-status" id="on-status" role="status"></div>
       <div class="row"><button class="btn" id="on-cancel" disabled>探すのをやめる</button><button class="btn" id="on-back">ロビー（対戦）へ戻る</button></div>
-      <p class="credit">スタンプのボイス：VOICEVOX:玄野武宏、VOICEVOX:九州そら、VOICEVOX:雨晴はう、VOICEVOX:白上虎太郎、VOICEVOX:春日部つむぎ、VOICEVOX:冥鳴ひまり、VOICEVOX:青山龍星、VOICEVOX:麒ヶ島宗麟、VOICEVOX:剣崎雌雄、VOICEVOX:櫻歌ミコ、VOICEVOX:四国めたん、VOICEVOX:黒沢冴白、VOICEVOX:中部つるぎ、VOICEVOX:夜語トバリ、VOICEVOX:雀松朱司、VOICEVOX:†聖騎士 紅桜†、VOICEVOX:春歌ナナ</p>
+      <p class="credit">スタンプのボイス：VOICEVOX:玄野武宏、VOICEVOX:九州そら、VOICEVOX:雨晴はう、VOICEVOX:白上虎太郎、VOICEVOX:春日部つむぎ、VOICEVOX:冥鳴ひまり、VOICEVOX:青山龍星、VOICEVOX:麒ヶ島宗麟、VOICEVOX:剣崎雌雄、VOICEVOX:櫻歌ミコ、VOICEVOX:四国めたん、VOICEVOX:黒沢冴白、VOICEVOX:中部つるぎ、VOICEVOX:夜語トバリ、VOICEVOX:雀松朱司、VOICEVOX:暁記ミタマ、VOICEVOX:春歌ナナ</p>
     </div>
   </section>
 
@@ -1884,7 +1884,7 @@ const VOICE = {
   11: { g: "f", pitch: 1.4, rate: 1.0, v: 1 }, 12: { g: "m", pitch: 0.9, rate: 1.05, v: 0 }, 13: { g: "f", pitch: 0.9, rate: 1.05, v: 0 },
   14: { g: "m", pitch: 0.55, rate: 0.85, v: 0 },
   15: { g: "f", pitch: 1.0, rate: 0.95, v: 0 }, 16: { g: "m", pitch: 1.1, rate: 1.05, v: 0 },
-  17: { g: "m", pitch: 0.8, rate: 0.95, v: 0 }, 18: { g: "f", pitch: 1.25, rate: 1.1, v: 0 },
+  17: { g: "f", pitch: 1.0, rate: 0.95, v: 1 }, 18: { g: "f", pitch: 1.25, rate: 1.1, v: 0 },
 };
 const MALE_VOICE = /ichiro|keita|otoya|daichi|naoki|takumi|kenji|male|男/i;
 let jaVoices = [], jaMale = [], jaFemale = [];

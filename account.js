@@ -29,7 +29,7 @@
         <p class="account-hint" id="account-auto-link-hint" hidden>ここで新規登録すると、いまのゲストの進行・コイン・カードを自動で引き継ぎます。</p>
       </form>
       <p class="account-hint">登録済みのメールアドレスで重複登録はできません。アカウントを削除すると、同じメールアドレスで新しく登録できます。</p>
-      <p class="account-hint">パスワードはゲーム内やブラウザの保存データには保管しません。</p>
+      <p class="account-hint">このブラウザではログイン状態を保持します。ログアウトしたとき、または90日間利用しなかったときに再ログインが必要です。パスワードはゲーム内に保存しません。</p>
     </section><p id="account-message" role="status" aria-live="polite"></p>`;
   document.getElementById('boot-start').before(element);
   const dialog = document.createElement('dialog'); dialog.id = 'account-dialog';
@@ -52,7 +52,7 @@
   let api;
   api = JQAccountCore.create({
     auth, local, database: () => firebase.database(),
-    persistence: window.firebase?.auth?.Auth?.Persistence?.SESSION || 'session',
+    persistence: window.firebase?.auth?.Auth?.Persistence?.LOCAL || 'local',
     timestamp: () => firebase.database.ServerValue.TIMESTAMP,
     reload: () => location.reload(),
     mask(on) {
@@ -153,6 +153,8 @@
   $('account-save').onclick = () => run(async () => { await api.save(); showMessage(api.status); });
   $('account-reset-member').onclick = () => run(async () => { if (api.user?.email) { await api.resetPassword(api.user.email); showMessage('再設定メールを送信しました。メール内のリンクから新しいパスワードを設定できます。'); } });
   window.addEventListener('online', () => api.retry());
+  ['pointerdown', 'keydown'].forEach(name => window.addEventListener(name, () => api.touch(), {passive:true}));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) api.touch(); });
   window.addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
   api.ready.then(render);
 })();
