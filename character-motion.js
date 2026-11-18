@@ -63,12 +63,14 @@
     raf = 0;
     for (const r of running) {
       if (!r.actor.isConnected) { running.delete(r); continue; }
-      const homeStandard = r.rate >= 1 && r.actor.classList.contains('home-actor');
+      // Home jumps keep their natural pace even when battle effects are fast.
+      const motionRate = r.name === 'jump' && r.actor.classList.contains('home-actor') ? 1 : r.rate;
+      const homeStandard = motionRate >= 1 && r.actor.classList.contains('home-actor');
       const homePace = homeStandard && (r.name === 'jump' || r.name === 'tf') ? 1.8 : 1;
-      const frameMs = 1000 / (r.options.fps || rates[r.name] || 5) * r.rate * homePace;
+      const frameMs = 1000 / (r.options.fps || rates[r.name] || 5) * motionRate * homePace;
       const elapsed = Math.max(0, now - r.start);
       const loop = r.name === 'idle' || !!r.options.loop;
-      if (!loop && r.options.then && elapsed >= frameMs * 4 + (r.options.hold || 0) * r.rate) {
+      if (!loop && r.options.then && elapsed >= frameMs * 4 + (r.options.hold || 0) * motionRate) {
         play(r.actor, r.options.then, { rate: r.rate }); continue;
       }
       let n = r.options.still ? 0 : loop ? Math.floor(elapsed / frameMs) % 4 : Math.min(3, Math.floor(elapsed / frameMs));
