@@ -33,10 +33,16 @@
     const now = options.now || (() => Date.now());
     const idleLimit = 90 * 24 * 60 * 60 * 1000;
     const activityKey = uid => 'jq-auth:' + uid + ':last-active';
+    function lastActivity(uid) {
+      const key = activityKey(uid);
+      let saved = 0;
+      try { saved = Number(local.getItem(key)) || 0; } catch {}
+      return Math.max(saved, Number(memory.get(key)) || 0);
+    }
     let expiryCheck = false, expiring = false;
     function touch() {
       if (!owner || identity(auth?.currentUser) !== owner) return;
-      const last = Number(readRaw(activityKey(owner)));
+      const last = lastActivity(owner);
       if (initialized && last > 0 && now() - last >= idleLimit) {
         if (!expiring) {
           expiring = true; mask(true);
@@ -104,7 +110,7 @@
       const uid = identity(current);
       if (!initialized && uid && !expiryCheck) {
         expiryCheck = true;
-        const last = Number(readRaw(activityKey(uid)));
+        const last = lastActivity(uid);
         if (last > 0 && now() - last >= idleLimit) {
           // Expire the saved login before reading any of this account's game data.
           Promise.resolve(auth.signOut()).catch(() => observe(null));
