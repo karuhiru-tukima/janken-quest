@@ -16,6 +16,17 @@
   .hm-go{width:540px;bottom:18px;gap:8px}.hm-start b{font-size:2.15rem}.hm-sub .medal{width:40px;height:40px}.hm-sub .ribbon{font-size:.7rem}
   .hm-side.l .kaede-home-controls{flex-direction:column;gap:5px;width:100%;border-top:1px solid #bda05b66;padding-top:8px}.hm-side.l .kaede-home-controls button{min-height:32px;width:100%;font-size:.67rem}
 }
+/* Make the tower and co-op artwork legible inside their round buttons. */
+.hm #h-tower .medal,.hm #h-coop .medal{width:58px;height:58px}
+.hm #h-tower .medal .pxi,.hm #h-coop .medal .pxi{width:48px!important;height:48px!important}
+@media(max-width:1079px){
+  .hm #h-tower .medal,.hm #h-coop .medal{width:48px;height:48px}
+  .hm #h-tower .medal .pxi,.hm #h-coop .medal .pxi{width:40px!important;height:40px!important}
+}
+@media(max-width:1079px) and (max-height:720px){
+  .hm #h-tower .medal,.hm #h-coop .medal{width:44px;height:44px}
+  .hm #h-tower .medal .pxi,.hm #h-coop .medal .pxi{width:36px!important;height:36px!important}
+}
 @media(min-width:1080px) and (max-height:820px){
   .hm{min-height:600px}.hm-colL,.hm-colR{top:120px}.hm-head{top:50px}.hm-stage{font-size:1.5rem}.hm-home-equipment .cmark .cart{width:36px;height:54px}.hm-home-equipment .cmarks{gap:4px}.hm-side.l{padding:9px 10px;gap:7px}.hm .home-stage{--zs:1.9}.hm .home-say{bottom:calc(143px + 290px)}
 }

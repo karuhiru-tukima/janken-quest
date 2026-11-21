@@ -7,13 +7,16 @@
     const state=()=>core.state(getCS());
     let selected=getS().charId,reading=0,dialogCleanup=()=>{};
     const rewardText=c=>`${c.coins}コイン・ホームのセリフ`+(c.number===3?'・称号・別アイコン・登場演出':'');
-    function face(id,variant=false,frame=false) {
+    function face(id,variant=false,frame=false,kaedeReward='red') {
       const s=find(id),atlas=window.JQMotionAtlases['c'+id];
       let picture=charFace(id);
-      if(variant&&atlas) {
+      if(variant&&id===18) {
+        const form=['red','blue','both'].includes(kaedeReward)?kaedeReward:'red';
+        const label={red:'赤の姿',blue:'青の姿',both:'赤と青'}[form];
+        picture=`<span class="q-kaede-reward" role="img" aria-label="カエデの物語報酬・${label}"><img src="img/faces/kaede-reward-v2/${form}.png?v=${window.JQ_VER}" alt="" decoding="sync"></span>`;
+      } else if(variant&&atlas) {
         const portrait=a=>{const f=a.frames[26],size=Math.max(f[2]-f[0],(f[3]-f[1])*.53),x=f[0],y=f[1];return `<span class="q-victory-portrait" style="background-image:url('${a.src}');background-size:${a.width/size*100}% ${a.height/size*100}%;background-position:${x/(a.width-size)*100}% ${y/(a.height-size)*100}%"></span>`;};
         picture=portrait(atlas);
-        if(id===18&&window.JQMotionAtlases.c18d)picture=`<span class="q-story-half red">${picture}</span><span class="q-story-half blue">${portrait(window.JQMotionAtlases.c18d)}</span>`;
       }
       return `<span class="q-portrait${variant?' story':''}${frame?' mastery':''}" style="--q-color:${api.charOf(id).color}">${picture}${variant?`<span class="q-emblem">${s.emblem}</span>`:''}</span>`;
     }
@@ -171,7 +174,9 @@
       openInfo('タイトル背景のプレビュー',`<div class="q-background-preview" data-quest-background="${value}">${titleArt(value)}<div class="q-preview-logo">じゃんけん<br>クエスト</div></div><p class="sub">選択は保存済みです。次にスタート画面を開くと表示されます。</p>`,[['報酬へ戻る','',()=>rewards()]]);
     }
     function entry(target,id,force=false) {
-      if(!target||(!force&&(!core.complete(getCS(),id)||state().entryOff.includes(id))))return;
+      if(!target)return;
+      api.playEntryVoice?.(id);
+      if(!force&&(!core.complete(getCS(),id)||state().entryOff.includes(id)))return;
       const s=find(id),effect=document.createElement('div');effect.className='q-entry-effect q-entry-'+id;effect.style.setProperty('--q-accent',api.charOf(id).color);
       effect.innerHTML=`<span class="q-entry-symbol">${s.emblem}</span><b>${s.entry}</b>`;effect.setAttribute('role','status');
       target.querySelectorAll('.q-entry-effect').forEach(el=>el.remove());target.append(effect);

@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-22-0013";
+  window.JQ_VER = "2026-11-22-0019";
   // 画像を変更していない更新では、再ダウンロードせず保存済みの画像を使う。
   window.JQ_ASSET_VER = "2026-11-08-0045";
   window.JQ_MOTION_VER = "2026-11-08-0044";
@@ -1378,6 +1378,7 @@ body.on-home .wrap { padding-top: 10px; }
 .pf-pick .cfc.kaede-face { position: relative; display: block; overflow: hidden; aspect-ratio: 1; }
 .pf-pick .cfc.ph { background-size: 230% auto; background-position: 52% 14%; background-repeat: no-repeat; }
 .pf-pick.on { outline: 3px solid var(--gold); outline-offset: 1px; }
+.pf-pick:disabled{opacity:.4;cursor:not-allowed}.pf-pick{position:relative}.pf-pick .pf-lock{position:absolute;left:0;right:0;bottom:0;background:#151a33de;color:var(--ink);font-size:8px;line-height:1.4}.pf-pick>.q-portrait{width:100%;height:100%}
 /* オンライン対戦前 */
 .pm-modal { max-width: 680px; }
 .pm-vs { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
@@ -1387,9 +1388,9 @@ body.on-home .wrap { padding-top: 10px; }
 @media (max-width: 599px) { .pm-vs { grid-template-columns: 1fr; } .pm-x { justify-self: center; } }
 </style>
 <link rel="stylesheet" href="account.css?v=2026-11-16-0052">
-<link rel="stylesheet" href="quest.css?v=2026-11-22-0013">
-<link rel="stylesheet" href="coop.css?v=2026-11-22-0013">
-<link rel="stylesheet" href="home-layout.css?v=2026-11-22-0013">
+<link rel="stylesheet" href="quest.css?v=2026-11-22-0019">
+<link rel="stylesheet" href="coop.css?v=2026-11-22-0019">
+<link rel="stylesheet" href="home-layout.css?v=2026-11-22-0019">
 </head>
 <body>
 <!-- 起動画面：新しい版の確認と画像の読み込みが終わったら「タップしてはじめる」（ここで音も出せるようになる） -->
@@ -1445,7 +1446,6 @@ body.on-home .wrap { padding-top: 10px; }
         <div class="hm-prof" id="hm-prof"></div>
         <div class="hm-side l">
           <div class="hm-left-panel hm-ability-panel"><button class="hm-ic" id="h-abil"><span class="medal" data-ico="scroll"></span><span class="ribbon">能力</span></button></div>
-          <div class="hm-home-equipment hm-left-panel" aria-label="装備中のカード"><span class="hm-eqh ribbon">装備</span><span id="home-plate"></span></div>
           
         </div>
       </div>
@@ -1966,6 +1966,10 @@ function playVoice(ch, k, text) {
 function preloadVoices(chs) {
   if (!AU.ctx) return;  // 音の準備（最初のタップ）ができてから読みこむ
   for (const ch of chs) for (const k of Object.keys(STAMPS)) voiceData(`voice/v${ch}_${k}.wav?v=${window.JQ_VER}`).catch(() => {});
+}
+function playEntryVoice(ch) {
+  const story=window.JQQuestContent.stories.find(s=>s.id===ch);
+  if(story)playVoice(ch,"entry",story.entry);
 }
 
 /* ---- 予備のボイス（ブラウザの読み上げ機能）。キャラごとに声の高さ・速さ・声の種類を変える ---- */
@@ -5567,11 +5571,14 @@ const HOME_LINES = {
 let homeTimer = 0;
 // voiced=true のときはボイス（voice/v{キャラ}_home{番号}.wav）も鳴らす
 function homeSay(voiced) {
-  const lines = [...(HOME_LINES[S.charId] || ["いくぞ！"]), ...window.JQQuestCore.lines(CS,S.charId)];
+  const cleared=new Set(window.JQQuestCore.state(CS).cleared);
+  const story=window.JQQuestContent.stories.find(s=>s.id===S.charId);
+  const lines = [...(HOME_LINES[S.charId] || ["いくぞ！"]).map((text,i)=>({text,key:"home"+i})),
+    ...(story?.chapters||[]).filter(c=>cleared.has(c.id)).map(c=>({text:c.line,key:"home"+(c.number+2)}))];
   // 3つの中から毎回ランダム（同じセリフが続くこともある）
   const i = Math.floor(Math.random() * lines.length);
-  const el = $("home-say"); el.textContent = lines[i]; el.className = "callout home-say";
-  if (voiced && i < (HOME_LINES[S.charId]?.length || 0)) playVoice(S.charId, "home" + i, lines[i]);
+  const el = $("home-say"); el.textContent = lines[i].text; el.className = "callout home-say";
+  if (voiced) playVoice(S.charId, lines[i].key, lines[i].text);
   play_(el, [{ transform: "translateX(-50%) scale(.4)", opacity: 0 }, { transform: "translateX(-50%) scale(1.08)", opacity: 1, offset: .6 }, { transform: "translateX(-50%)" }], 320, "ease-out");
 }
 function renderHome() {
@@ -5596,7 +5603,7 @@ function renderHome() {
   // 上：顔・名前・コイン
   // 左上はプロフィール（アイコン・ニックネーム・称号）。押すとプロフィールを開く
   { const pf = profLoad(), ic = charOf(pf.icon) || c;
-    $("h-chara-ico").style.color = ic.color; $("h-chara-ico").innerHTML = Q.face(ic.id, pf.iconVariant === "story", pf.frame);
+    $("h-chara-ico").style.color = ic.color; $("h-chara-ico").innerHTML = Q.face(ic.id, pf.iconVariant === "story", pf.frame, pf.kaedeReward);
     $("hm-name").textContent = profNick(); $("hm-title").textContent = pf.title || "プロフィール"; }
   $("hm-coins").textContent = CS.coins.toLocaleString();
   // 真ん中上：クリア数と、次に挑むステージ。「開始」はそのステージの確認画面を開く
@@ -5613,9 +5620,7 @@ function renderHome() {
   // PCの左右に出す情報：次のステージの敵、キャラの能力
   $("hm-next").innerHTML = `<h3>次の敵（${key(nw, ni)}）</h3>` + WORLDS[nw - 1].stages[ni].map(([t], n) => enemyPrevHTML(TPL[t], `${n + 1}体目`)).join("");
   $("hm-prof").innerHTML = `<h3>${c.name}の能力</h3><p>${c.ab}</p>`;
-  // 右の列：装備中のカードを絵で縦に並べる（押すと装備画面）
-  $("home-plate").innerHTML = eq.length ? cardChips(eq, rev) : `<span class="hm-none">なし</span>`;
-  paintAll($("home-plate"));
+  // ステージ背景とキャラの表示を更新。
   applyStageBg($("home-stage"), "bg/home");
   requestAnimationFrame(fitHome); // 下のメニューに重ならない高さに合わせる
   homeSay(true); // ホームに来たとき（ほかの画面から戻ったとき）もひとこと話す
@@ -5855,22 +5860,22 @@ const cleanRec = r => ({ w: Math.max(0, Math.min(1e6, (r && r.w) | 0)), l: Math.
 function profLoad() {
   let p; try { p = JSON.parse(playerStorage.getItem(PROFILE_KEY) || "{}") || {}; } catch { p = {}; }
   const owned = [...towerLoad().titles, ...window.JQQuestCore.titles(CS), ...window.JQCoopCore.titles(CS)];
-  return { icon: charOf(p.icon) ? p.icon : S.charId, iconVariant:p.iconVariant === "story" && window.JQQuestCore.complete(CS,p.icon) ? "story" : "normal", frame:!!p.frame && window.JQQuestCore.framed(CS,p.icon), title: owned.includes(p.title) ? p.title : "", line: profLineOk(p.line) ? p.line : "",
+  return { icon: charOf(p.icon) ? p.icon : S.charId, iconVariant:p.iconVariant === "story" && window.JQQuestCore.complete(CS,p.icon) ? "story" : "normal", frame:!!p.frame && window.JQQuestCore.framed(CS,p.icon), kaedeReward:["red","blue","both"].includes(p.kaedeReward)?p.kaedeReward:"red", title: owned.includes(p.title) ? p.title : "", line: profLineOk(p.line) ? p.line : "",
     coopFrame:window.JQCoopCore.progress(CS).frame, showRec: p.showRec !== false, rec: cleanRec(p.rec) };
 }
 function profSave(p) { try { playerStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch {} }
 function profRecord(kind) { const p = profLoad(), k = { win: "w", lose: "l", draw: "d" }[kind]; if (!k) return; p.rec[k]++; profSave(p); }
 // 相手に送る形（戦績を見せない設定なら送らない）
-function profWire() { const p = profLoad(); return Object.assign({ i: p.icon, v:p.iconVariant, fr:p.frame, cf:p.coopFrame, t: p.title, l: p.line }, p.showRec ? { r: [p.rec.w, p.rec.l, p.rec.d] } : {}); }
+function profWire() { const p = profLoad(); return Object.assign({ i: p.icon, v:p.iconVariant, kr:p.kaedeReward, fr:p.frame, cf:p.coopFrame, t: p.title, l: p.line }, p.showRec ? { r: [p.rec.w, p.rec.l, p.rec.d] } : {}); }
 // 相手から届いたプロフィールは、一覧にある値だけ使う
 function profFromWire(w, ch) {
   w = w && typeof w === "object" ? w : {};
   const r = Array.isArray(w.r) ? cleanRec({ w: w.r[0], l: w.r[1], d: w.r[2] }) : null;
-    return { icon: charOf(w.i) ? w.i : (charOf(ch) ? ch : 1), iconVariant:w.v === "story" ? "story" : "normal", frame:w.fr === true, coopFrame:window.JQCoopCore.find(w.cf)?w.cf:'', title: ALL_TITLES.has(w.t) ? w.t : "", line: profLineOk(w.l) || window.JQQuestContent.stories.some(s=>s.chapters.some(c=>c.line===w.l)) ? w.l : "", showRec: !!r, rec: r || cleanRec(null) };
+    return { icon: charOf(w.i) ? w.i : (charOf(ch) ? ch : 1), iconVariant:w.v === "story" ? "story" : "normal", frame:w.fr === true, kaedeReward:["red","blue","both"].includes(w.kr)?w.kr:"red", coopFrame:window.JQCoopCore.find(w.cf)?w.cf:'', title: ALL_TITLES.has(w.t) ? w.t : "", line: profLineOk(w.l) || window.JQQuestContent.stories.some(s=>s.chapters.some(c=>c.line===w.l)) ? w.l : "", showRec: !!r, rec: r || cleanRec(null) };
 }
 function profCardHTML(p, nick, ready) {
   const c = charOf(p.icon) || charOf(1), r = p.rec, n = r.w + r.l + r.d;
-  return `<div class="pf-card${ready ? " ready" : ""}"><span class="badge pf-ico${p.coopFrame ? ' coop-profile-frame' : ''}" style="color:${c.color}">${Q.face(c.id,p.iconVariant === "story",p.frame)}</span>
+  return `<div class="pf-card${ready ? " ready" : ""}"><span class="badge pf-ico${p.coopFrame ? ' coop-profile-frame' : ''}" style="color:${c.color}">${Q.face(c.id,p.iconVariant === "story",p.frame,p.kaedeReward)}</span>
     <div class="pf-main"><b class="pf-nick">${esc(nick)}</b>${p.title ? `<span class="pf-title">${esc(p.title)}</span>` : ""}
     <p class="pf-line">${p.line ? `「${esc(p.line)}」` : `<span class="sub">（ひとことなし）</span>`}</p>
     <p class="pf-rec">${p.showRec ? `${r.w}勝 ${r.l}敗 ${r.d}分・勝率${n ? Math.round(r.w / n * 100) : 0}%` : `<span class="sub">戦績は非公開</span>`}</p></div>
@@ -5878,13 +5883,15 @@ function profCardHTML(p, nick, ready) {
 }
 function openProfile() {
   const p = profLoad(), titles = [...towerLoad().titles,...window.JQQuestCore.titles(CS), ...window.JQCoopCore.titles(CS)], draft = Object.assign({}, p);
-  const icons = CHARS.map(c => `<button type="button" class="pf-pick${p.icon === c.id ? " on" : ""}" data-icon="${c.id}" aria-label="${c.name}" aria-pressed="${p.icon === c.id}" style="color:${c.color}">${charFace(c.id)}</button>`).join("");
+  const hasStoryIcon=CHARS.some(c=>window.JQQuestCore.complete(CS,c.id));
+  const icons = variant => CHARS.map(c => {const locked=variant==="story"&&!window.JQQuestCore.complete(CS,c.id);return `<button type="button" class="pf-pick${draft.icon === c.id ? " on" : ""}" data-icon="${c.id}" aria-label="${c.name}${locked?'（未解放）':''}" aria-pressed="${draft.icon === c.id}" style="color:${c.color}"${locked?' disabled':''}>${Q.face(c.id,variant==="story",false,draft.kaedeReward)}${locked?'<span class="pf-lock">未解放</span>':''}</button>`;}).join("");
   const lines = profLineGroups().map(g => `<optgroup label="${esc(g.g)}">${g.lines.map(l => `<option${l === p.line ? " selected" : ""}>${esc(l)}</option>`).join("")}</optgroup>`).join("");
   const nick = profNick();
   const html = `<div id="pf-prev"></div>
     <label class="pf-row"><span>ニックネーム</span><input id="pf-nick" maxlength="12" value="${esc(nick === "名無し" ? "" : nick)}" placeholder="名無し"></label>
-    <div class="pf-row"><span>アイコン</span><div class="pf-icons">${icons}</div><span class="sub">各キャラの3話クリアで別アイコン、お題3つ達成で飾り枠を選べます。</span></div>
     <label class="pf-row"><span>アイコンの種類</span><select id="pf-variant"><option value="normal">通常</option><option value="story">物語クリアのアイコン</option></select><span id="pf-variant-hint" class="sub"></span></label>
+    <div class="pf-row"><span>アイコン</span><div class="pf-icons" id="pf-icons" data-variant="${p.iconVariant}">${icons(p.iconVariant)}</div><span class="sub">各キャラの3話クリアで別アイコン、お題3つ達成で飾り枠を選べます。</span></div>
+    <label class="pf-row" id="pf-kaede-row" hidden><span>カエデの報酬アイコン</span><select id="pf-kaede-reward"><option value="red">赤の姿</option><option value="blue">青の姿</option><option value="both">赤と青</option></select></label>
     <label class="pf-chk"><input type="checkbox" id="pf-frame">お題達成の飾り枠を付ける</label>
     <label class="pf-row"><span>称号</span><select id="pf-title"><option value="">（つけない）</option>${titles.map(t => `<option${t === p.title ? " selected" : ""}>${esc(t)}</option>`).join("")}</select>${titles.length ? "" : `<span class="sub">試練の塔の25階・50階、各キャラの3話クリアで手に入ります。</span>`}</label>
     <label class="pf-row"><span>ひとこと</span><select id="pf-line"><option value="">（なし）</option>${lines}</select></label>
@@ -5903,16 +5910,22 @@ function openProfile() {
   const upd = () => {
     const unlocked=window.JQQuestCore.complete(CS,draft.icon),framed=window.JQQuestCore.framed(CS,draft.icon);
     if (!unlocked) draft.iconVariant="normal"; if (!framed) draft.frame=false;
-    $("pf-variant").value=draft.iconVariant||"normal"; $("pf-variant").querySelector('[value="story"]').disabled=!unlocked;
-    $("pf-variant-hint").textContent=unlocked?"物語クリアのアイコンを選べます。":"このキャラの3話クリアで解放されます。";
+    $("pf-variant").value=draft.iconVariant||"normal"; $("pf-variant").querySelector('[value="story"]').disabled=!hasStoryIcon;
+    $("pf-variant-hint").textContent=draft.iconVariant==="story"?"物語クリア版を表示中。未解放のキャラは選べません。":unlocked?"通常アイコンを表示中。物語クリア版にも切り替えられます。":"各キャラの3話クリアで物語クリア版が解放されます。";
+    const grid=$("pf-icons"),gridKey=draft.iconVariant+":"+draft.kaedeReward;if(grid.dataset.variant!==gridKey){grid.dataset.variant=gridKey;grid.innerHTML=icons(draft.iconVariant);bindIconPicks();}
+    grid.querySelectorAll('.pf-pick').forEach(btn=>{const active=+btn.dataset.icon===draft.icon;btn.classList.toggle('on',active);btn.setAttribute('aria-pressed',String(active));});
+    $("pf-kaede-row").hidden=!(draft.icon===18&&draft.iconVariant==="story");
+    $("pf-kaede-reward").value=draft.kaedeReward;
     $("pf-frame").disabled=!framed; $("pf-frame").checked=!!draft.frame;
     $("pf-prev").innerHTML = profCardHTML(draft, ($("pf-nick").value.trim() || "名無し").slice(0, 12)); };
-  $("info-body").querySelectorAll(".pf-pick").forEach(btn => btn.onclick = () => {
+  function bindIconPicks(){$("pf-icons").querySelectorAll(".pf-pick").forEach(btn => btn.onclick = () => {
     draft.icon = +btn.dataset.icon;
     $("info-body").querySelectorAll(".pf-pick").forEach(x => { x.classList.toggle("on", x === btn); x.setAttribute("aria-pressed", x === btn); });
     upd();
-  });
-  $("pf-variant").onchange = () => { draft.iconVariant=$("pf-variant").value; upd(); };
+  });}
+  bindIconPicks();
+  $("pf-variant").onchange = () => { draft.iconVariant=$("pf-variant").value;if(draft.iconVariant==="story"&&!window.JQQuestCore.complete(CS,draft.icon)){const first=CHARS.find(c=>window.JQQuestCore.complete(CS,c.id));if(first)draft.icon=first.id;else draft.iconVariant="normal";} upd(); };
+  $("pf-kaede-reward").onchange = () => { draft.kaedeReward=$("pf-kaede-reward").value; upd(); };
   $("pf-frame").onchange = () => { draft.frame=$("pf-frame").checked; upd(); };
   $("pf-title").onchange = () => { draft.title = $("pf-title").value; upd(); };
   $("pf-line").onchange = () => { draft.line = $("pf-line").value; upd(); };
@@ -5943,13 +5956,13 @@ async function questBegin(c) {
     toast("敵の画像を読み込めませんでした。通信を確認して、もう一度お試しください。");
   } finally { questStarting=false; }
 }
-const Q=window.JQQuests.create({$,esc,getS:()=>S,getCS:()=>CS,saveCS,charOf,charFace,enemyPrevHTML,TPL,towerLoad,openInfo,closeInfo,
+const Q=window.JQQuests.create({$,esc,getS:()=>S,getCS:()=>CS,saveCS,charOf,charFace,playEntryVoice,enemyPrevHTML,TPL,towerLoad,openInfo,closeInfo,
   begin:questBegin,resumeBattle,home:()=>show("home"),
   leaveBattle(){ S.battle=null; clearStage(); show("home"); saveResume(); sfx("select"); },
 });
 $("h-quest").onclick=()=>Q.open(S.charId);
 // Coop keeps its own progress and match receipts inside the account's jq-cards save.
-const COOP=window.JQCoop.create({$,esc,chars:CHARS,character:()=>S.charId,cs:()=>CS,save:saveCS,charPortrait:charFace,
+const COOP=window.JQCoop.create({$,esc,chars:CHARS,character:()=>S.charId,cs:()=>CS,save:saveCS,charPortrait:charFace,playEntryVoice,
   cardInfo:ch=>eqList(ch).map(x=>({name:CARD[x.c].name,rarity:RAR[x.r].name,level:x.l})),
   user:()=>firebase.auth().currentUser,onlineUser:()=>window.JQAccount.onlineUser(),
   sha,nick:profNick,validChar:id=>!!charOf(id),charName:id=>charOf(id)?.name||"仲間",

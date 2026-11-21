@@ -31,7 +31,7 @@
         if(peers.some(p=>p.peer===r.uid&&p.presence.nonce!==r.local.nonce)){abort(r,'同じアカウントが別の画面から参加しました。1人につき1画面で参加してください。');break;}
         if(!r.match){if(peers.length<2){draw();break;}if(peers.some(p=>p.presence.v!==1||p.presence.boss!==r.local.boss||!api.validChar(p.presence.ch)||typeof p.presence.nonce!=='string')){abort(r,'2人のボス選択またはゲームのバージョンが違います。同じ設定で入り直してください。');break;}
           r.roster=peers.map(p=>({uid:p.peer,nonce:p.presence.nonce,ch:p.presence.ch,cards:api.cleanCards(p.presence.cards),nick:String(p.presence.nick||'仲間').slice(0,12)}));r.side=r.roster.findIndex(p=>p.uid===r.uid);if(r.side<0)throw Error('missing self');
-          r.match=await api.sha(JSON.stringify([r.local.boss,r.roster]));if(!ownerOK(r))break;r.state=K.create(r.local.boss,r.roster,r.match,api.make);r.digest=await api.sha(JSON.stringify(r.state));await publish(r,{match:r.match,ack:{turn:0,hash:r.digest}});r.again=true;}
+          r.match=await api.sha(JSON.stringify([r.local.boss,r.roster]));if(!ownerOK(r))break;r.state=K.create(r.local.boss,r.roster,r.match,api.make);api.playEntryVoice?.(r.local.ch);r.digest=await api.sha(JSON.stringify(r.state));await publish(r,{match:r.match,ack:{turn:0,hash:r.digest}});r.again=true;}
         const other=r.peers.find(p=>p.peer===r.roster[1-r.side].uid)?.presence;
         if(!other||other.nonce!==r.roster[1-r.side].nonce){if(!r.missing){r.missing=Date.now();draw();}break;}r.missing=0;
         if(!other.match){draw();break;}if(other.match!==r.match){abort(r,'参加情報が一致しません。入り直してください。');break;}
