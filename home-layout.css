@@ -1,13 +1,12 @@
-/* Keep the character, equipment and activities together instead of stretching
-   side panels to the edges of a wide monitor. */
+/* Place the side panels near the screen edges and keep the hero centered. */
 .hm-home-equipment{align-items:center}.hm-home-equipment #home-plate{display:flex;justify-content:center;width:100%}.hm-home-equipment .cmarks{align-items:center}.hm-home-equipment .hm-eqh{align-self:center;width:auto}.hm-side.l{align-items:center}.hm-home-equipment .cmarks{flex-direction:column}
 @media(min-width:1080px){
-  .hm{max-width:1120px;height:min(760px,calc(100dvh - 112px));min-height:650px;margin:0 auto}
+  .hm{max-width:none;height:min(760px,calc(100dvh - 112px));min-height:650px;margin:0 auto}
   .hm-top{padding:12px 18px}.hm-head{top:58px}.hm-stage{font-size:1.85rem}
   .hm .home-stage{--zs:2.15}.hm .actor.p.home-actor{bottom:143px;left:calc(50% - 42px)}
   .hm .home-say{bottom:calc(143px + 345px);font-size:.95rem;max-width:320px;white-space:normal}
   .hm-colL,.hm-colR{top:156px;max-height:none;overflow:visible;gap:12px}
-  .hm-colL{left:clamp(28px,calc(50% - 410px),150px);width:112px}.hm-colR{right:calc(50% - 445px);width:238px}
+  .hm-colL{left:22px;width:112px}.hm-colR{right:22px;width:238px}
   .hm-prof{display:none}.hm-side.l{width:112px;align-items:center;padding:12px 10px;gap:10px}
   .hm-side.l .hm-ic{width:100%;align-items:center}.hm-home-equipment{width:100%;align-items:center;padding-top:10px;gap:8px}
   .hm-home-equipment .cmark .cart{width:46px;height:69px}.hm-home-equipment .cmarks{gap:6px}

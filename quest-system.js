@@ -6,7 +6,7 @@
     const find=id=>content.stories.find(s=>s.id===id);
     const state=()=>core.state(getCS());
     let selected=getS().charId,reading=0,dialogCleanup=()=>{};
-    const rewardText=c=>`${c.coins}コイン・ホームのセリフ`+(c.number===2?'・後日談':c.number===3?'・称号・別アイコン・登場演出':'');
+    const rewardText=c=>`${c.coins}コイン・ホームのセリフ`+(c.number===3?'・称号・別アイコン・登場演出':'');
     function face(id,variant=false,frame=false) {
       const s=find(id),atlas=window.JQMotionAtlases['c'+id];
       let picture=charFace(id);
@@ -30,7 +30,7 @@
       }).join('');
       openInfo('キャラ個別クエスト',`<div class="q-overview"><span class="badge">${face(s.id,core.complete(cs,s.id),core.framed(cs,s.id))}</span><div><b>${esc(s.name)}「${esc(s.title)}」</b><p class="sub">全18人・54話のうち ${q.cleared.length}話クリア／勲章 ${q.medals.length}/54</p></div></div>${picker}
         ${live?.quest&&!live.over?`<button type="button" class="btn" id="q-resume">途中のクエストに戻る：${esc(core.of(live.quest.id).title)}</button>`:''}${cards}
-        <p class="sub">装備中のカードで戦います。各話の初回報酬は一度だけ。お題は再挑戦でも達成できます。</p>`,[['後日談の図鑑','',journal],['報酬・タイトル背景','',()=>rewards(s.id)]]);
+        <p class="sub">装備中のカードで戦います。各話の初回報酬は一度だけ。お題は再挑戦でも達成できます。</p>`,[['報酬・タイトル背景','',()=>rewards(s.id)]]);
       $('q-character').onchange=()=>open(+$('q-character').value);
       $('info-body').querySelectorAll('[data-q-chapter]').forEach(b=>b.onclick=()=>preview(b.dataset.qChapter));
       if($('q-resume'))$('q-resume').onclick=()=>{closeInfo();api.resumeBattle();};
@@ -124,17 +124,8 @@
       else buttons.push(['ホームへ','primary',()=>{closeInfo();api.home();}]);
       openInfo(`第${c.number}話 クリア！`, `<div class="q-clear"><span class="badge">${face(s.id,core.complete(cs,s.id),core.framed(cs,s.id))}</span><h3>${esc(c.title)}</h3><p>${r.first?`+${r.coins}コイン`:'初回報酬は受け取り済みです'}</p>
         ${r.first?`<p>ホームのセリフ解放<br>「${esc(c.line)}」</p>`:''}<p>${r.newMedal?'★ お題の勲章を獲得！':state().medals.includes(c.id)?'★ お題達成済み':`お題：${esc(core.goalText(c))}　再挑戦できます`}</p>
-        ${c.number===2?'<p>後日談を図鑑に追加しました。</p>':''}${c.number===3?`<p>称号「${esc(s.honor)}」・別アイコン・専用登場演出を解放！</p>`:''}
+        ${c.number===3?`<p>称号「${esc(s.honor)}」・別アイコン・専用登場演出を解放！</p>`:''}
         ${core.framed(cs,s.id)?'<p>3話のお題達成：専用の飾り枠を解放！</p>':''}${r.all?`<p>全54話クリア！ 称号「${content.allTitle}」と18人のタイトル背景を解放！</p>`:''}</div>`,buttons);
-    }
-    function journal() {
-      const q=state();
-      const rows=content.stories.filter(s=>q.cleared.includes(s.id+'-2')).map(s=>{
-        const end=core.complete(getCS(),s.id)?s.chapters[2]:s.chapters[1];
-        return `<section class="q-chapter"><h3>${s.name}「${s.title}」</h3><p>${esc(end.after.map(d=>d.speaker+'：'+d.text).join('　'))}</p><button type="button" class="btn sm" data-q-journal="${s.id}">会話を読み返す</button></section>`;
-      }).join('');
-      openInfo('物語の後日談',rows||'<p>各キャラの第2話をクリアすると、後日談がここに追加されます。</p>',[['クエストへ','',()=>open()]]);
-      $('info-body').querySelectorAll('[data-q-journal]').forEach(b=>b.onclick=()=>open(+b.dataset.qJournal));
     }
     function backgrounds() {return [{id:'default',name:'いつもの夜',owned:true},{id:'tower',name:'試練の塔・制覇の夜明け',owned:towerLoad().best>=50},{id:'stories',name:'十八の物語・旅の仲間たち',owned:core.all(getCS())}];}
     function backgroundOptions() {const q=state();return backgrounds().map(b=>`<option value="${b.id}"${q.background===b.id?' selected':''}${b.owned?'':' disabled'}>${b.name}${b.owned?'':'（未解放）'}</option>`).join('');}
@@ -187,7 +178,7 @@
       if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)effect.addEventListener('animationend',event=>{if(event.target===effect)effect.remove();});
       setTimeout(()=>effect.remove(),2600);
     }
-    return {open,preview,finish,journal,rewards,face,entry,prepareTitle,chooseBackground,backgrounds};
+    return {open,preview,finish,rewards,face,entry,prepareTitle,chooseBackground,backgrounds};
   }
   window.JQQuests={create};
 })();

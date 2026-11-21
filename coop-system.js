@@ -13,17 +13,8 @@
     function hide(){shown=false;root.hidden=true;root.innerHTML='';if($('wrap'))$('wrap').inert=false;api.afterClose?.();}
     async function leave(){const old=run;run=null;token++;clearInterval(tick);tick=0;if(old){old.unsubscribe?.();try{await old.room.leave();}catch{}}hide();}
     function error(message){if($('coop-error'))$('coop-error').textContent=message;}
-    function open(){if(run){draw();return;}const q=K.progress(api.cs()),b=K.find(selection);
-      shell('共闘ボス討伐',`<p>2人で予兆を読み、攻撃・防御・支援・救助を使い分けよう。全15体／討伐 ${q.cleared.length}/15／メダル ${q.medals}枚</p>
-      <div class="row"><button class="btn" id="coop-rewards">メダル交換・討伐図鑑</button></div>
-      <label class="field">ボスを選ぶ<select id="coop-boss">${C.bosses.map(x=>`<option value="${x.id}"${x.id===b.id?' selected':''}>${x.difficulty}：${x.name}${q.cleared.includes(x.id)?' ✓':''}</option>`).join('')}</select></label>
-      <div class="coop-preview">${art(b)}<div><h3>${esc(b.name)}</h3><p>${esc(b.story)}</p><p>${esc(b.hint)}</p><p class="q-rewards">勝利：${b.coins}コイン＋メダル${b.medals}枚</p></div></div>
-      <label class="field">キャラ<select id="coop-char">${api.chars.map(c=>`<option value="${c.id}"${c.id===api.character()?' selected':''}>${c.name}</option>`).join('')}</select></label>
-      <p class="sub">選んだキャラの装備で出撃。キャラ能力・アルカナは対戦と同じ計算です。ボスにはセツナの初手即死を攻撃力6倍の一撃として扱います。各自のHPは通常対戦の2倍。</p>
-      <label class="field">あいことば（2人で同じものを入力）<input class="txt" id="coop-password" maxlength="40" autocomplete="off" placeholder="例：ふたりの冒険"></label>
-      <button class="btn primary" id="coop-join">このボスに挑む</button><p class="sub">両方が同じボスを選んで参加。1手20秒、時間切れは防御。通信が途切れた場合は待機し、30秒戻らなければ中止します。討伐は40ターンまで。</p>`);
-      $('coop-boss').onchange=()=>{selection=$('coop-boss').value;open();};$('coop-rewards').onclick=rewards;$('coop-join').onclick=()=>join($('coop-password').value.trim(),+$('coop-char').value);
-    }
+    const lobby=window.JQCoopLobby.create({api,shell,art,rewards,join:(id,ch,password)=>{selection=id;return join(password,ch);}});
+    function open(){if(run){draw();return;}lobby.open();}
     async function join(password,ch){if(joining)return;if(!password){error('あいことばを入力してください。');return;}joining=true;const attempt=++token;$('coop-join').disabled=true;
       let room;try{const user=await api.onlineUser();if(attempt!==token)return;const hash=await api.sha('jq-coop-v1|'+password);room=await api.join('coop-v1-'+hash.slice(0,40),user.uid);if(attempt!==token){await room.leave();return;}
         const r={room,uid:user.uid,epoch:attempt,peers:[],local:{v:1,ch,nick:api.nick().slice(0,12),coop:1,boss:selection,nonce:nonce(),cards:api.cards(ch),rounds:{}},state:null,match:'',busy:false,again:false,deadline:0,computed:0,selectedAction:'attack',selectedTarget:0,stampAt:0,completed:false,missing:0};run=r;await room.presence(r.local);if(run!==r)return;

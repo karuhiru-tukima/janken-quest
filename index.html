@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-22-0010";
+  window.JQ_VER = "2026-11-22-0011";
   // 画像を変更していない更新では、再ダウンロードせず保存済みの画像を使う。
   window.JQ_ASSET_VER = "2026-11-08-0045";
   window.JQ_MOTION_VER = "2026-11-08-0044";
@@ -1387,9 +1387,9 @@ body.on-home .wrap { padding-top: 10px; }
 @media (max-width: 599px) { .pm-vs { grid-template-columns: 1fr; } .pm-x { justify-self: center; } }
 </style>
 <link rel="stylesheet" href="account.css?v=2026-11-16-0052">
-<link rel="stylesheet" href="quest.css?v=2026-11-22-0010">
-<link rel="stylesheet" href="coop.css?v=2026-11-22-0010">
-<link rel="stylesheet" href="home-layout.css?v=2026-11-22-0010">
+<link rel="stylesheet" href="quest.css?v=2026-11-22-0011">
+<link rel="stylesheet" href="coop.css?v=2026-11-22-0011">
+<link rel="stylesheet" href="home-layout.css?v=2026-11-22-0011">
 </head>
 <body>
 <!-- 起動画面：新しい版の確認と画像の読み込みが終わったら「タップしてはじめる」（ここで音も出せるようになる） -->
@@ -1518,7 +1518,6 @@ body.on-home .wrap { padding-top: 10px; }
         <button class="tab" data-tab="shop">ショップ</button>
         <button class="tab" data-tab="book">図鑑</button>
       </div>
-      <button type="button" class="btn" id="q-journal-link" hidden>物語の後日談</button>
       <div id="cd-body" style="display:flex;flex-direction:column;gap:12px"></div>
     </div>
   </section>
@@ -1662,8 +1661,10 @@ const FIREBASE_CONFIG = {
   document.write('<script src="quest-art.js?v=' + window.JQ_VER + '"><\/script>');
   document.write('<script src="quest-system.js?v=' + window.JQ_VER + '"><\/script>');
   document.write('<script src="portrait-layout.js?v=' + window.JQ_VER + '"><\/script>');
+  document.write('<script src="menu-icons.js?v=' + window.JQ_VER + '"><\/script>');
   document.write('<script src="coop-content.js?v=' + window.JQ_VER + '"><\/script>');
   document.write('<script src="coop-core.js?v=' + window.JQ_VER + '"><\/script>');
+  document.write('<script src="coop-lobby.js?v=' + window.JQ_VER + '"><\/script>');
   document.write('<script src="coop-system.js?v=' + window.JQ_VER + '"><\/script>');
   document.write('<script src="tower-ranking.js?v=' + window.JQ_VER + '"><\/script>');
   document.write('<script src="account-core.js?v=' + window.JQ_VER + '"><\/script>');
@@ -3258,7 +3259,6 @@ for (const k of ["filter", "eff", "open"]) Object.defineProperty(CD, k, {
   set: v => { CD_FILT[CD.tab === "book" ? "book" : "arcana"][k] = v; },
 });
 function renderCards() {
-  $("q-journal-link").hidden = CD.tab !== "book";
   $("cd-coins").textContent = `${CS.coins.toLocaleString()} コイン`;
   $("scr-cards").classList.toggle("rev", posRev()); // 背景色：正位置は金、逆位置は紫
   document.querySelectorAll("#cd-tabs .tab").forEach(t => t.classList.toggle("on", t.dataset.tab === CD.tab));
@@ -5937,9 +5937,9 @@ const Q=window.JQQuests.create({$,esc,getS:()=>S,getCS:()=>CS,saveCS,charOf,char
   leaveBattle(){ S.battle=null; clearStage(); show("home"); saveResume(); sfx("select"); },
 });
 $("h-quest").onclick=()=>Q.open(S.charId);
-$("q-journal-link").onclick=()=>Q.journal();
 // Coop keeps its own progress and match receipts inside the account's jq-cards save.
-const COOP=window.JQCoop.create({$,esc,chars:CHARS,character:()=>S.charId,cs:()=>CS,save:saveCS,
+const COOP=window.JQCoop.create({$,esc,chars:CHARS,character:()=>S.charId,cs:()=>CS,save:saveCS,charPortrait:charFace,
+  cardInfo:ch=>eqList(ch).map(x=>({name:CARD[x.c].name,rarity:RAR[x.r].name,level:x.l})),
   user:()=>firebase.auth().currentUser,onlineUser:()=>window.JQAccount.onlineUser(),
   sha,nick:profNick,validChar:id=>!!charOf(id),charName:id=>charOf(id)?.name||"仲間",
   cards:ch=>eqList(ch).map(x=>[x.c,x.r,x.l]),cleanCards,
