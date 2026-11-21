@@ -4,6 +4,7 @@
   const LIMITS = Object.freeze({
     'jq-progress': 64000, 'jq-cards': 1048576, 'jq-resume': 262144,
     'jq-home-kaede': 32, 'jq-sort': 2048, 'jq-nick': 128,
+    'jq-profile': 4096, 'jq-tower': 16384,
   });
   const KEYS = Object.keys(LIMITS);
   const allowed = key => typeof key === 'string' && Object.hasOwn(LIMITS, key);

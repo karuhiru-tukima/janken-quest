@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-18-1811";
+  window.JQ_VER = "2026-11-22-0009";
   // 画像を変更していない更新では、再ダウンロードせず保存済みの画像を使う。
   window.JQ_ASSET_VER = "2026-11-08-0045";
   window.JQ_MOTION_VER = "2026-11-08-0044";
@@ -29,12 +29,13 @@
 <!-- スマホの「ホーム画面に追加」で、アプリのように全画面で開く -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#151a33">
-<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="apple-touch-icon" sizes="180x180" href="app-icon-v4-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="じゃんけんQ">
-<link rel="icon" href="icon-192.png">
+<link rel="icon" type="image/x-icon" href="janken-quest-v4.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="app-icon-v4-32.png">
 <title>じゃんけんクエスト</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap">
@@ -913,7 +914,8 @@ body.on-home .wrap { padding-top: 10px; }
 .hm .home-stage { --zs: 1.6; } /* キャラの大きさ（--s はキャラを作るときに決まるので、舞台側の倍率で変える） */
 .hm .home-say { top: auto; bottom: calc(22% + 255px); }
 .hm-top { position: absolute; left: 0; right: 0; top: 0; z-index: 6; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; }
-.hm-me { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 3px 10px 3px 3px; border: 2px solid var(--line); border-radius: 8px; color: var(--ink); }
+.hm-me { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 3px 10px 3px 3px; border: 2px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; cursor: pointer; }
+.hm-me:hover { filter: brightness(1.12); }
 .hm-me .badge { width: 40px; height: 40px; border-radius: 6px; }
 .hm-name { display: flex; flex-direction: column; text-align: left; line-height: 1.2; min-width: 0; }
 .hm-name b { font-family: var(--f-display); font-size: 1.05rem; font-weight: 400; text-shadow: 2px 2px 0 var(--line); }
@@ -1328,8 +1330,66 @@ body.on-home .wrap { padding-top: 10px; }
 .hbtn .e .hand-art { max-width:none; max-height:none; }
 @media(max-width:599px) { .hbtn .e { width:3.6rem; height:3.6rem; } }
 @media(min-width:1080px) { .kaede-home-controls { display:flex; border-top:0; border-left:1px solid #bda05b88; padding:0 0 0 12px; } }
+/* ホーム：左に能力・装備、右にクエスト・塔。元の舞台と開始ボタンは維持。 */
+.hm-home-equipment { display:flex; flex-direction:column; align-items:center; gap:6px; padding-top:10px; border-top:2px solid var(--line); max-width:100%; }
+.hm-home-equipment .cmarks { display:flex; flex-direction:column; gap:4px; }
+.hm-home-equipment .cmark .cart { width:28px; height:42px; }
+.hm-activities { align-items:center; }
+@media(min-width:1080px) {
+  .hm-side.l, .hm-side.hm-activities { flex-direction:column; align-items:stretch; }
+  .hm-home-equipment { align-items:flex-start; padding-top:10px; }
+  .hm-home-equipment .cmarks { display:flex; flex-direction:column; }
+  .hm-home-equipment .cmark .cart { width:44px; height:66px; }
+  .hm-side.l .kaede-home-controls { border-left:0; padding:8px 0 0; }
+}
+.tw-own { margin:0; padding:8px 10px; border:2px solid var(--gold); border-radius:6px; background:var(--panel-2); overflow-wrap:anywhere; }
+.tw-rank .rk { width:auto; min-width:1.8em; flex:none; }
+/* 試練の塔 */
+#b-stage .tw-rule { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tw-top { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tw-top > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; background: var(--panel-2); }
+.tw-top b { font-family: var(--f-display); font-size: 1.5rem; color: var(--gold); }
+.tw-rules { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+.tw-rank { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.tw-rank li { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 8px; background: var(--panel-2); }
+.tw-rank li.sub { background: none; padding: 2px 0; }
+.tw-rank li.me { box-shadow: inset 0 0 0 2px var(--gold); }
+.tw-rank .rk { width: 1.8em; text-align: center; font-family: var(--f-display); color: var(--gold); }
+.tw-rank .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tw-cyc table { border-collapse: collapse; width: 100%; margin-top: 6px; font-size: .9rem; }
+.tw-cyc td { padding: 3px 8px; border-bottom: 1px solid #ffffff22; }
+.tw-cyc tr.on td { color: var(--gold); font-weight: bold; }
+/* プロフィール */
+.pf-card { position: relative; display: flex; gap: 12px; align-items: center; padding: 12px; border: 3px solid var(--line); border-radius: 12px; background: var(--panel-2); text-align: left; }
+.pf-card.ready { box-shadow: 0 0 0 2px var(--gold); }
+.pf-ico.badge { width: 64px; height: 64px; }
+.pf-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.pf-nick { font-size: 1.1rem; overflow-wrap: anywhere; }
+.pf-title { align-self: flex-start; font-size: .75rem; padding: 1px 8px; border-radius: 999px; background: #f5b94233; color: var(--gold); border: 1px solid var(--gold); }
+.pf-line, .pf-rec { margin: 0; font-size: .9rem; }
+.pf-ok { position: absolute; top: -10px; right: 8px; font-size: .72rem; padding: 1px 8px; border-radius: 999px; background: var(--gold); color: #2a1a0a; font-weight: bold; }
+.pf-row { display: flex; flex-direction: column; gap: 6px; }
+.pf-row > span:first-child { font-weight: bold; color: var(--gold); }
+.pf-row input, .pf-row select { font: inherit; padding: 8px 10px; border-radius: 8px; border: 2px solid var(--line); background: var(--panel-2); color: var(--ink); max-width: 100%; }
+.pf-chk { display: flex; gap: 8px; align-items: center; }
+.pf-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; }
+.pf-pick { aspect-ratio: 1; padding: 0; border: 3px solid var(--line); border-radius: 10px; background: var(--panel-2); overflow: hidden; cursor: pointer; box-shadow: inset 0 0 0 2px currentColor; }
+.pf-pick .cfc { width: 100%; height: 100%; margin: 0; }
+.pf-pick .cfc.kaede-face { position: relative; display: block; overflow: hidden; aspect-ratio: 1; }
+.pf-pick .cfc.ph { background-size: 230% auto; background-position: 52% 14%; background-repeat: no-repeat; }
+.pf-pick.on { outline: 3px solid var(--gold); outline-offset: 1px; }
+/* オンライン対戦前 */
+.pm-modal { max-width: 680px; }
+.pm-vs { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+.pm-side { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pm-who { font-size: .8rem; color: var(--sky); text-align: left; }
+.pm-x { font-family: var(--f-display); font-size: 1.6rem; color: var(--gold); text-shadow: 2px 2px 0 var(--line); }
+@media (max-width: 599px) { .pm-vs { grid-template-columns: 1fr; } .pm-x { justify-self: center; } }
 </style>
 <link rel="stylesheet" href="account.css?v=2026-11-16-0052">
+<link rel="stylesheet" href="quest.css?v=2026-11-22-0009">
+<link rel="stylesheet" href="coop.css?v=2026-11-22-0009">
+<link rel="stylesheet" href="home-layout.css?v=2026-11-22-0009">
 </head>
 <body>
 <!-- 起動画面：新しい版の確認と画像の読み込みが終わったら「タップしてはじめる」（ここで音も出せるようになる） -->
@@ -1375,17 +1435,25 @@ body.on-home .wrap { padding-top: 10px; }
       <div class="stage home-stage" id="home-stage"><div class="callout" id="home-say"></div></div>
       <!-- 上：だれで遊んでいるか（表示だけ。キャラ選択は下のメニューから）／コインと設定は小さく -->
       <div class="hm-top">
-        <div class="hm-me"><span class="badge" id="h-chara-ico"></span><span class="hm-name"><b id="hm-name"></b><span id="hm-title"></span></span></div>
+        <button type="button" class="hm-me" id="h-prof" aria-label="プロフィールを見る・編集する"><span class="badge" id="h-chara-ico"></span><span class="hm-name"><b id="hm-name"></b><span id="hm-title"></span></span></button>
         <div class="hm-res"><span class="hm-coin" title="所持コイン"><span data-ico="coin" data-img="ui/coin"></span><b id="hm-coins"></b></span><button class="gear" data-gear aria-label="設定（演出・効果音・BGM・ボイス）" aria-expanded="false"><span data-ico="gear"></span></button></div>
       </div>
       <div class="hm-head"><span class="hm-rec" id="hm-rec"></span><h2 class="hm-stage" id="hm-stage"></h2></div>
       <!-- 左：能力（PCは説明も）／右：装備中のカード（表示だけ。付けかえは下のメニューのアルカナから）と、PCは次の敵 -->
       <div class="hm-colL">
         <div class="hm-prof" id="hm-prof"></div>
-        <div class="hm-side l"><button class="hm-ic" id="h-abil"><span class="medal" data-ico="scroll"></span><span class="ribbon">能力</span></button><div class="kaede-home-controls" id="home-kaede-controls" role="group" aria-label="カエデの姿" hidden><button type="button" data-look="atk">赤の姿</button><button type="button" data-look="def">青の姿</button></div></div>
+        <div class="hm-side l">
+          <div class="hm-left-panel hm-ability-panel"><button class="hm-ic" id="h-abil"><span class="medal" data-ico="scroll"></span><span class="ribbon">能力</span></button></div>
+          <div class="hm-home-equipment hm-left-panel" aria-label="装備中のカード"><span class="hm-eqh ribbon">装備</span><span id="home-plate"></span></div>
+          <div class="kaede-home-controls" id="home-kaede-controls" role="group" aria-label="カエデの姿" hidden><button type="button" data-look="atk">赤の姿</button><button type="button" data-look="def">青の姿</button></div>
+        </div>
       </div>
       <div class="hm-colR">
-        <div class="hm-side r hm-eq" aria-label="装備中のカード"><span class="hm-eqh ribbon">装備</span><span id="home-plate"></span></div>
+        <div class="hm-side r hm-activities">
+          <button class="hm-ic" id="h-quest"><span class="medal" data-ico="book"></span><span class="ribbon">クエスト</span></button>
+          <button class="hm-ic" id="h-tower"><span class="medal" data-ico="tower"></span><span class="ribbon">塔</span></button>
+          <button class="hm-ic" id="h-coop"><span class="medal" data-ico="coop"></span><span class="ribbon">共闘ボス</span></button>
+        </div>
         <div class="hm-next" id="hm-next"></div>
       </div>
       <div class="hm-go">
@@ -1413,7 +1481,11 @@ body.on-home .wrap { padding-top: 10px; }
       <p class="sub" id="st-cards" hidden></p>
       <div class="panel online-box" style="flex-direction:row;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
         <div style="min-width:0"><h3><span data-ico="swords"></span> オンラインで戦う（人と対戦）</h3><p class="sub">あいことばで友だちと、またはランダムで誰かと1対1</p></div>
-        <button class="btn primary" id="to-online">オンライン対戦へ</button>
+        <div class="row"><button class="btn primary" id="to-online">オンライン対戦へ</button><button class="btn" id="to-coop">共闘ボス討伐へ</button></div>
+      </div>
+      <div class="panel online-box tower-box" style="flex-direction:row;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div style="min-width:0"><h3><span data-ico="tower"></span> 試練の塔（どこまで登れるか挑戦）</h3><p class="sub" id="tw-sub">1階に敵1体。勝つと30%回復して次の階へ。5階ごとにルールが変わる</p></div>
+        <button class="btn primary" id="to-tower">試練の塔へ</button>
       </div>
       <h3 class="lobby-h"><span data-ico="swords"></span> ステージで戦う（CPUと対戦）</h3>
       <div id="worlds" style="display:flex;flex-direction:column;gap:16px"></div>
@@ -1445,12 +1517,14 @@ body.on-home .wrap { padding-top: 10px; }
         <button class="tab" data-tab="shop">ショップ</button>
         <button class="tab" data-tab="book">図鑑</button>
       </div>
+      <button type="button" class="btn" id="q-journal-link" hidden>物語の後日談</button>
       <div id="cd-body" style="display:flex;flex-direction:column;gap:12px"></div>
     </div>
   </section>
 
   <!-- オンライン対戦ロビー -->
   <section class="screen" id="scr-online" hidden>
+    <div class="row" style="margin-bottom:14px"><button class="btn primary" id="on-coop">共闘ボス討伐（2人で協力）</button></div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div><h2>オンライン対戦</h2><p class="sub">キャラ同士の1対1。おたがい体力7.5・攻撃力1.5でスタートする短期決戦。キャラの能力とアルカナはそのまま使える。1手20秒以内（時間切れはランダム）。勝つと150コイン、引き分け80、負けても50コインもらえる。</p></div>
       <div class="who" id="on-who"></div>
@@ -1543,6 +1617,16 @@ body.on-home .wrap { padding-top: 10px; }
     <div class="row" id="info-btns"></div>
   </div>
 </div>
+<!-- オンライン対戦の前：おたがいのプロフィール -->
+<div class="overlay" id="prematch" hidden>
+  <div class="modal pm-modal" role="dialog" aria-labelledby="pm-title">
+    <div class="eyebrow">ONLINE</div>
+    <h2 id="pm-title">対戦相手が決まりました</h2>
+    <div class="pm-vs"><div class="pm-side" id="pm-me"></div><b class="pm-x">VS</b><div class="pm-side" id="pm-opp"></div></div>
+    <p class="sub" id="pm-count" aria-live="polite"></p>
+    <div class="row" style="justify-content:center;gap:10px"><button class="btn" id="pm-quit">やめる</button><button class="btn primary" id="pm-ok">準備OK</button></div>
+  </div>
+</div>
 <div id="banner" hidden><span class="b1" id="bn1"></span><span class="b2" id="bn2"></span></div>
 <div id="toast" hidden></div>
 <div id="flash"></div>
@@ -1571,6 +1655,16 @@ const FIREBASE_CONFIG = {
 </script>
 
 <script>
+  document.write('<script src="quest-content.js?v=' + window.JQ_VER + '"><\/script>');
+  document.write('<script src="quest-staging.js?v=' + window.JQ_VER + '"><\/script>');
+  document.write('<script src="quest-core.js?v=' + window.JQ_VER + '"><\/script>');
+  document.write('<script src="quest-art.js?v=' + window.JQ_VER + '"><\/script>');
+  document.write('<script src="quest-system.js?v=' + window.JQ_VER + '"><\/script>');
+  document.write('<script src="portrait-layout.js?v=' + window.JQ_VER + '"><\/script>');
+  document.write('<script src="coop-content.js?v=' + window.JQ_VER + '"><\/script>');
+  document.write('<script src="coop-core.js?v=' + window.JQ_VER + '"><\/script>');
+  document.write('<script src="coop-system.js?v=' + window.JQ_VER + '"><\/script>');
+  document.write('<script src="tower-ranking.js?v=' + window.JQ_VER + '"><\/script>');
   document.write('<script src="account-core.js?v=' + window.JQ_VER + '"><\/script>');
   document.write('<script src="account.js?v=' + window.JQ_VER + '"><\/script>');
 </script>
@@ -1590,10 +1684,7 @@ const charPreview = (key, label='') => {
   const i = key === 'c18d' ? 18 : Math.max(0,Math.min(17,+key.slice(1)-1));
   return '<span class="char-preview" data-preview-key="'+key+'" role="img" aria-label="'+label+'" style="background-position:'+(i%5*25)+'% '+(Math.floor(i/5)*100/3)+'%"></span>';
 };
-const charFace = id => id === 18 ? '<span class="pxi cfc kaede-face" role="img" aria-label="カエデ・赤と青の姿"><span class="kaede-half red">'+charPreview('c18')+'</span><span class="kaede-half blue">'+charPreview('c18d')+'</span></span>' : (hasImg(`faces/c${id}`) ? `<img class="pxi cfc fc" data-cid="${id}" src="${imgSrc(`faces/c${id}`)}" alt="">`
-  : hasImg(`chars/c${id}`)
-  ? `<span class="pxi cfc ph" data-cid="${id}" style="background-image:url('${imgSrc(`chars/c${id}`)}')"></span>`
-  : `<img class="pxi cfc" data-cid="${id}" src="${JQArt.actor("p", id).face}" alt="">`);
+const charFace = id => window.JQPortraits.face(id,imgSrc);
 // ---- 画像ファイル：img/list.json に載っている画像があれば、ドット絵の代わりに使う ----
 // chars/c1.png〜c9.png・enemies/<種類>.png（右向き・背景透過）、bg/w1.png〜w10.png・bg/home.png、ui/〜.png
 const IMGS = new Set(["chars/c1","chars/c2","chars/c3","chars/c4","chars/c5","chars/c6","chars/c7","chars/c8","chars/c9","chars/c10","chars/c11","chars/c12","chars/c13","chars/c14","chars/c15","chars/c16","chars/c17","chars/c18","chars/c18d","faces/c1","faces/c2","faces/c3","faces/c4","faces/c5","faces/c6","faces/c7","faces/c8","faces/c9","faces/c10","faces/c11","faces/c12","faces/c13","faces/c14","faces/c15","faces/c16","faces/c17","faces/c18"]);
@@ -2060,6 +2151,7 @@ const sealedAbil = a => S.charId === SEAL_CH && SEAL_ABIL.has(a);
 const abilText = a => (sealedAbil(a) ? `<s class="sealed">${ABIL[a]}</s> <span class="sealtag">封印中</span>` : ABIL[a]);
 
 const ABIL = {
+  qcharge: "<b>溜め撃ち</b>：3ターンごとに力を溜め、次に勝った攻撃が1.8倍",
   rock: "<b>岩肌</b>：あいこで攻撃力の35%ダメージ",
   thunder: "<b>雷鳴</b>：あいこで攻撃力の50%ダメージ",
   rage: "<b>激昂</b>：HP半分以下で攻撃1.5倍",
@@ -2127,6 +2219,11 @@ const TPL = {
   god:     { name: "ジャンケン神", color: "#ffd166", boss: true, wait: true, ai: { t: "beatLast", p: 0.55 }, hint: "前の手を読む", abil: ["shield", "king", "regen", "bond"] },
   lion:    { name: "守護獣", color: "#e0a04a", boss: true, wait: true, ai: { t: "winStay", p: 0.8 }, hint: "勝った手を続ける", abil: ["spike", "drain", "bond"] },
 };
+for (const v of window.JQQuestContent.variants) TPL[v.key] = Object.assign({}, TPL[v.base], {
+  name:v.name, color:v.color, boss:v.boss, ai:v.ai, abil:v.abil,
+  hint:v.ai.t === "bias" ? ["グーが多い", "チョキが多い", "パーが多い"][v.ai.w.indexOf(Math.max(...v.ai.w))] : v.ai.t === "cycle" ? "手を一定の順に回す" : v.ai.t === "beatLast" ? "こちらの前の手を読もうとする" : v.ai.t === "repeat" ? "同じ手を続けがち" : "勝った手を続ける",
+  wait:false,
+});
 for (const k in TPL) TPL[k].tk = k; // 種類名（ドット絵を選ぶのに使う）
 
 // ワールド定義。mode: solo = 1対1 / duo = 2体と1体ずつ勝負 / trio = 三人じゃんけん
@@ -2193,7 +2290,8 @@ const saveProgress = () => store.set({ cleared: S.cleared, unlockAll: S.unlockAl
 
 const charOf = id => CHARS.find(c => c.id === id);
 const key = (w, i) => `${w}-${i + 1}`;
-const worldOf = b => WORLDS[b.w - 1];
+// 試練の塔の戦闘は、背景・強さはそのワールド、戦い方（1体か2体か）は塔のルールで決める
+const worldOf = b => (b.quest ? Object.assign({}, WORLDS[b.w - 1], { mode:"solo" }) : b.tower ? Object.assign({}, WORLDS[b.w - 1], { mode: b.tower.mode }) : WORLDS[b.w - 1]);
 const isBossStage = (w, i) => WORLDS[w - 1].stages[i].some(([t]) => TPL[t].boss);
 const songFor = () => {
   if (S.online && S.screen === "battle") return "battle";
@@ -2680,6 +2778,7 @@ const MN3 = 3;
 const mnInit = ms => { ms.mn = { now: {}, nx: {}, drawRun: 0, wst: 0, w7: 0, dd: 0, lossRun: 0, lossRun2: 0, wins: 0, s5: 0, s10: 0, skn: 0, pure: 0, p6: 0, ppr: 0, c10: 0, rage: 0, bleed: 0, prevH: null, prevRes: null, lastWinH: null }; };
 // 回復量の倍率（カード全体）。f がないときは「回復量 +」だけ
 function healMulF(f, M) {
+  if (f && f.noHeal) return 0; // 試練の塔「回復禁止」
   let k = 1 + mz(M, "heal");
   if (f && f.max > 0) {
     if (f.hp <= f.max / 2) k += mz(M, "lowHpHeal");
@@ -3158,6 +3257,7 @@ for (const k of ["filter", "eff", "open"]) Object.defineProperty(CD, k, {
   set: v => { CD_FILT[CD.tab === "book" ? "book" : "arcana"][k] = v; },
 });
 function renderCards() {
+  $("q-journal-link").hidden = CD.tab !== "book";
   $("cd-coins").textContent = `${CS.coins.toLocaleString()} コイン`;
   $("scr-cards").classList.toggle("rev", posRev()); // 背景色：正位置は金、逆位置は紫
   document.querySelectorAll("#cd-tabs .tab").forEach(t => t.classList.toggle("on", t.dataset.tab === CD.tab));
@@ -3490,6 +3590,7 @@ $("to-stage").onclick = () => { saveProgress(); show(charFrom === "stage" ? "sta
 /* ---------- ステージ選択 ---------- */
 function renderStages() {
   const c = charOf(S.charId);
+  towerSub();
   $("who").innerHTML = `<span class="badge" style="color:${c.color}">${charFace(c.id)}</span>
     <span class="grow"><b>${c.name}</b> <span class="sub">${c.title}</span>${S.unlockAll ? ' <span class="dev">全開放中</span>' : ""}<br><span class="sub" style="font-size:.8rem">${c.ab.replace(/<[^>]+>/g, "")}</span></span>
 `;
@@ -3531,7 +3632,7 @@ $("reset-prog").onclick = () => {
 // 開発者コマンド：Ctrl+A（Mac は ⌘+A）で全ステージ開放
 document.addEventListener("keydown", ev => {
   if (!(ev.ctrlKey || ev.metaKey) || ev.key.toLowerCase() !== "a") return;
-  if (ev.target.closest && ev.target.closest("input, textarea")) return;
+  if (ev.target.closest && ev.target.closest("input, textarea, select")) return;
   ev.preventDefault();
   if (S.unlockAll) { toast("全ステージ開放ずみ"); return; }
   S.unlockAll = true; saveProgress();
@@ -3550,7 +3651,7 @@ document.addEventListener("keydown", ev => {
 // 開発者コマンド：Ctrl+C（Mac は ⌘+C）で1000コイン。文字を選んでいるときは普通のコピー
 document.addEventListener("keydown", ev => {
   if (!(ev.ctrlKey || ev.metaKey) || ev.key.toLowerCase() !== "c") return;
-  if (ev.target.closest && ev.target.closest("input, textarea")) return;
+  if (ev.target.closest && ev.target.closest("input, textarea, select")) return;
   if (String(window.getSelection && window.getSelection()).length) return;
   ev.preventDefault();
   CS.coins += 1000; saveCS();
@@ -3583,24 +3684,33 @@ function spawn(b) {
 }
 const alive = b => S.battle === b;
 
-async function startBattle(w, i) {
+// tw があれば試練の塔の1階ぶん（{ floor, rules, mode, list, k:敵の強さの倍率, hpr:始めの体力の割合, streak }）
+async function startBattle(w, i, tw) {
   const W = WORLDS[w - 1];
-  const list = W.stages[i];
-  const ps = pStats(w);
+  const list = tw ? tw.list : W.stages[i];
+  const ps = pStats(w), ek = tw ? tw.k : 1;
   const cards = eqList(S.charId).map(x => ({ c: x.c, r: x.r, l: x.l, rev: isRev(S.charId) }));
   const M = computeMods(cards, false, S.charId);
   const sealK = S.charId === SEAL_CH ? sealRateOf(M) : 1;
   const maxHp = half(ps.max * sealK * (1 + mz(M, "maxHp")));
   const b = S.battle = {
     w, i, turn: 1, over: false, busy: true, total: list.length, kills: 0, coins: 0, M, cards,
-    queue: list.map(([tk, hits, atk]) => ({ tk, hp: half(hits * ps.atk), atk: atk ?? W.atk })),
-    slots: Array(slotsOf(W)).fill(null),
+    queue: list.map(([tk, hits, atk]) => ({ tk, hp: half(hits * ps.atk * ek), atk: r2((atk ?? W.atk) * ek) })),
+    slots: Array(tw ? (tw.mode === "solo" ? 1 : 2) : slotsOf(W)).fill(null),
     p: { hp: maxHp, max: maxHp, atk: ps.atk * sealK, streak: 0, inv: false, charge: false, guts: false, losses: 0,
       judged: false, firstHitUsed: false, afterDraw: false },
     lastP: null, rep: 0,
-    log: [`<span class="y">ステージ${key(w, i)} 開始！ 敵は${list.length}体</span>`].concat(cards.length ? [`<span class="p">装備：${cards.map(x => `${CARD[x.c].name}Lv${x.l}`).join("・")}</span>`] : []),
+    log: [tw?.quest ? `<span class="y">個別クエスト 第${window.JQQuestCore.of(tw.quest.id).number}話「${window.JQQuestCore.of(tw.quest.id).title}」</span>` : tw ? `<span class="y">試練の塔 ${tw.floor}階 開始！ ルール：${towerRuleText(tw.rules)}</span>` : `<span class="y">ステージ${key(w, i)} 開始！ 敵は${list.length}体</span>`].concat(cards.length ? [`<span class="p">装備：${cards.map(x => `${CARD[x.c].name}Lv${x.l}`).join("・")}</span>`] : []),
   };
+  if (tw?.quest) b.quest = Object.assign({}, tw.quest, { list });
+  else if (tw) b.tower = { floor: tw.floor, rules: tw.rules, mode: tw.mode, list };
   arcInit(b.p, M, Math.random);
+  if (tw) {
+    // 塔：前の階の体力・連勝を引き継ぐ。「回復禁止」の階は回復の倍率を0にする
+    b.p.hp = Math.min(maxHp, half(maxHp * Math.max(0.05, Math.min(1, +tw.hpr || 1))));
+    b.p.streak = Math.max(0, tw.streak | 0);
+    if (tw.rules.includes("noheal")) b.p.noHeal = true;
+  }
   clearStage();
   const st = $("stage");
   W.sky.forEach((c, n) => st.style.setProperty(`--sky${n + 1}`, c));
@@ -3609,9 +3719,12 @@ async function startBattle(w, i) {
   sfx("start"); // 画面の切りかえ（スマホでは少し時間がかかる）より先に鳴らす
   show("battle");
   setHandsDisabled(true);
-  showBanner(false, `STAGE ${key(w, i)}`, `敵 ×${list.length}${MODE_LABEL[W.mode] ? "（" + MODE_LABEL[W.mode] + "）" : ""}`);
+  if (b.quest) showBanner(false, `第${window.JQQuestCore.of(b.quest.id).number}話`, window.JQQuestCore.of(b.quest.id).title);
+  else if (tw) showBanner(false, `${tw.floor}F`, towerRuleText(tw.rules));
+  else showBanner(false, `STAGE ${key(w, i)}`, `敵 ×${list.length}${MODE_LABEL[W.mode] ? "（" + MODE_LABEL[W.mode] + "）" : ""}`);
   await done(play_(PA._rig, [{ transform: "translateX(-160px)", opacity: 0 }, { transform: "none", opacity: 1 }], 450, "ease-out"));
   dust(feet(PA), 1);
+  Q.entry($("stage"), S.charId);
   for (const k of spawned) await enterEnemy(b, k);
   if (!alive(b)) return;
   startTurn(b);
@@ -3650,13 +3763,15 @@ async function enterEnemy(b, k) {
 }
 
 const has = (e, a) => !sealedAbil(a) && e.abil.includes(a); // シズクのときは常時発動の能力が封じられる
-const enemyAtk = e => e.atk * (has(e, "rage") && !e.calm && e.hp <= e.max / 2 ? 1.5 : 1) * (e.bonded ? 1.5 : 1);
+const enemyAtk = e => e.atk * (has(e, "rage") && !e.calm && e.hp <= e.max / 2 ? 1.5 : 1) * (e.bonded ? 1.5 : 1) * (has(e,"qcharge") && e.charged ? 1.8 : 1);
 const BM = () => (S.battle && S.battle.M) || {};
 const CB = () => 1 + mz(BM(), "charBoost"); // 教皇：キャラ固有能力の数値アップ
 const healMul = M => healMulF(S.battle ? S.battle.p : null, M); // 回復量の倍率（HPで変わるカードもある）
 const EM = () => (S.battle ? echoMul(S.battle.p, S.battle.M) : 1); // 教皇（逆）の余韻
-const pRate = () => (S.charId === 5 ? 0.5 * CB() * EM() : 0.1) + mz(BM(), "streakAdd");
-const eRate = e => (has(e, "king") ? 0.3 : has(e, "gale") ? 0.5 : 0.1) * (1 - Math.min(0.9, mz(BM(), "enemyStreakCut")));
+const towerRule = r => !!(S.battle && S.battle.tower && S.battle.tower.rules.includes(r));
+const pRate = () => (towerRule("nostreak") ? 0 : (S.charId === 5 ? 0.5 * CB() * EM() : 0.1) + mz(BM(), "streakAdd"));
+const eRate = e => (towerRule("nostreak") ? 0 : (has(e, "king") ? 0.3 : has(e, "gale") ? 0.5 : 0.1) * (1 - Math.min(0.9, mz(BM(), "enemyStreakCut"))));
+const towerHandK = h => (towerRule(["handG", "handC", "handP"][h]) ? 1.5 : 1); // 試練の塔「〇〇の威力アップ」
 const furyBonus = p => (S.charId === 7 ? Math.min(CB() * EM(), 0.2 * CB() * EM() * (p.losses || 0)) : S.charId === SCAR_CH ? scarBonus(p.hp, p.max, CB() * EM()) : 0);
 const furyName = () => (S.charId === SCAR_CH ? "傷の炎" : "逆境");
 const atkMods = p => { const M = BM(); return mz(M, "atk") + (p.streak >= 2 ? mz(M, "streak2Atk") : 0) + (p.hp <= p.max / 2 ? mz(M, "lowHpAtk") : 0) + arcAtk(p, M); };
@@ -3943,6 +4058,10 @@ async function play(h) {
   for (let k = 0; k < b.slots.length; k++) {
     const e = b.slots[k];
     if (!e || e.hp <= 0) continue;
+    if (has(e,"qcharge") && b.turn % 3 === 0 && !e.charged) {
+      e.charged=true; fx({k:"rage",text:"溜め撃ちの構え！"},EA[k]);
+      lines.unshift(`<span class="y">${e.name}が力を溜めた。次の勝ちの攻撃が1.8倍！</span>`);
+    }
     if (has(e, "shield") && b.turn % 3 === 0 && !e.shield) {
       e.shield = true; fx({ k: "shield" }, EA[k]);
       lines.unshift(`<span class="y">${e.name}が身構えた（次の被ダメ半減）</span>`);
@@ -3974,8 +4093,8 @@ async function play(h) {
       fx({ k: "rage", text: "怒り！" }, EA[b.slots.indexOf(partner)]);
       L.push(`<span class="r">${partner.name}が怒った！ 攻撃力1.5倍</span>`);
     }
-    const kc = Math.round(5 * b.w + mz(b.M, "killCoin"));
-    b.coins = (b.coins || 0) + kc; fx({ k: "coin", n: kc });
+    const kc = b.tower || b.quest ? 0 : Math.round(5 * b.w + mz(b.M, "killCoin")); // 塔のコインは5階ごとの到達ごほうびだけ
+    if (kc > 0) { b.coins = (b.coins || 0) + kc; fx({ k: "coin", n: kc }); }
     if (p.hp > 0 && (b.queue.length || b.slots.some(Boolean))) {
       const heal = r2(Math.min(p.max - p.hp, p.max / 2 * (1 + mz(b.M, "killHeal")) * healMul(b.M)));
       if (heal > 0) { p.hp = r2(p.hp + heal); fx({ k: "heal", amt: heal }); L.push(`<span class="g">体力が${fmt(heal)}回復した</span>`); }
@@ -4005,7 +4124,9 @@ function pushLog(b, lines) { if (!lines.length) return; b.newLog = (b.newLog || 
 // group の敵たちとの勝負を計算して演出する
 async function runGroup(b, h, res, group, lines, T0, note) {
   const L = [];
+  const questBefore = b.quest ? window.JQQuestCore.snapshot(b, h, res, group) : null;
   const r = resolveGroup(b, h, res, group, L, T0, note);
+  if (questBefore) window.JQQuestCore.track(b, questBefore, r);
   lines.unshift(...L.reverse());
   setCall((note ? note + " " : "") + { win: "かち！", lose: "まけ…", draw: "あいこ" }[res], res);
   popCall();
@@ -4127,6 +4248,7 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
         // 敵の身構え（次の被ダメ半減）。アルカナの盾崩し・通りぬけは効かない
         dmg *= 0.5; e.shield = false; cut = true; nt2 += "（身構えで半減）";
       }
+      if (towerHandK(h) > 1) { dmg *= towerHandK(h); nt2 += `（塔：${HN[h]}×1.5）`; }
       dmg = r2(dmg); e.hp = r2(Math.max(0, e.hp - dmg));
       push(imp, k, { k: "hitE", amt: dmg, crit: charged || foolWin || N >= 2, cut });
       lines.push(`<span class="g">${T0}${nt}${HN[h]}で勝ち！ ${e.name}に${fmt(dmg)}ダメージ${nt2}</span>`);
@@ -4152,7 +4274,7 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
     const hp = (p.streak >= 2 ? mz(M, "streakHeal") + mz(M, "worldHeal") : 0) + mz(M, "winHeal");
     if (hp > 0) { const amt = healP(hp); if (amt > 0) lines.push(`<span class="g">カードの力で${fmt(amt)}回復</span>`); }
     const coins = p.streak >= 2 ? Math.round(mz(M, "streakCoin") + mz(M, "worldCoin")) : 0;
-    if (coins > 0) { b.coins = (b.coins || 0) + coins; after.push({ k: "coin", n: coins }); }
+    if (coins > 0 && !b.tower && !b.quest) { b.coins = (b.coins || 0) + coins; after.push({ k: "coin", n: coins }); }
     p.afterDraw = false; p.revenge = false;
   } else if (res === "draw") {
     lines.push(`<span class="y">${T0}${nt}あいこ（${HN[h]}）</span>`);
@@ -4180,6 +4302,17 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
       (post[k] = post[k] || []).unshift(ev);
       lines.push(`<span class="r">${label}！ ${fmt(dmg)}ダメージ</span>`);
     }
+    // 試練の塔「あいこで痛み分け」：おたがい攻撃力の30%のダメージ
+    if (towerRule("split")) {
+      for (const { e, k } of group) {
+        if (e.hp <= 0 || p.hp <= 0) continue;
+        const d = r2(pAtk(p) * 0.3); e.hp = r2(Math.max(0, e.hp - d)); push(post, k, { k: "hitE", amt: d });
+        if (p.inv) { push(post, k, { k: "block" }); lines.push(`<span class="p">痛み分けを無敵で防いだ（${e.name}に${fmt(d)}）</span>`); continue; }
+        const { ev, dmg } = hurtPlayer(e, k, enemyAtk(e) * 0.3, "痛み分け", true, pDef(p), "abil");
+        push(post, k, ev);
+        lines.push(`<span class="y">痛み分け：${e.name}に${fmt(d)}、自分に${fmt(dmg)}ダメージ</span>`);
+      }
+    }
   } else {
     const def = pDef(p);
     rctx.lostStreak = p.streak; rctx.dmg = 0;
@@ -4196,8 +4329,9 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
       const N = e.streak - 1, mult = 1 + N * eRate(e);
       const steady = c === STEADY_CH && h === G_; // マサ：グーの負けは敵の強化（連勝・激昂・絆）を受けない
       const note2 = steady ? "（不動：強化を受けない）" : N > 0 ? `（敵${e.streak}連勝 ×${fmt(mult)}）` : "";
-      if (blocked) { push(imp, k, { k: "block" }); lines.push(`<span class="p">${T0}${nt}${HN[h]}で負け…でも無敵で${e.name}の攻撃は0！</span>`); continue; }
-      const { ev, dmg } = hurtPlayer(e, k, steady ? e.atk * (1 - cbGuardOf(M)) : enemyAtk(e) * mult, "", false, def, "lose");
+      if (blocked) { e.charged=false; push(imp, k, { k: "block" }); lines.push(`<span class="p">${T0}${nt}${HN[h]}で負け…でも無敵で${e.name}の攻撃は0！</span>`); continue; }
+      const { ev, dmg } = hurtPlayer(e, k, (steady ? e.atk * (1 - cbGuardOf(M)) : enemyAtk(e) * mult) * towerHandK((h + 2) % 3), "", false, def, "lose");
+      e.charged=false;
       rctx.dmg += dmg;
       ev.crit = N >= 2;
       push(imp, k, ev);
@@ -4398,14 +4532,17 @@ function renderBattle() {
   const c = charOf(S.charId), p = b.p, W = worldOf(b), nslot = slotsOf(W);
 
   // 残り敵のドット
-  const all = W.stages[b.i];
+  const all = b.quest ? b.quest.list : b.tower ? b.tower.list : W.stages[b.i];
   const dots = all.map(([t], i) => {
     const boss = TPL[t].boss ? " boss" : "";
     const st = i < b.kills ? "dead" : i < b.total - b.queue.length ? "live" : "";
     return `<i class="${st}${boss}"></i>`;
   }).join("");
   const mode = MODE_LABEL[W.mode] ? `<span class="mode">${MODE_LABEL[W.mode]}</span>` : "";
-  setHTML($("b-stage"), `<span>${key(b.w, b.i)}${isBossStage(b.w, b.i) ? " BOSS" : ""}</span>${mode}<span class="dots" title="倒した数 ${b.kills}/${b.total}">${dots}</span><span class="t">ターン${b.turn}</span>`);
+  const qc = b.quest && window.JQQuestCore.of(b.quest.id);
+  const head = qc ? `<span>${charOf(b.quest.charId).name} 第${qc.number}話 ${esc(qc.title)}</span><span class="q-battle-goal">${window.JQQuestCore.achieved(qc,b.quest.stats)?"★ 達成":"☆ 任意のお題"}：${esc(window.JQQuestCore.goalText(qc))}</span>` : b.tower ? `<span>塔 ${b.tower.floor}階${b.tower.floor % 5 === 0 ? " BOSS" : ""}</span><span class="mode tw-rule">${esc(towerRuleText(b.tower.rules))}</span>`
+    : `<span>${key(b.w, b.i)}${isBossStage(b.w, b.i) ? " BOSS" : ""}</span>${mode}`;
+  setHTML($("b-stage"), `${head}<span class="dots" title="倒した数 ${b.kills}/${b.total}">${dots}</span><span class="t">ターン${b.turn}</span>`);
 
   // 敵パネル
   const box = $("epanels");
@@ -4430,6 +4567,7 @@ function renderBattle() {
     if (chance > 0) ec += chip(`見切り ${Math.round(chance * 100)}%`, "c-read");
     if (e.streak > 0) ec += chip(`${e.streak}連勝 次×${fmt(1 + e.streak * eRate(e))}`, "c-streak");
     if (e.shield) ec += chip("身構え", "c-shield");
+    if (e.charged) ec += chip("溜め撃ち 次の勝ち×1.8", "c-charge");
     if (has(e, "rage") && e.hp <= e.max / 2) ec += chip("激昂", "c-rage");
     if (e.bonded) ec += chip("怒り", "c-rage");
     setHTML(el.querySelector(".chips"), ec);
@@ -4492,6 +4630,8 @@ function renderBattle() {
 
 function finish(won) {
   const b = S.battle;
+  if (b.quest) { Q.finish(b, won); return; }
+  if (b.tower) { towerFinish(b, won); return; }
   const k = key(b.w, b.i);
   const hasNext = b.i < 4 || b.w < WORLDS.length;
   const btns = [];
@@ -4595,6 +4735,7 @@ async function getRoom() {
 function dropSubs() { NET.unsubs.forEach(u => { try { u(); } catch {} }); NET.unsubs = []; }
 function leaveAll() {
   const leaving = [];
+  if (ON && ON.pre) preMatchClose();
   dropSubs(); clearTimeout(NET.waitTimer);
   if (NET.named) { leaving.push(NET.named.leave()); NET.named = null; }
   if (NET.lobby) { leaving.push(NET.lobby.leave()); NET.lobby = null; }
@@ -4621,7 +4762,7 @@ async function renderOnlineLobby() {
       : `対戦サーバーにつながりませんでした（${NET.err}）。通信環境を確かめて、もう一度この画面を開いてください。`);
     return;
   }
-  onStatus("あいことばを入れて「部屋に入る」か、「相手を探す」を押してください。");
+  onStatus(NET.note || "あいことばを入れて「部屋に入る」か、「相手を探す」を押してください。"); NET.note = "";
   setOnlineButtons(true);
 }
 $("on-nick").addEventListener("change", () => { try { playerStorage.setItem("jq-nick", nickOf()); } catch {} });
@@ -4668,7 +4809,7 @@ async function joinMatch(name, mode) {
   const room = await getRoom(); if (!room) return;
   NET.mode = mode;
   try { NET.named = await room.join(name); } catch (e) { onStatus(`部屋に入れませんでした（${e.code || "error"}）`); NET.pairing = false; setOnlineButtons(true); return; }
-  NET.named.presence({ v: PV, nick: nickOf(), ch: S.charId, cards: myCardList(), g: 0, r: 0, c: null, rv: null, last: null, want: 0 }).catch(() => {});
+  NET.named.presence({ v: PV, nick: nickOf(), ch: S.charId, cards: myCardList(), g: 0, r: 0, c: null, rv: null, last: null, want: 0, pf: profWire(), rdy: null }).catch(() => {});
   NET.unsubs.push(NET.named.onPeers(onMatchPeers, e => { if (ON) oppLeft(); else { onStatus(`接続が切れました（${e.code}）`); setOnlineButtons(true); } }));
   onStatus(mode === "pw" ? "部屋に入りました。同じあいことばの相手を待っています…" : "相手とつないでいます…");
   $("on-cancel").disabled = false;
@@ -4686,6 +4827,7 @@ function onMatchPeers(ch) {
   }
   const opp = ch.peers.find(p => p.peer === ON.opp);
   if (!opp) { oppLeft(); return; }
+  if (ON.pre) { preMatchPeer(opp.presence || {}); return; } // 対戦前のプロフィール表示中は「準備OK」だけ見る
   onOpp(opp.presence || {});
 }
 
@@ -4696,7 +4838,7 @@ function startMatch(me, opp) {
     myCards: myCardList(), oppCards: cleanCards(p.cards), stampN: 0, oppStampN: p.st && p.st.n };
   preloadVoices([S.charId, ON.oppCh]); // 自分と相手のボイスを先に読み込んでおく
   S.online = true; S.battle = null;
-  newGame(1);
+  preMatchStart(p); // おたがいのプロフィールを見せてから第1戦へ
 }
 // 対戦では装備カードを [カードID, レアリティ, レベル] で送り合い、両方の画面で同じ補正を計算する
 const myCardList = () => eqList(S.charId).map(x => [x.c, x.r, x.l]);
@@ -5199,6 +5341,7 @@ function onlineGameOver(kind, msg, allowRematch) {
   if (ON.rewardedG !== ON.g) {
     ON.rewardedG = ON.g;
     const played = ON.r > 1 || allowRematch;
+    if (played) profRecord(kind); // プロフィールの戦績（1ラウンドもしていない不戦勝は数えない）
     const base = played ? PVP_COINS[kind] : 20;
     const coins = Math.round(base * (1 + mz(ON.F[ON.side].M, "coin")));
     CS.coins += coins; saveCS();
@@ -5224,6 +5367,7 @@ function onlineGameOver(kind, msg, allowRematch) {
 }
 function oppLeft() {
   if (!ON || ON.oppGone) return;
+  if (ON.pre) { preMatchAbort("相手が退出しました。もう一度探してください。"); return; }
   ON.oppGone = true;
   if (!ON.over) { onlineGameOver("win", "相手が退出しました。不戦勝です。", false); return; }
   $("r-text").textContent = "相手は退出しました。";
@@ -5279,7 +5423,7 @@ function renderOnline() {
   setHTML($("p-chips"), fighterChips(me)); paintAll($("p-chips"));
 
   const st = $("stage");
-  if (!PA || !st.contains(PA)) { PA = makeActor("p", cm); st.appendChild(PA); }
+  if (!PA || !st.contains(PA)) { PA = makeActor("p", cm); st.appendChild(PA); Q.entry(st,cm.id); }
   if (!EA[0] || !st.contains(EA[0])) { EA[0] = makeActor("e", { ...co, face: true, uid: "opp" }, 0); EA[0].style.visibility = "visible"; st.appendChild(EA[0]); }
   for (const [a, f] of [[PA, me], [EA[0], op]]) {
     a.classList.toggle("inv", f.inv); a.classList.toggle("charged", f.charge);
@@ -5308,11 +5452,13 @@ function renderOnline() {
 document.querySelectorAll(".hbtn").forEach(btn => btn.onclick = () => (S.online ? onlinePick : play)(+btn.dataset.h));
 $("b-quit").onclick = () => {
   if (S.online) { leaveAll(); $("result").hidden = true; clearStage(); show("online"); return; }
-  S.battle = null; clearStage(); show("stage");
+  if (S.battle?.quest) { const ch=S.battle.quest.charId; S.battle=null; clearStage(); show("home"); Q.open(ch); saveResume(); return; }
+  const wasTower = !!(S.battle && S.battle.tower);
+  S.battle = null; clearStage(); show(wasTower ? towerFrom : "stage");
 };
 document.addEventListener("keydown", ev => {
   if (ev.ctrlKey || ev.metaKey) return;
-  if (ev.target.closest && ev.target.closest("input, textarea")) return;
+  if (ev.target.closest && ev.target.closest("input, textarea, select")) return;
   if (!$("info").hidden) { if (ev.key === "Escape" || ev.key.toLowerCase() === "i") closeInfo(); return; }
   if (S.screen !== "battle" || !$("result").hidden) return;
   if (ev.key.toLowerCase() === "i") { openBattleInfo(); return; }
@@ -5409,11 +5555,11 @@ const HOME_LINES = {
 let homeTimer = 0;
 // voiced=true のときはボイス（voice/v{キャラ}_home{番号}.wav）も鳴らす
 function homeSay(voiced) {
-  const lines = HOME_LINES[S.charId] || ["いくぞ！"];
+  const lines = [...(HOME_LINES[S.charId] || ["いくぞ！"]), ...window.JQQuestCore.lines(CS,S.charId)];
   // 3つの中から毎回ランダム（同じセリフが続くこともある）
   const i = Math.floor(Math.random() * lines.length);
   const el = $("home-say"); el.textContent = lines[i]; el.className = "callout home-say";
-  if (voiced) playVoice(S.charId, "home" + i, lines[i]);
+  if (voiced && i < (HOME_LINES[S.charId]?.length || 0)) playVoice(S.charId, "home" + i, lines[i]);
   play_(el, [{ transform: "translateX(-50%) scale(.4)", opacity: 0 }, { transform: "translateX(-50%) scale(1.08)", opacity: 1, offset: .6 }, { transform: "translateX(-50%)" }], 320, "ease-out");
 }
 function renderHome() {
@@ -5436,8 +5582,10 @@ function renderHome() {
     lastHomeAction=Date.now(); syncLook();
   });
   // 上：顔・名前・コイン
-  $("h-chara-ico").style.color = c.color; $("h-chara-ico").innerHTML = charFace(c.id);
-  $("hm-name").textContent = c.name; $("hm-title").textContent = `${c.title}・${rev ? "逆位置" : "正位置"}`;
+  // 左上はプロフィール（アイコン・ニックネーム・称号）。押すとプロフィールを開く
+  { const pf = profLoad(), ic = charOf(pf.icon) || c;
+    $("h-chara-ico").style.color = ic.color; $("h-chara-ico").innerHTML = Q.face(ic.id, pf.iconVariant === "story", pf.frame);
+    $("hm-name").textContent = profNick(); $("hm-title").textContent = pf.title || "プロフィール"; }
   $("hm-coins").textContent = CS.coins.toLocaleString();
   // 真ん中上：クリア数と、次に挑むステージ。「開始」はそのステージの確認画面を開く
   const all = WORLDS.flatMap(w => w.stages.map((_, i) => [w.no, i]));
@@ -5448,7 +5596,7 @@ function renderHome() {
   // 途中のステージ戦闘があれば、開始ボタンは「続きから」になる
   const rb = S.battle && !S.battle.over ? S.battle : null;
   $("h-start").querySelector("b").textContent = rb ? "続きから" : "開始"; $("h-start").classList.toggle("resume", !!rb);
-  $("h-start-sub").textContent = rb ? `${key(rb.w, rb.i)} ターン${rb.turn}` : nx ? `${key(nw, ni)} へ` : "全制覇！";
+  $("h-start-sub").textContent = rb ? `${rb.quest ? `個別 第${window.JQQuestCore.of(rb.quest.id).number}話` : rb.tower ? `塔 ${rb.tower.floor}階` : key(rb.w, rb.i)} ターン${rb.turn}` : nx ? `${key(nw, ni)} へ` : "全制覇！";
   $("h-start").onclick = () => (rb ? resumeBattle() : openStagePreview(nw, ni));
   // PCの左右に出す情報：次のステージの敵、キャラの能力
   $("hm-next").innerHTML = `<h3>次の敵（${key(nw, ni)}）</h3>` + WORLDS[nw - 1].stages[ni].map(([t], n) => enemyPrevHTML(TPL[t], `${n + 1}体目`)).join("");
@@ -5507,6 +5655,352 @@ function resumeBattle() {
   b.busy = false; show("battle");
   EA.forEach(a => a && (a.style.visibility = "visible")); // 敵の登場の演出はしないので、すぐ見えるように
 }
+/* =========================================================
+   試練の塔：1階＝敵1体。勝つと30%回復して次の階へ。負けたら1階から
+   ========================================================= */
+const TOWER_KEY = "jq-tower";
+const TOWER_RULES = {
+  handG: { name: "グーの威力アップ", desc: "グーで勝つとダメージ×1.5（敵も同じ）" },
+  noheal: { name: "回復禁止", desc: "カード・能力の回復が効かない" },
+  handC: { name: "チョキの威力アップ", desc: "チョキで勝つとダメージ×1.5（敵も同じ）" },
+  split: { name: "あいこで痛み分け", desc: "あいこになると、おたがい攻撃力の30%のダメージ" },
+  handP: { name: "パーの威力アップ", desc: "パーで勝つとダメージ×1.5（敵も同じ）" },
+  nostreak: { name: "連勝なし", desc: "連勝の倍率がかからない（敵も同じ）" },
+  pair: { name: "敵2体", desc: "1階に敵が2体出る" },
+};
+const TOWER_CYCLE = [null, "handG", "noheal", "handC", "split", "handP", "nostreak", "pair"]; // 5階ごと。41階からは2つ重なる
+const TOWER_TITLES = [[25, "塔の挑戦者"], [50, "塔の覇者"]];
+const towerTier = f => Math.min(10, 1 + Math.floor((f - 1) / 5)); // 背景・自分の強さのもとにするワールド
+const towerScale = f => (f > 50 ? 1 + 0.04 * (f - 50) : 1);       // 51階からは敵が少しずつ強くなる
+function towerRulesOf(f) {
+  const blk = Math.floor((f - 1) / 5);
+  if (blk < TOWER_CYCLE.length) return TOWER_CYCLE[blk] ? [TOWER_CYCLE[blk]] : [];
+  const pool = TOWER_CYCLE.slice(1), rng = seededRng("tower|" + blk); // 5階ごとにランダムで2つ（だれが遊んでも同じ）
+  const a = Math.floor(rng() * pool.length); let b = Math.floor(rng() * (pool.length - 1)); if (b >= a) b++;
+  return [pool[a], pool[b]];
+}
+function towerRuleText(rules) { return rules && rules.length ? rules.map(r => TOWER_RULES[r].name).join("＋") : "ルールなし"; }
+// その階の敵：そのワールドの雑魚から1体（5の倍数の階はボス）。「敵2体」の階は2体
+function towerFloorList(f) {
+  const W = WORLDS[towerTier(f) - 1], j = (f - 1) % 5, blk = Math.floor((f - 1) / 5);
+  const regs = W.stages[Math.min(j, 3)].filter(([t]) => !TPL[t].boss);
+  const bosses = W.stages[4].filter(([t]) => TPL[t].boss);
+  const reg = n => regs[(f * 7 + n * 3 + blk) % regs.length];
+  const two = towerRulesOf(f).includes("pair");
+  if (j === 4) { const boss = bosses[blk % bosses.length]; return two ? [boss, reg(0)] : [boss]; }
+  return two ? [reg(0), reg(1)] : [reg(0)];
+}
+function towerLoad() {
+  let t; try { t = JSON.parse(playerStorage.getItem(TOWER_KEY) || "{}") || {}; } catch { t = {}; }
+  const run = t.run && t.run.floor >= 1 ? { floor: t.run.floor | 0, hpr: Math.max(0.05, Math.min(1, +t.run.hpr || 1)), streak: Math.max(0, t.run.streak | 0) } : null;
+  return { best: Math.max(0, t.best | 0), bestAt: +t.bestAt || 0, sent: t.sent | 0, run, got: Array.isArray(t.got) ? t.got : [], titles: Array.isArray(t.titles) ? t.titles : [] };
+}
+function towerSave(t) { try { playerStorage.setItem(TOWER_KEY, JSON.stringify(t)); } catch {} }
+function towerGo() {
+  const T = towerLoad();
+  if (!T.run) { T.run = { floor: 1, hpr: 1, streak: 0 }; towerSave(T); }
+  const f = T.run.floor, rules = towerRulesOf(f);
+  closeInfo(); $("result").hidden = true;
+  startBattle(towerTier(f), (f - 1) % 5, { floor: f, rules, mode: rules.includes("pair") ? "duo" : "solo", list: towerFloorList(f), k: towerScale(f), hpr: T.run.hpr, streak: T.run.streak });
+}
+function towerFinish(b, won) {
+  b.over = true;
+  const TW = towerLoad(), f = b.tower.floor, btns = [], newTitles = [];
+  let coins = 0;
+  const exit = () => { S.battle = null; clearStage(); show(towerFrom); openTower(); };
+  if (won) {
+    if (f > TW.best) { TW.best = f; TW.bestAt = Date.now(); }
+    if (f % 5 === 0 && !TW.got.includes(f)) { TW.got.push(f); coins = f * 50; CS.coins += coins; saveCS(); }
+    for (const [fl, name] of TOWER_TITLES) if (f >= fl && !TW.titles.includes(name)) { TW.titles.push(name); newTitles.push(name); }
+    const p = b.p, heal = r2(Math.max(0, Math.min(p.max - p.hp, p.max * 0.3))), hp = r2(Math.min(p.max, p.hp + heal));
+    TW.run = { floor: f + 1, hpr: Math.max(0.05, Math.min(1, hp / p.max)), streak: p.streak | 0 };
+    towerSave(TW);
+    if (TW.best > TW.sent) towerSubmit();
+    $("r-modal").className = "modal";
+    $("r-eye").textContent = f % 5 === 0 ? "BOSS DEFEATED" : "FLOOR CLEAR";
+    $("r-title").textContent = `${f}階 突破！`;
+    $("r-text").textContent = `${heal > 0 ? `体力が${fmt(heal)}回復` : "体力は満タン"}（${fmt(hp)}/${fmt(p.max)}）。次は${f + 1}階・${towerRuleText(towerRulesOf(f + 1))}`
+      + newTitles.map(n => `　称号「${n}」を手に入れた！`).join("")
+      + (f===50 ? "　塔制覇！ タイトル背景『制覇の夜明け』を解放。51階以降も挑戦できます。" : "");
+    btns.push(["塔を出る", "", exit], ["次の階へ", "primary", towerGo]);
+    bgmStop(); sfx("win"); confetti();
+    playFrames(PA, "win", { fps: 7, loop: true });
+  } else {
+    TW.run = null; towerSave(TW);
+    const left = b.slots.find(Boolean);
+    $("r-modal").className = "modal lose";
+    $("r-eye").textContent = "GAME OVER";
+    $("r-title").textContent = `${f}階で力つきた…`;
+    $("r-text").textContent = `最高到達 ${TW.best}階。また1階から挑戦できます。` + (left ? `${left.name}のクセは「${left.hint}」。` : "");
+    btns.push(["1階から挑戦", "primary", towerGo], ["塔を出る", "", exit]);
+    sfx("lose");
+  }
+  showReward(coins ? { coins, got: [] } : null);
+  const box = $("r-btns"); box.innerHTML = "";
+  btns.forEach(([t, cls, fn], i) => {
+    const el = document.createElement("button"); el.className = "btn " + cls; el.textContent = t; el.id = "r-btn-" + i;
+    el.onclick = () => { $("result").hidden = true; fn(); };
+    box.appendChild(el);
+  });
+  setTimeout(() => { $("result").hidden = false; (box.querySelector(".primary") || box.firstChild).focus(); }, won ? T(700) : 0);
+}
+// Firebase（ランキング用）。オンライン対戦と同じく、ゲストは端末ごとの匿名のIDで書く
+async function fireDb() {
+  if (!window.firebase || !FIREBASE_CONFIG.apiKey || !FIREBASE_CONFIG.databaseURL) throw new Error("config");
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  const user = await window.JQAccount.onlineUser();
+  return { db: firebase.database(), uid: user.uid };
+}
+const withTimeout = (pr, ms) => Promise.race([pr, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
+async function towerSubmit() {
+  const T0 = towerLoad(); if (!T0.best) return;
+  // Capture the save owner before any network wait, so an account change cannot
+  // send this player's old score under a new identity.
+  const owner = window.JQAccount.user?.uid || null;
+  try {
+    const fb = await withTimeout(fireDb(), 10000);
+    if (owner !== (window.JQAccount.user?.uid || null)) return;
+    const result = await withTimeout(fb.db.ref("jq/tower/" + fb.uid).transaction(current =>
+      window.JQTowerRanking.record(current, { n: profNick(), f: T0.best }, firebase.database.ServerValue.TIMESTAMP)
+    ), 10000);
+    if (!result.committed || owner !== (window.JQAccount.user?.uid || null)) return;
+    const saved = result.snapshot.val(), T = towerLoad();
+    T.sent = Math.max(T.sent, saved.f);
+    T.best = Math.max(T.best, saved.f);
+    if (T.best === saved.f) T.bestAt = saved.t;
+    towerSave(T);
+  } catch (e) { console.warn("塔のランキングに送れませんでした", (e && (e.code || e.message)) || e); }
+}
+async function towerRanking() {
+  const fb = await withTimeout(fireDb(), 10000);
+  // A limit before tie-breaking can exclude earlier arrivals. Read all public
+  // records once so both the historical top ten and the owner's rank are exact.
+  const snap = await withTimeout(fb.db.ref("jq/tower").once("value"), 10000);
+  const rows = [];
+  snap.forEach(c => { rows.push(Object.assign({}, c.val(), { uid: c.key })); });
+  return window.JQTowerRanking.summarize(rows, fb.uid);
+}
+function towerSub() {
+  const T = towerLoad();
+  $("tw-sub").textContent = T.best || T.run ? `最高到達 ${T.best}階${T.run ? `・続きは${T.run.floor}階から` : ""}` : "1階に敵1体。勝つと30%回復して次の階へ。5階ごとにルールが変わる";
+}
+function openTower() {
+  const T = towerLoad(), live = S.battle && S.battle.tower && !S.battle.over ? S.battle : null;
+  const f = live ? live.tower.floor : T.run ? T.run.floor : 1, rules = towerRulesOf(f);
+  const nextM = Math.max(5, Math.ceil(f / 5) * 5), nextGot = T.got.includes(nextM);
+  const cyc = TOWER_CYCLE.map((r, n) => `<tr${Math.floor((f - 1) / 5) === n ? ' class="on"' : ""}><td>${n * 5 + 1}〜${n * 5 + 5}階</td><td>${r ? TOWER_RULES[r].name : "ルールなし"}</td></tr>`).join("")
+    + `<tr${f > 40 ? ' class="on"' : ""}><td>41階〜</td><td>上のルールから2つ（5階ごとに変わる）</td></tr>`;
+  const html = `<div class="tw-top"><div><span class="sub">最高到達</span><b>${T.best}階</b></div><div><span class="sub">${live ? "戦闘中" : T.run ? "続きから" : "次の挑戦"}</span><b>${f}階</b>${T.run && !live ? `<span class="sub">体力${Math.round(T.run.hpr * 100)}%・${T.run.streak}連勝</span>` : ""}</div></div>
+    <div class="info-sec"><h3>${f}階のルール：${towerRuleText(rules)}</h3>${rules.length ? `<ul class="tw-rules">${rules.map(r => `<li><b>${TOWER_RULES[r].name}</b>：${TOWER_RULES[r].desc}</li>`).join("")}</ul>` : `<p class="sub">ルールなし（ならし）</p>`}</div>
+    <div class="info-sec"><h3>歴代トップ10</h3><p class="sub">到達階の高い順。同じ階なら、サーバーに先に記録された順です。</p><ol class="tw-rank" id="tw-rank"><li class="sub">読み込み中…</li></ol><p class="tw-own" id="tw-own" aria-live="polite">あなたの順位を確認中…</p></div>
+    <div class="info-sec"><h3>ごほうび（初めて到達したときだけ）</h3><p>5階ごとに「階数×50」コイン。25階で称号「塔の挑戦者」、50階で称号「塔の覇者」。</p>${nextGot ? "" : `<p class="sub">次のごほうび：${nextM}階で${(nextM * 50).toLocaleString()}コイン</p>`}</div>
+    <details class="tw-cyc"><summary>ルールの順番</summary><table>${cyc}</table></details>
+    <p class="sub">1階に敵1体。勝つと最大体力の30%回復して次の階へ。負けたら1階からやり直し。途中でやめても、次は続きから。</p>`;
+  const btns = live ? [["戦闘に戻る", "primary", () => { closeInfo(); resumeBattle(); }]] : [[T.run ? `${f}階から再開` : "1階から挑戦", "primary", towerGo]];
+  if(T.best>=50)btns.unshift(["制覇報酬・タイトル背景","",()=>Q.rewards(S.charId)]);
+  openInfo("試練の塔", html, btns);
+  const list = $("tw-rank"), own = $("tw-own");
+  // Refresh after the pending personal best has been acknowledged by the server.
+  // Also submit after guest-to-account transfer, even if the old UID had
+  // already sent the same best. The transaction retains its original time.
+  const pending = T.best ? towerSubmit() : Promise.resolve();
+  pending.then(towerRanking).then(result => {
+    if (!list.isConnected || $("tw-rank") !== list) return;
+    list.innerHTML = result.top.length ? result.top.map(r => `<li class="${r.me ? "me" : ""}"><span class="rk">${r.rank}</span><span class="nm">${esc(r.n)}${r.me ? "（あなた）" : ""}</span><b>${r.f}階</b></li>`).join("") : '<li class="sub">まだだれも登っていません。</li>';
+    own.textContent = result.mine ? `あなたの順位：${result.mine.rank}位 / ${result.total}人（${result.mine.f}階）`
+      : towerLoad().best ? 'あなたの記録は未送信です。通信を確認して、塔の画面を開き直してください。'
+      : 'あなたの順位：未参加。塔を1階以上突破すると掲載されます。';
+  }).catch(() => {
+    if (!list.isConnected || $("tw-rank") !== list) return;
+    list.innerHTML = '<li class="sub">ランキングを読み込めませんでした。通信を確認して、開き直してください。</li>';
+    own.textContent = 'あなたの順位：取得できませんでした（記録は端末に保存されています）。';
+  });
+}
+// 塔はホームの右のボタンと、ロビーのパネルの両方から入れる。塔を出たら入った画面に戻る
+let towerFrom = "stage";
+$("to-tower").onclick = () => { towerFrom = "stage"; openTower(); };
+$("h-tower").onclick = () => { towerFrom = "home"; openTower(); };
+
+/* =========================================================
+   プロフィール（ニックネーム・アイコン・称号・ひとこと・オンラインの戦績）
+   ========================================================= */
+const PROFILE_KEY = "jq-profile";
+const PROF_DEFAULT_LINES = ["よろしくお願いします！", "楽しく遊ぼう！", "全力でいきます", "グー派です", "チョキ派です", "パー派です", "あいこは苦手…", "連勝ねらいます", "初心者です", "ランキング入りめざしてます"];
+// ひとことは一覧から選ぶ：定番＋全キャラのセリフ（ホームのセリフ・あいさつ・お礼）
+function profLineGroups() {
+  const out = [{ g: "定番", lines: PROF_DEFAULT_LINES }];
+  for (const c of CHARS) {
+    const st = STAMP_LINES[c.id] || {};
+    out.push({ g: c.name, lines: [...new Set([...(HOME_LINES[c.id] || []), ...window.JQQuestCore.lines(CS,c.id), st.hello, st.thanks].filter(Boolean))] });
+  }
+  return out;
+}
+let PROF_LINE_SET = null;
+const profLineOk = l => { PROF_LINE_SET = new Set(profLineGroups().flatMap(g => g.lines)); return typeof l === "string" && PROF_LINE_SET.has(l); };
+const ALL_TITLES = new Set([...TOWER_TITLES.map(x => x[1]), ...window.JQQuestContent.stories.map(s=>s.honor), window.JQQuestContent.allTitle, ...window.JQCoopContent.bosses.map(b=>b.title), window.JQCoopContent.allTitle]);
+const profNick = () => { try { return (playerStorage.getItem("jq-nick") || "").trim().slice(0, 12) || "名無し"; } catch { return "名無し"; } };
+const cleanRec = r => ({ w: Math.max(0, Math.min(1e6, (r && r.w) | 0)), l: Math.max(0, Math.min(1e6, (r && r.l) | 0)), d: Math.max(0, Math.min(1e6, (r && r.d) | 0)) });
+function profLoad() {
+  let p; try { p = JSON.parse(playerStorage.getItem(PROFILE_KEY) || "{}") || {}; } catch { p = {}; }
+  const owned = [...towerLoad().titles, ...window.JQQuestCore.titles(CS), ...window.JQCoopCore.titles(CS)];
+  return { icon: charOf(p.icon) ? p.icon : S.charId, iconVariant:p.iconVariant === "story" && window.JQQuestCore.complete(CS,p.icon) ? "story" : "normal", frame:!!p.frame && window.JQQuestCore.framed(CS,p.icon), title: owned.includes(p.title) ? p.title : "", line: profLineOk(p.line) ? p.line : "",
+    coopFrame:window.JQCoopCore.progress(CS).frame, showRec: p.showRec !== false, rec: cleanRec(p.rec) };
+}
+function profSave(p) { try { playerStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch {} }
+function profRecord(kind) { const p = profLoad(), k = { win: "w", lose: "l", draw: "d" }[kind]; if (!k) return; p.rec[k]++; profSave(p); }
+// 相手に送る形（戦績を見せない設定なら送らない）
+function profWire() { const p = profLoad(); return Object.assign({ i: p.icon, v:p.iconVariant, fr:p.frame, cf:p.coopFrame, t: p.title, l: p.line }, p.showRec ? { r: [p.rec.w, p.rec.l, p.rec.d] } : {}); }
+// 相手から届いたプロフィールは、一覧にある値だけ使う
+function profFromWire(w, ch) {
+  w = w && typeof w === "object" ? w : {};
+  const r = Array.isArray(w.r) ? cleanRec({ w: w.r[0], l: w.r[1], d: w.r[2] }) : null;
+    return { icon: charOf(w.i) ? w.i : (charOf(ch) ? ch : 1), iconVariant:w.v === "story" ? "story" : "normal", frame:w.fr === true, coopFrame:window.JQCoopCore.find(w.cf)?w.cf:'', title: ALL_TITLES.has(w.t) ? w.t : "", line: profLineOk(w.l) || window.JQQuestContent.stories.some(s=>s.chapters.some(c=>c.line===w.l)) ? w.l : "", showRec: !!r, rec: r || cleanRec(null) };
+}
+function profCardHTML(p, nick, ready) {
+  const c = charOf(p.icon) || charOf(1), r = p.rec, n = r.w + r.l + r.d;
+  return `<div class="pf-card${ready ? " ready" : ""}"><span class="badge pf-ico${p.coopFrame ? ' coop-profile-frame' : ''}" style="color:${c.color}">${Q.face(c.id,p.iconVariant === "story",p.frame)}</span>
+    <div class="pf-main"><b class="pf-nick">${esc(nick)}</b>${p.title ? `<span class="pf-title">${esc(p.title)}</span>` : ""}
+    <p class="pf-line">${p.line ? `「${esc(p.line)}」` : `<span class="sub">（ひとことなし）</span>`}</p>
+    <p class="pf-rec">${p.showRec ? `${r.w}勝 ${r.l}敗 ${r.d}分・勝率${n ? Math.round(r.w / n * 100) : 0}%` : `<span class="sub">戦績は非公開</span>`}</p></div>
+    ${ready ? `<span class="pf-ok">準備OK</span>` : ""}</div>`;
+}
+function openProfile() {
+  const p = profLoad(), titles = [...towerLoad().titles,...window.JQQuestCore.titles(CS), ...window.JQCoopCore.titles(CS)], draft = Object.assign({}, p);
+  const icons = CHARS.map(c => `<button type="button" class="pf-pick${p.icon === c.id ? " on" : ""}" data-icon="${c.id}" aria-label="${c.name}" aria-pressed="${p.icon === c.id}" style="color:${c.color}">${charFace(c.id)}</button>`).join("");
+  const lines = profLineGroups().map(g => `<optgroup label="${esc(g.g)}">${g.lines.map(l => `<option${l === p.line ? " selected" : ""}>${esc(l)}</option>`).join("")}</optgroup>`).join("");
+  const nick = profNick();
+  const html = `<div id="pf-prev"></div>
+    <label class="pf-row"><span>ニックネーム</span><input id="pf-nick" maxlength="12" value="${esc(nick === "名無し" ? "" : nick)}" placeholder="名無し"></label>
+    <div class="pf-row"><span>アイコン</span><div class="pf-icons">${icons}</div><span class="sub">各キャラの3話クリアで別アイコン、お題3つ達成で飾り枠を選べます。</span></div>
+    <label class="pf-row"><span>アイコンの種類</span><select id="pf-variant"><option value="normal">通常</option><option value="story">物語クリアのアイコン</option></select><span id="pf-variant-hint" class="sub"></span></label>
+    <label class="pf-chk"><input type="checkbox" id="pf-frame">お題達成の飾り枠を付ける</label>
+    <label class="pf-row"><span>称号</span><select id="pf-title"><option value="">（つけない）</option>${titles.map(t => `<option${t === p.title ? " selected" : ""}>${esc(t)}</option>`).join("")}</select>${titles.length ? "" : `<span class="sub">試練の塔の25階・50階、各キャラの3話クリアで手に入ります。</span>`}</label>
+    <label class="pf-row"><span>ひとこと</span><select id="pf-line"><option value="">（なし）</option>${lines}</select></label>
+    <label class="pf-chk"><input type="checkbox" id="pf-show"${p.showRec ? " checked" : ""}> オンラインの戦績を相手に見せる</label>
+    <p class="sub">オンライン対戦の相手が決まると、このプロフィールがおたがいに表示されます。</p>`;
+  const save = () => {
+    profSave(draft);
+    const nn = $("pf-nick").value.trim().slice(0, 12);
+    try { playerStorage.setItem("jq-nick", nn); } catch {}
+    $("on-nick").value = nn;
+    if (towerLoad().best) towerSubmit(); // ランキングの名前も新しくする
+    closeInfo(); toast("プロフィールを保存しました");
+    if (S.screen === "home") renderHome();
+  };
+  openInfo("プロフィール", html, [["やめる", "", closeInfo], ["保存", "primary", save]]);
+  const upd = () => {
+    const unlocked=window.JQQuestCore.complete(CS,draft.icon),framed=window.JQQuestCore.framed(CS,draft.icon);
+    if (!unlocked) draft.iconVariant="normal"; if (!framed) draft.frame=false;
+    $("pf-variant").value=draft.iconVariant||"normal"; $("pf-variant").querySelector('[value="story"]').disabled=!unlocked;
+    $("pf-variant-hint").textContent=unlocked?"物語クリアのアイコンを選べます。":"このキャラの3話クリアで解放されます。";
+    $("pf-frame").disabled=!framed; $("pf-frame").checked=!!draft.frame;
+    $("pf-prev").innerHTML = profCardHTML(draft, ($("pf-nick").value.trim() || "名無し").slice(0, 12)); };
+  $("info-body").querySelectorAll(".pf-pick").forEach(btn => btn.onclick = () => {
+    draft.icon = +btn.dataset.icon;
+    $("info-body").querySelectorAll(".pf-pick").forEach(x => { x.classList.toggle("on", x === btn); x.setAttribute("aria-pressed", x === btn); });
+    upd();
+  });
+  $("pf-variant").onchange = () => { draft.iconVariant=$("pf-variant").value; upd(); };
+  $("pf-frame").onchange = () => { draft.frame=$("pf-frame").checked; upd(); };
+  $("pf-title").onchange = () => { draft.title = $("pf-title").value; upd(); };
+  $("pf-line").onchange = () => { draft.line = $("pf-line").value; upd(); };
+  $("pf-show").onchange = () => { draft.showRec = $("pf-show").checked; upd(); };
+  $("pf-nick").oninput = upd;
+  upd();
+}
+$("h-prof").onclick = openProfile;
+// 個別クエスト：物語、任意のお題、初回報酬、外見の解放。
+let questStarting=false;
+async function questBegin(c) {
+  if(questStarting)return;
+  if (!window.JQQuestCore.unlocked(CS,c.id)) return;
+  questStarting=true;
+  try {
+  if(c.enemies.some(k=>k.startsWith('q-')&&!window.JQVisual.hasEnemy(k)))toast("出撃の準備をしています…");
+  await withTimeout(window.JQQuestArtReadyFor?.(c.enemies),10000);
+  if(c.enemies.some(k=>k.startsWith('q-')&&!window.JQVisual.hasEnemy(k)))throw Error("quest-art-unavailable");
+  S.charId=+c.id.split("-")[0]; saveProgress(); closeInfo(); $("result").hidden=true;
+  const hits=S.charId === 15 ? 11 : [3,4,6][c.number-1];
+  const factor=S.charId === 15 ? .4 : .7;
+  const list=c.enemies.map(tk=>[tk,hits,WORLDS[c.world-1].atk*factor]);
+  await startBattle(c.world,0,{quest:{id:c.id,charId:S.charId,stats:{}},list,mode:"solo",k:1,hpr:1,streak:0,rules:[]});
+  saveResume();
+  } catch(error) {
+    console.warn("個別クエストを開始できませんでした",error);
+    if(S.battle?.quest?.id===c.id){S.battle=null;clearStage();show("home");saveResume();}
+    toast("敵の画像を読み込めませんでした。通信を確認して、もう一度お試しください。");
+  } finally { questStarting=false; }
+}
+const Q=window.JQQuests.create({$,esc,getS:()=>S,getCS:()=>CS,saveCS,charOf,charFace,enemyPrevHTML,TPL,towerLoad,openInfo,closeInfo,
+  begin:questBegin,resumeBattle,home:()=>show("home"),
+  leaveBattle(){ S.battle=null; clearStage(); show("home"); saveResume(); sfx("select"); },
+});
+$("h-quest").onclick=()=>Q.open(S.charId);
+$("q-journal-link").onclick=()=>Q.journal();
+// Coop keeps its own progress and match receipts inside the account's jq-cards save.
+const COOP=window.JQCoop.create({$,esc,chars:CHARS,character:()=>S.charId,cs:()=>CS,save:saveCS,
+  user:()=>firebase.auth().currentUser,onlineUser:()=>window.JQAccount.onlineUser(),
+  sha,nick:profNick,validChar:id=>!!charOf(id),charName:id=>charOf(id)?.name||"仲間",
+  cards:ch=>eqList(ch).map(x=>[x.c,x.r,x.l]),cleanCards,
+  join:async(name,uid)=>{leaveAll();return fireAdapter(firebase.database(),uid).join(name);},
+  make(ch,cards){const f=mkFighter(ch,cards,0);f.hp*=2;f.max*=2;return f;},
+  duel(player,bossHand,myHand,boss,state,seed){
+    const old=ON;
+    try{ON={r:state.turn,g:0};const foe=mkFighter(0,[],0);foe.max=state.max;foe.hp=state.hp;foe.atk=boss.atk;
+      if(player.coopForce) {bossHand=0;player.coopForce=false;}
+      const F={A:player,B:foe},start=foe.hp;
+      pvpResolve(F,myHand,bossHand,'A',seededRng(state.seed+'|'+state.turn+'|'+seed));
+      player.coopForce=!!foe.forceG;
+      return {player:F.A,damage:Math.max(0,start-F.B.hp),bossHand};
+    }finally{ON=old;}
+  },afterClose(){if(S.screen==='home')renderHome();},
+});
+$("h-coop").onclick=()=>COOP.open();$("on-coop").onclick=()=>COOP.open();$("to-coop").onclick=()=>COOP.open();
+
+/* ---------- オンライン対戦の前：プロフィールを見せ合う（両方が準備OK、または5秒で開始） ---------- */
+const PRE_SEC = 5;
+function preMatchStart(oppPresence) {
+  ON.pre = true; ON.preReady = false; ON.preOppReady = false; ON.preEnd = Date.now() + PRE_SEC * 1000;
+  ON.myPf = profLoad(); ON.oppPf = profFromWire(oppPresence.pf, ON.oppCh);
+  $("pm-ok").disabled = false;
+  $("prematch").hidden = false; $("pm-ok").focus();
+  clearInterval(ON.preTimer); ON.preTimer = setInterval(preMatchTick, 200);
+  preMatchPeer(oppPresence);
+}
+function preMatchRender() {
+  if (!ON) return;
+  $("pm-me").innerHTML = `<span class="pm-who">あなた</span>` + profCardHTML(ON.myPf, ON.myNick, ON.preReady);
+  $("pm-opp").innerHTML = `<span class="pm-who">相手</span>` + profCardHTML(ON.oppPf, ON.oppNick, ON.preOppReady);
+}
+function preMatchTick() {
+  if (!ON || !ON.pre) return;
+  const left = Math.max(0, Math.ceil((ON.preEnd - Date.now()) / 1000));
+  $("pm-count").textContent = ON.preReady && !ON.preOppReady ? `相手の準備を待っています…（あと${left}秒で開始）` : `あと${left}秒で開始します`;
+  if ((ON.preReady && ON.preOppReady) || Date.now() >= ON.preEnd) preMatchGo();
+}
+function preMatchPeer(p) {
+  if (!ON || !ON.pre) return;
+  ON.preOppReady = p.rdy === 1;
+  preMatchRender(); preMatchTick();
+}
+function preMatchClose() { if (ON) { clearInterval(ON.preTimer); ON.pre = false; } $("prematch").hidden = true; }
+function preMatchGo() {
+  preMatchClose();
+  newGame(1); // 待っている間に届いていた相手の手の予約は、newGame の最後の checkProgress で読む
+}
+function preMatchAbort(msg) {
+  preMatchClose(); leaveAll();
+  NET.note = msg; // ロビーの表示が終わったあとに出す
+  show("online"); onStatus(msg);
+}
+$("pm-ok").onclick = () => {
+  if (!ON || !ON.pre || ON.preReady) return;
+  ON.preReady = true; $("pm-ok").disabled = true;
+  if (NET.named) NET.named.presence({ rdy: 1 }).catch(() => {});
+  preMatchRender(); preMatchTick();
+};
+$("pm-quit").onclick = () => { if (ON && ON.pre) preMatchAbort("対戦をやめました。"); };
+
 /* ---------- 起動（更新時に状態を引き継ぐ） ---------- */
 function start(data) {
   if (data && data.S) {
@@ -5516,7 +6010,7 @@ function start(data) {
     if (data.S.charId !== prog.charId) S.battle = null;
     if (S.online) { S.online = false; if (S.screen === "battle") S.screen = "online"; }
     if (S.battle) {
-      const W = WORLDS[S.battle.w - 1];
+      const W = WORLDS[S.battle.w - 1] && worldOf(S.battle);
       if (S.battle.over || !S.battle.slots || !W || S.battle.slots.length !== slotsOf(W)) S.battle = null;
       else { S.battle.busy = false; S.battle.slots = S.battle.slots.map(e => (e && e.hp > 0 ? e : null)); if (!S.battle.slots.some(Boolean)) spawn(S.battle); }
     }
@@ -5532,6 +6026,7 @@ function start(data) {
 // 起動画面（下の別スクリプト）から呼ぶもの：はじめるを押したら音を出せるようにして、今の画面の曲を流す
 window.JQ_BOOT = {
   started: false, titled: false,
+  prepareTitle(){ Q.prepareTitle(); COOP.prepareTitle(); },
   // タイトルが出たとき：音を出してよい状態ならジングルを鳴らす（スマホなどは画面に触るまで音を出せないので、その場合は「はじめる」で鳴らす）
   title() { try { audioMake(); if (AU.ctx && AU.ctx.state === "running") { sfx("title"); this.titled = true; } } catch {} },
   begin() { if (this.started) return; this.started = true; audioInit(); sfx(this.titled ? "start" : "title"); bgm(songFor()); },
@@ -5620,6 +6115,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(startWithArt) : startWithArt
   // 全キャラ・全カード・フォントは起動を妨げず、裏で必要なものから読み込む。
   async function preload() {
     await Promise.all([window.JQ_GAME_READY, within(window.JQVisual?.ready, 1200, null)]);
+    window.JQ_BOOT?.prepareTitle();
     $b("boot-fill").style.width = "100%";
   }
   async function boot() {
@@ -5646,7 +6142,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(startWithArt) : startWithArt
   // バトル中・オンライン対戦の画面では、途中で消えると困るので読み直さない
   const RELOAD_AFTER = 30;
   let hiddenAt = 0;
-  const busy = () => !!document.querySelector("#scr-battle:not([hidden]), #scr-online:not([hidden]), #account-dialog[open]");
+  const busy = () => !!document.querySelector("#scr-battle:not([hidden]), #scr-online:not([hidden]), #coop-overlay:not([hidden]), #account-dialog[open], #info:not([hidden]) .q-story-scene, #info:not([hidden]) .q-conversation-log");
   const freshReload = () => location.replace(location.pathname + "?r=" + Date.now() + (showStartRequested() ? "&start=1" : "")); // 古いページを使わせない
   document.addEventListener("visibilitychange", async () => {
     if (document.hidden) { hiddenAt = Date.now(); return; }

@@ -19,6 +19,28 @@
           ".validate": "newData.hasChildren(['v'])"
         }
       },
+      "tower": {
+        ".read": "auth != null",
+        ".indexOn": [
+          "f"
+        ],
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.hasChildren(['n', 'f', 't']) && (!data.exists() || newData.child('f').val() >= data.child('f').val()) && ((!data.exists() || newData.child('f').val() > data.child('f').val()) ? newData.child('t').val() === now : newData.child('t').val() === data.child('t').val())",
+          "n": {
+            ".validate": "newData.isString() && newData.val().length <= 12"
+          },
+          "f": {
+            ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 9999 && newData.val() % 1 === 0"
+          },
+          "t": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      },
       "users": {
         "$uid": {
           ".read": "auth != null && auth.uid === $uid",
@@ -42,6 +64,12 @@
             },
             "jq-nick": {
               ".validate": "newData.isString() && newData.val().length <= 128"
+            },
+            "jq-profile": {
+              ".validate": "newData.isString() && newData.val().length <= 4096"
+            },
+            "jq-tower": {
+              ".validate": "newData.isString() && newData.val().length <= 16384"
             },
             "$other": {
               ".validate": false
