@@ -18,7 +18,7 @@
         const portrait=a=>{const f=a.frames[26],size=Math.max(f[2]-f[0],(f[3]-f[1])*.53),x=f[0],y=f[1];return `<span class="q-victory-portrait" style="background-image:url('${a.src}');background-size:${a.width/size*100}% ${a.height/size*100}%;background-position:${x/(a.width-size)*100}% ${y/(a.height-size)*100}%"></span>`;};
         picture=portrait(atlas);
       }
-      return `<span class="q-portrait${variant?' story':''}${frame?' mastery':''}" style="--q-color:${api.charOf(id).color}">${picture}${variant?`<span class="q-emblem">${s.emblem}</span>`:''}</span>`;
+      return `<span class="q-portrait${variant?' story':''}${frame?' mastery':''}" style="--q-color:${api.charOf(id).color}">${picture}</span>`;
     }
     function open(id=selected) {
       dialogCleanup();

@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-22-0020";
+  window.JQ_VER = "2026-11-22-0021";
   // 画像を変更していない更新では、再ダウンロードせず保存済みの画像を使う。
   window.JQ_ASSET_VER = "2026-11-08-0045";
   window.JQ_MOTION_VER = "2026-11-08-0044";
@@ -1388,11 +1388,11 @@ body.on-home .wrap { padding-top: 10px; }
 @media (max-width: 599px) { .pm-vs { grid-template-columns: 1fr; } .pm-x { justify-self: center; } }
 </style>
 <link rel="stylesheet" href="account.css?v=2026-11-16-0052">
-<link rel="stylesheet" href="quest.css?v=2026-11-22-0020">
-<link rel="stylesheet" href="game-select.css?v=2026-11-22-0020">
-<script defer src="game-select.js?v=2026-11-22-0020"></script>
-<link rel="stylesheet" href="coop.css?v=2026-11-22-0020">
-<link rel="stylesheet" href="home-layout.css?v=2026-11-22-0020">
+<link rel="stylesheet" href="quest.css?v=2026-11-22-0021">
+<link rel="stylesheet" href="game-select.css?v=2026-11-22-0021">
+<script defer src="game-select.js?v=2026-11-22-0021"></script>
+<link rel="stylesheet" href="coop.css?v=2026-11-22-0021">
+<link rel="stylesheet" href="home-layout.css?v=2026-11-22-0021">
 </head>
 <body>
 <!-- 起動画面：新しい版の確認と画像の読み込みが終わったら「タップしてはじめる」（ここで音も出せるようになる） -->
@@ -1702,11 +1702,12 @@ const frameUrl = (a, name) => `${a._base}/${name}.png?v=${window.JQ_VER}`;
 function frameImg(url) { let im = FRIMG[url]; if (!im) { im = FRIMG[url] = new Image(); im.src = url; } return im; }
 function playFrames(a, name, o = {}) {
   if (!a) return;
+  const pace = ms => a.classList.contains("home-actor") ? ms : FT(ms);
   if (name !== "tf" && a._tfUntil && Date.now() < a._tfUntil) return; // かえでの変身中は、ほかの動きで上書きしない
   // キャラは待機も含めて同じシートの全身コマで再生する。
   if (a._kind === "p" && a.classList.contains("photo")) {
     clearTimeout(a._ft); a._ftok = {}; a.classList.remove("framed");
-    return JQMotion.play(a, name, { ...o, rate: FT(1) });
+    return JQMotion.play(a, name, { ...o, rate: a.classList.contains("home-actor") ? 1 : FT(1) });
   }
   if (!a._fr) return;
   const n = a._set[name];
@@ -1723,9 +1724,9 @@ function playFrames(a, name, o = {}) {
   const step = () => {
     fr.style.backgroundPosition = n > 1 ? `${i / (n - 1) * 100}% 0` : "0 0";
     if (o.still) return; // 1コマ目で止める
-    if (++i < n) a._ft = setTimeout(step, FT(1000 / fps));
-    else if (o.loop) { i = 0; a._ft = setTimeout(step, FT(1000 / fps)); }
-    else if (o.then) a._ft = setTimeout(() => (o.then === "idle" ? idle(a) : playFrames(a, o.then, { loop: o.loop })), FT(o.hold || 300));
+    if (++i < n) a._ft = setTimeout(step, pace(1000 / fps));
+    else if (o.loop) { i = 0; a._ft = setTimeout(step, pace(1000 / fps)); }
+    else if (o.then) a._ft = setTimeout(() => (o.then === "idle" ? idle(a) : playFrames(a, o.then, { loop: o.loop })), pace(o.hold || 300));
   };
   step();
 }
@@ -1795,7 +1796,7 @@ let FAST = !!prefs.fast;
 // 演出の時間。「演出：速い」だけで短くする（OSの「アニメーションを減らす」設定ではテンポを変えない。PCで極端に速くなっていたため）
 const T = ms => ms * (FAST ? 0.55 : 1);
 const wait = ms => new Promise(r => setTimeout(r, T(ms)));
-const play_ = (el, frames, ms, easing = "ease-out", fill = "none") => el.animate(frames, { duration: Math.max(1, T(ms)), easing, fill });
+const play_ = (el, frames, ms, easing = "ease-out", fill = "none") => el.animate(frames, { duration: Math.max(1, el.closest?.(".home-stage") ? ms : T(ms)), easing, fill });
 // 見えていないタブではアニメーションが止まるので、長さ＋少しで必ず先へ進む
 const done = a => Promise.race([
   a.finished.catch(() => {}),
@@ -3879,7 +3880,7 @@ function kaedeLook(a, mode) {
   const first = !a._look; a._look = want;
   a.querySelector(".spr").src = imgSrc(want);
   if (first) return;
-  a._tfUntil = 0; playFrames(a, "tf", { then: "idle" }); a._tfUntil = Date.now() + FT(360);
+  a._tfUntil = 0; playFrames(a, "tf", { then: "idle" }); a._tfUntil = Date.now() + (a.classList.contains("home-actor") ? 600 : FT(360));
   const c = center(a._head), col = mode === "def" ? "#6aa8ff" : "#ff6a5a";
   sfx("buff"); flash(mode === "def" ? "rgba(106,168,255,.3)" : "rgba(255,106,90,.3)", .3);
   ring(c, col, { r: 30, grow: 1.6, life: 30, w: 6 }); burst(c, { n: 26, colors: [col, "#fff"], speed: 4, shape: "star", grav: 0 });
@@ -5627,8 +5628,8 @@ function renderHome() {
   requestAnimationFrame(fitHome); // 下のメニューに重ならない高さに合わせる
   homeSay(true); // ホームに来たとき（ほかの画面から戻ったとき）もひとこと話す
   clearInterval(homeTimer);
-  // 放っておくと12秒ごとに話す（ボイスつき）
-  homeTimer = setInterval(() => { if (S.screen !== "home" || document.hidden) { if (S.screen !== "home") clearInterval(homeTimer); return; } if (Date.now()-lastHomeAction < (FAST ? 12000 : 22000)) return; lastHomeAction=Date.now(); pump(a); homeSay(true); }, 1000);
+  // ホームの自動動作・セリフは演出速度に関係なく22秒間隔。
+  homeTimer = setInterval(() => { if (S.screen !== "home" || document.hidden) { if (S.screen !== "home") clearInterval(homeTimer); return; } if (Date.now()-lastHomeAction < 22000) return; lastHomeAction=Date.now(); pump(a); homeSay(true); }, 1000);
 }
 // スマホは :active が出ないことがあるので、指が触れている間は pressed を付ける（枠がオレンジになる）
 document.querySelectorAll(".hm-start, .hm-sub").forEach(b => {

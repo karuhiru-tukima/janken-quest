@@ -1,5 +1,4 @@
-/* Two peers publish only their own presence. Commit/reveal and state acknowledgements
-   keep both clients on the same turn; a missing peer never becomes a rewarded win. */
+/* Two to four peers write only their own presence. Every frozen party member must commit, reveal and acknowledge before advancing or receiving rewards. */
 (() => {
   'use strict';
   const C=window.JQCoopContent,K=window.JQCoopCore;
@@ -16,50 +15,82 @@
     const lobby=window.JQCoopLobby.create({api,shell,art,rewards,join:(id,ch,password)=>{selection=id;return join(password,ch);}});
     function open(){if(run){draw();return;}lobby.open();}
     async function join(password,ch){if(joining)return;if(!password){error('あいことばを入力してください。');return;}joining=true;const attempt=++token;$('coop-join').disabled=true;
-      let room;try{const user=await api.onlineUser();if(attempt!==token)return;const hash=await api.sha('jq-coop-v1|'+password);room=await api.join('coop-v1-'+hash.slice(0,40),user.uid);if(attempt!==token){await room.leave();return;}
-        const r={room,uid:user.uid,epoch:attempt,peers:[],local:{v:1,ch,nick:api.nick().slice(0,12),coop:1,boss:selection,nonce:nonce(),cards:api.cards(ch),rounds:{}},state:null,match:'',busy:false,again:false,deadline:0,computed:0,selectedAction:'attack',selectedTarget:0,stampAt:0,completed:false,missing:0};run=r;await room.presence(r.local);if(run!==r)return;
+      let room;try{const user=await api.onlineUser();if(attempt!==token)return;const hash=await api.sha('jq-coop-v2|'+password);room=await api.join('coop-v2-'+hash.slice(0,40),user.uid);if(attempt!==token){await room.leave();return;}
+        const r={room,uid:user.uid,epoch:attempt,peers:[],local:{v:2,ch,nick:api.nick().slice(0,12),coop:2,joinedAt:Date.now(),ready:false,boss:selection,nonce:nonce(),cards:api.cards(ch),rounds:{}},state:null,match:'',busy:false,again:false,deadline:0,computed:0,selectedAction:'attack',selectedTarget:0,stampAt:0,completed:false,missing:0};run=r;await room.presence(r.local);if(run!==r)return;
         r.unsubscribe=room.onPeers(({peers})=>{if(run!==r)return;r.peers=peers;pump(r);},()=>abort(r,'通信を確認できませんでした。退出して、もう一度参加してください。'));
-        tick=setInterval(()=>{if(!ownerOK(r)){leave();return;}if(r.missing&&Date.now()-r.missing>30000){abort(r,'仲間との通信が戻らなかったため中止しました。報酬は発生しません。');return;}if(r.state?.status==='playing'&&r.deadline&&Date.now()>=r.deadline&&!r.local.rounds[r.state.turn])pick(r.state.players[r.side].hp<=0?{h:0,a:'guard',target:0}:{h:Math.floor(Math.random()*3),a:'guard',target:r.side});const timer=$('coop-timer');if(timer&&r.deadline)timer.textContent=String(Math.max(0,Math.ceil((r.deadline-Date.now())/1000)));},250);draw();
+        tick=setInterval(()=>{if(!ownerOK(r)){leave();return;}if(r.missing&&Date.now()-r.missing>30000){abort(r,'仲間との通信が戻らなかったため中止しました。報酬は発生しません。');return;}if(r.state?.status==='playing'&&r.deadline&&Date.now()>=r.deadline&&!r.local.rounds[r.state.turn])pick(r.state.players[r.side].hp<=0?{h:0,a:'guard',target:0}:{h:Math.floor(Math.random()*3),a:'guard',target:r.side%2});const timer=$('coop-timer');if(timer&&r.deadline)timer.textContent=String(Math.max(0,Math.ceil((r.deadline-Date.now())/1000)));},250);draw();
       }catch(e){if(room&&(!run||run.room!==room))try{await room.leave();}catch{}error('部屋に入れませんでした。通信を確認して再試行してください。');if($('coop-join'))$('coop-join').disabled=false;}finally{joining=false;}
     }
     async function publish(r,patch){if(!ownerOK(r))return;Object.assign(r.local,patch);await r.room.presence(r.local);}
     function abort(r,message){if(run!==r)return;r.failed=message;r.deadline=0;draw();}
+    const party=r=>r.peers.filter(p=>p.presence?.coop===2).map(p=>p.peer===r.uid&&p.presence.nonce===r.local.nonce?{...p,presence:r.local}:p).sort((a,b)=>(a.presence.joinedAt-b.presence.joinedAt)||(a.peer<b.peer?-1:a.peer>b.peer?1:0));
+    const compatible=(r,p)=>p.presence.v===2&&p.presence.boss===r.local.boss&&api.validChar(p.presence.ch)&&typeof p.presence.nonce==='string'&&Number.isFinite(p.presence.joinedAt);
+    async function launch(r){
+      if(!ownerOK(r)||r.state||r.launching)return;const slots=party(r).slice(0,4);
+      if(slots.length<2||slots[0].peer!==r.uid||!slots.every(p=>p.presence.ready&&compatible(r,p)))return;
+      r.launching=true;try{await publish(r,{start:{roster:slots.map(p=>({uid:p.peer,nonce:p.presence.nonce}))}});pump(r);}catch{abort(r,'出撃を送信できませんでした。');}finally{r.launching=false;}
+    }
     async function pump(r){if(r.busy){r.again=true;return;}r.busy=true;
       try{do{r.again=false;if(!ownerOK(r)||r.failed)break;if(r.completed){r.missing=0;draw();break;}
-        const peers=r.peers.filter(p=>p.presence?.coop===1).sort((a,b)=>a.peer<b.peer?-1:a.peer>b.peer?1:0);
-        if(peers.length>2&&!r.match){abort(r,'この部屋は満員です。別のあいことばを使ってください。');break;}
-        if(peers.some(p=>p.peer===r.uid&&p.presence.nonce!==r.local.nonce)){abort(r,'同じアカウントが別の画面から参加しました。1人につき1画面で参加してください。');break;}
-        if(!r.match){if(peers.length<2){draw();break;}if(peers.some(p=>p.presence.v!==1||p.presence.boss!==r.local.boss||!api.validChar(p.presence.ch)||typeof p.presence.nonce!=='string')){abort(r,'2人のボス選択またはゲームのバージョンが違います。同じ設定で入り直してください。');break;}
-          r.roster=peers.map(p=>({uid:p.peer,nonce:p.presence.nonce,ch:p.presence.ch,cards:api.cleanCards(p.presence.cards),nick:String(p.presence.nick||'仲間').slice(0,12)}));r.side=r.roster.findIndex(p=>p.uid===r.uid);if(r.side<0)throw Error('missing self');
-          r.match=await api.sha(JSON.stringify([r.local.boss,r.roster]));if(!ownerOK(r))break;r.state=K.create(r.local.boss,r.roster,r.match,api.make);api.playEntryVoice?.(r.local.ch);r.digest=await api.sha(JSON.stringify(r.state));await publish(r,{match:r.match,ack:{turn:0,hash:r.digest}});r.again=true;}
-        const other=r.peers.find(p=>p.peer===r.roster[1-r.side].uid)?.presence;
-        if(!other||other.nonce!==r.roster[1-r.side].nonce){if(!r.missing){r.missing=Date.now();draw();}break;}r.missing=0;
-        if(!other.match){draw();break;}if(other.match!==r.match){abort(r,'参加情報が一致しません。入り直してください。');break;}
-        const done=r.state.turn-1;
-        if(other.ack?.turn===done&&other.ack.hash!==r.digest){abort(r,'戦闘結果が一致しないため中止しました。報酬は発生しません。');break;}
-        if(r.state.status!=='playing'){
-          if(other.ack?.turn===done&&other.ack.hash===r.digest&&!r.completed){r.completed=true;if(r.state.status==='win'&&ownerOK(r)){K.reward(api.cs(),r.state.id,r.match);api.save();}r.deadline=0;}draw();break;
+        const own=r.peers.find(p=>p.peer===r.uid)?.presence;
+        if(own&&own.nonce!==r.local.nonce){abort(r,'同じアカウントが別の画面から参加しました。1人につき1画面で参加してください。');break;}
+        const peers=party(r);
+        if(!r.match){
+          const proposal=peers.find(p=>p.presence.start)?.presence.start;
+          if(!proposal){
+            if(peers.some(p=>p.presence.match)){abort(r,'この部屋はすでに出撃しています。別のあいことばで参加してください。');break;}
+            if(peers.findIndex(p=>p.peer===r.uid)>=4){abort(r,'この部屋は4人で満員です。別のあいことばを使ってください。');break;}
+            if(peers.slice(0,4).some(p=>!compatible(r,p))){abort(r,'ボス選択またはゲームのバージョンが違います。同じ設定で入り直してください。');break;}
+            draw();break;
+          }
+          const ids=proposal.roster;
+          if(!Array.isArray(ids)||ids.length<2||ids.length>4||new Set(ids.map(x=>x.uid)).size!==ids.length)throw Error('invalid roster');
+          if(!ids.some(x=>x.uid===r.uid&&x.nonce===r.local.nonce)){abort(r,'この部屋は出撃済み、または満員です。別のあいことばを使ってください。');break;}
+          const leader=peers.find(p=>p.peer===ids[0].uid);
+          if(!leader?.presence.start||JSON.stringify(leader.presence.start)!==JSON.stringify(proposal))throw Error('invalid leader');
+          const members=ids.map(x=>peers.find(p=>p.peer===x.uid&&p.presence.nonce===x.nonce));
+          if(members.some(p=>!p)){abort(r,'出撃前に仲間が退出しました。入り直してください。');break;}
+          if(members.some(p=>!compatible(r,p)||!p.presence.ready))throw Error('party not ready');
+          r.roster=members.map(p=>({uid:p.peer,nonce:p.presence.nonce,ch:p.presence.ch,cards:api.cleanCards(p.presence.cards),nick:String(p.presence.nick||'仲間').slice(0,12)}));r.side=r.roster.findIndex(p=>p.uid===r.uid);
+          r.match=await api.sha(JSON.stringify([r.local.boss,r.roster]));if(!ownerOK(r))break;
+          r.state=K.create(r.local.boss,r.roster,r.match,api.make);api.playEntryVoice?.(r.local.ch);r.digest=await api.sha(JSON.stringify(r.state));await publish(r,{match:r.match,ack:{turn:0,hash:r.digest}});r.again=true;
         }
-        // Never choose another turn until both peers have acknowledged the previous one.
-        if(!other.ack||other.ack.turn<done){draw();break;}if(!r.deadline)r.deadline=Date.now()+20000;
-        const turn=r.state.turn,mine=r.local.rounds[turn],theirs=other.rounds?.[turn];
-        if(!mine||!theirs){draw();break;}
+        const members=r.roster.map(p=>p.uid===r.uid?r.local:r.peers.find(x=>x.peer===p.uid&&x.presence.nonce===p.nonce)?.presence);
+        if(members.some(p=>!p)){if(!r.missing){r.missing=Date.now();draw();}break;}r.missing=0;
+        if(members.some(p=>!p.match)){draw();break;}
+        if(members.some(p=>p.match!==r.match)){abort(r,'参加情報が一致しません。入り直してください。');break;}
+        const done=r.state.turn-1;
+        if(members.some(p=>p.ack?.turn===done&&p.ack.hash!==r.digest)){abort(r,'戦闘結果が一致しないため中止しました。報酬は発生しません。');break;}
+        if(r.state.status!=='playing'){
+          if(members.every(p=>p.ack?.turn===done&&p.ack.hash===r.digest)&&!r.completed){r.completed=true;if(r.state.status==='win'&&ownerOK(r)){K.reward(api.cs(),r.state.id,r.match);api.save();}r.deadline=0;}draw();break;
+        }
+        // No player can move ahead before every party member acknowledges the previous result.
+        if(members.some(p=>!p.ack||p.ack.turn<done)){draw();break;}if(!r.deadline)r.deadline=Date.now()+20000;
+        const turn=r.state.turn,commits=members.map(p=>p.rounds?.[turn]),mine=commits[r.side];
+        if(commits.some(p=>!p)){draw();break;}
         if(!mine.rv){await publish(r,{rounds:{...r.local.rounds,[turn]:{...mine,rv:r.secret}}});r.again=true;continue;}
-        if(!theirs.rv){draw();break;}
-        const rv=[mine.rv,theirs.rv],cs=[mine.c,theirs.c];for(let i=0;i<2;i++){const v=rv[i];if(!K.validPick(v?.p)||typeof v.s!=='string'||v.s.length!==32||await api.sha(r.match+'|'+turn+'|'+JSON.stringify(v))!==cs[i])throw Error('commit mismatch');}
-        if(!ownerOK(r))break;const ordered=r.side===0?rv:[rv[1],rv[0]];r.state=K.step(r.state,ordered.map(v=>v.p),ordered.map(v=>v.s),api.duel);r.deadline=0;r.secret=null;r.digest=await api.sha(JSON.stringify(r.state));await publish(r,{ack:{turn,hash:r.digest}});r.again=true;draw();
+        if(commits.some(p=>!p.rv)){draw();break;}
+        const ordered=commits.map(p=>p.rv);
+        for(let i=0;i<ordered.length;i++){const v=ordered[i];if(!K.validPick(v?.p)||typeof v.s!=='string'||v.s.length!==32||await api.sha(r.match+'|'+turn+'|'+JSON.stringify(v))!==commits[i].c)throw Error('commit mismatch');}
+        if(!ownerOK(r))break;r.state=K.step(r.state,ordered.map(v=>v.p),ordered.map(v=>v.s),api.duel);r.deadline=0;r.secret=null;r.digest=await api.sha(JSON.stringify(r.state));await publish(r,{ack:{turn,hash:r.digest}});r.again=true;draw();
       }while(r.again&&ownerOK(r));}catch(e){console.warn('共闘を中止',e);abort(r,'通信または行動情報を確認できませんでした。退出して再参加してください。');}finally{r.busy=false;if(r.again&&ownerOK(r)&&!r.failed)pump(r);}
     }
     async function pick(p){const r=run;if(!r||r.failed||r.missing||!r.state||r.state.status!=='playing'||r.local.rounds[r.state.turn]||!r.deadline||r.picking)return;r.picking=true;try{const turn=r.state.turn,v={p,s:nonce()},c=await api.sha(r.match+'|'+turn+'|'+JSON.stringify(v));if(!ownerOK(r)||r.state.turn!==turn)return;r.secret=v;await publish(r,{rounds:{...r.local.rounds,[turn]:{c}}});pump(r);}catch{abort(r,'行動を送信できませんでした。通信を確認してください。');}finally{r.picking=false;draw();}}
+    function waiting(r,b){
+      const slots=party(r).slice(0,4),leader=slots[0]?.peer===r.uid,count=slots.length,scale=K.scaling(Math.max(2,count)),ready=count>=2&&slots.every(p=>p.presence.ready&&compatible(r,p));
+      shell('共闘の待合室',art(b)+'<h3>'+esc(b.name)+'</h3><p>参加 '+count+'/4人・2〜4人で挑戦</p><div class="coop-wait-party">'+Array.from({length:4},(_,i)=>{const p=slots[i];return p?'<div class="coop-wait-member">'+api.charPortrait(p.presence.ch)+'<b>'+esc(p.presence.nick||'仲間')+(p.peer===r.uid?'（あなた）':'')+'</b><span>'+(i===0?'リーダー・':'')+(p.presence.ready?'準備完了':'準備中')+'</span></div>':'<div class="coop-wait-member empty">仲間を募集中</div>';}).join('')+'</div><p class="coop-forecast">'+(count<2?'2人以上で出撃できます。2人時のボスHP ':count+'人で出撃時：ボスHP ')+Math.round(b.hp*scale.hp*100)/100+'／攻撃力 '+Math.round(scale.attack*100)+'%</p><p class="sub">人数に合わせてボスの強さが変わります。全員が準備完了したら、リーダーが出撃を選びます。</p><div class="row"><button class="btn primary" id="coop-ready">'+(r.local.ready?'準備を取り消す':'準備完了')+'</button>'+(leader?'<button class="btn primary" id="coop-launch"'+(!ready?' disabled':'')+'>'+(count<2?'仲間を待つ':'この'+count+'人で出撃')+'</button>':'<span class="sub">リーダーの出撃を待っています</span>')+'</div>');
+      $('coop-ready').onclick=async()=>{try{await publish(r,{ready:!r.local.ready});pump(r);}catch{abort(r,'準備状態を送信できませんでした。');}};
+      if($('coop-launch'))$('coop-launch').onclick=()=>launch(r);
+    }
     function draw(){const r=run;if(!r){if(shown)open();return;}const b=K.find(r.local.boss);if(r.failed){shell('共闘を中止',`<p role="alert">${esc(r.failed)}</p><p>コイン・メダルは消費されません。</p>`);return;}
-      if(!r.state){shell('仲間を待っています',`${art(b)}<h3>${esc(b.name)}</h3><p>同じあいことば・同じボスで参加してください。</p>`);return;}
+      if(!r.state){waiting(r,b);return;}
       const s=r.state,f=K.forecast(s,r.side),locked=!!r.local.rounds[s.turn],over=s.status!=='playing',q=K.progress(api.cs());
-      shell(over?(s.status==='win'?'討伐成功！':'討伐失敗'):'共闘ボス討伐',`<div class="row spread"><b>${esc(b.name)}</b><span>${Math.min(s.turn,40)}/40ターン</span></div>
-      <div class="coop-battle q-story-scene" data-scene="${b.scene}"><div class="coop-party">${s.players.map((p,i)=>`<div class="coop-hero${p.hp<=0?' down':''}"><img src="img/chars/c${p.ch}.png" alt="${esc(api.charName(p.ch))}"><span>${i+1}：${esc(r.roster[i].nick)}${i===r.side?'（あなた）':''}</span><meter min="0" max="${p.max}" value="${p.hp}"></meter><small>HP ${p.hp.toFixed(1)}/${p.max}</small></div>`).join('')}</div><div class="coop-enemy">${art(b)}<meter min="0" max="${s.max}" value="${s.hp}"></meter><small>HP ${s.hp.toFixed(1)}/${s.max}${b.rule==='heads'||b.rule==='twins'?`（左 ${s.parts[0]}／右 ${s.parts[1]}）`:''}</small></div></div>
+      shell(over?(s.status==='win'?'討伐成功！':'討伐失敗'):'共闘ボス討伐',`<div class="row spread"><b>${esc(b.name)}</b><span>${s.players.length}人・${Math.min(s.turn,40)}/40ターン</span></div>
+      <div class="coop-battle q-story-scene" data-count="${s.players.length}" data-scene="${b.scene}"><div class="coop-party">${s.players.map((p,i)=>`<div class="coop-hero${p.hp<=0?' down':''}"><div class="coop-hero-figure"><img src="img/chars/c${p.ch}.png" alt="${esc(api.charName(p.ch))}"></div><span>${i+1}：${esc(r.roster[i].nick)}${i===r.side?'（あなた）':''}</span><meter min="0" max="${p.max}" value="${p.hp}"></meter><small>HP ${p.hp.toFixed(1)}/${p.max}</small></div>`).join('')}</div><div class="coop-enemy">${art(b)}<meter min="0" max="${s.max}" value="${s.hp}"></meter><small>HP ${s.hp.toFixed(1)}/${s.max}${b.rule==='heads'||b.rule==='twins'?`（左 ${s.parts[0]}／右 ${s.parts[1]}）`:''}</small></div></div>
       ${over?`<p class="q-rewards">${!r.completed?'仲間と戦闘結果を照合しています…':s.status==='win'?`${b.coins}コイン＋メダル${b.medals}枚を獲得！ 所持メダル ${q.medals}枚`:'作戦を変えて、もう一度挑もう。'}</p>`:`<p class="coop-forecast" role="status">${esc(f.text)}</p><p>${r.missing?'仲間との通信を待っています（最大30秒）':!r.deadline?'仲間と前の結果を確認しています…':locked?'選択済み。仲間の行動を待っています…':`残り <b id="coop-timer">${Math.max(0,Math.ceil((r.deadline-Date.now())/1000))}</b>秒`}</p>
-      <div class="coop-stamps">${['グーでいこう','チョキでいこう','パーでいこう','手を分けよう','回復お願い','グーなし','チョキなし','パーなし'].map((x,i)=>`<button class="btn sm" data-coop-stamp="${i}">${x}</button>`).join('')}</div><p class="sub">仲間の合図：${esc(['グーでいこう','チョキでいこう','パーでいこう','手を分けよう','回復お願い','グーなし','チョキなし','パーなし'][r.peers.find(p=>p.peer===r.roster[1-r.side].uid)?.presence?.signal?.k]||'―')}</p>
+      <div class="coop-stamps">${['グーでいこう','チョキでいこう','パーでいこう','手を分けよう','回復お願い','グーなし','チョキなし','パーなし'].map((x,i)=>`<button class="btn sm" data-coop-stamp="${i}">${x}</button>`).join('')}</div><p class="sub">仲間の合図：${r.roster.filter(p=>p.uid!==r.uid).map(p=>esc(p.nick)+"："+esc(['グーでいこう','チョキでいこう','パーでいこう','手を分けよう','回復お願い','グーなし','チョキなし','パーなし'][r.peers.find(x=>x.peer===p.uid)?.presence?.signal?.k]||'―')).join(" ／ ")}</p>
       <div class="row coop-choices"><label>行動<select id="coop-action">${Object.entries(C.actions).map(([key,label])=>`<option value="${key}"${r.selectedAction===key?' selected':''}>${label}</option>`).join('')}</select></label>${['heads','twins'].includes(b.rule)?`<label>狙う相手<select id="coop-target"><option value="0"${r.selectedTarget===0?' selected':''}>左</option><option value="1"${r.selectedTarget===1?' selected':''}>右</option></select></label>`:''}</div>
-      <div class="coop-hands">${C.hands.map((h,i)=>`<button class="btn primary" data-coop-hand="${i}"${locked||r.missing||!r.deadline?' disabled':''}>${h}</button>`).join('')}</div><p class="sub">防御：被害を65%軽減。支援：味方の被害を30%軽減しHPを12%回復。救助：倒れている仲間をHP35%で復帰。支援・救助では攻撃しません。</p>`}
+      <div class="coop-hands">${C.hands.map((h,i)=>`<button class="btn primary" data-coop-hand="${i}"${locked||r.missing||!r.deadline?' disabled':''}>${h}</button>`).join('')}</div><p class="sub">防御：被害を65%軽減。支援：ほかの仲間の被害を30%軽減しHPを12%回復（同じターンの支援は重複しません）。救助：倒れている仲間を1人、HP35%で復帰。支援・救助では攻撃しません。</p>`}
       <details${over?' open':''}><summary>直前の戦闘ログ</summary>${s.log.map(l=>`<p class="sub">${esc(l)}</p>`).join('')}</details>`);
       if($('coop-action'))$('coop-action').onchange=()=>r.selectedAction=$('coop-action').value;if($('coop-target'))$('coop-target').onchange=()=>r.selectedTarget=+$('coop-target').value;
       root.querySelectorAll('[data-coop-hand]').forEach(btn=>btn.onclick=()=>pick({h:+btn.dataset.coopHand,a:r.selectedAction,target:r.selectedTarget}));

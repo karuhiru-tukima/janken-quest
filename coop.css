@@ -2,6 +2,21 @@
 #coop-overlay .coop-battle.q-story-scene{height:auto;min-height:290px}#coop-overlay .coop-battle .coop-enemy .coop-boss-art{width:min(100%,190px)}@media(max-width:420px){#coop-overlay .coop-battle.q-story-scene{min-height:230px}#coop-overlay .coop-battle .coop-enemy .coop-boss-art{width:min(100%,150px)}}
 
 .coop-enemy .coop-boss-art{transform:scaleX(-1)}
+.coop-wait-party{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.coop-wait-member{display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 6px;background:#252b49;border:2px solid #8e7b54;border-radius:5px;text-align:center;min-width:0;font-size:.8rem}
+.coop-wait-member>.normalized-face{width:64px;height:64px;border:2px solid #c19d60;border-radius:4px}
+.coop-wait-member>b{max-width:100%;overflow-wrap:anywhere}.coop-wait-member>span:last-child{color:#f4d17a;font-size:.72rem}
+.coop-wait-member.empty{justify-content:center;color:#aaa7b5;border-style:dashed}
+#coop-overlay .coop-battle[data-count="3"],#coop-overlay .coop-battle[data-count="4"]{grid-template-columns:3fr 2fr;align-items:end}
+.coop-hero-figure{position:relative;width:100%;height:155px;display:flex;align-items:flex-end;justify-content:center;isolation:isolate}
+.coop-hero-figure::after{content:"";position:absolute;bottom:0;left:22%;width:56%;height:9px;border-radius:50%;background:#10142699;z-index:-1}
+.coop-hero-figure>img{object-position:center bottom}
+.coop-battle[data-count="3"] .coop-party,.coop-battle[data-count="4"] .coop-party{display:flex;align-items:flex-end;gap:7px}
+.coop-battle[data-count="3"] .coop-hero-figure,.coop-battle[data-count="4"] .coop-hero-figure{height:144px}
+.coop-battle[data-count="3"] .coop-hero img,.coop-battle[data-count="4"] .coop-hero img{height:144px;object-position:center bottom}
+.coop-battle[data-count="3"] .coop-enemy,.coop-battle[data-count="4"] .coop-enemy{padding-bottom:20px;align-self:end}
+.coop-hero span{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:600px){.coop-wait-party{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.coop-wait-member{padding:9px 5px}.coop-wait-member>.normalized-face{width:52px;height:52px}.coop-hero-figure{height:120px}#coop-overlay .coop-battle[data-count="3"],#coop-overlay .coop-battle[data-count="4"]{grid-template-columns:3fr 1fr;align-items:end}.coop-battle[data-count="3"] .coop-hero-figure,.coop-battle[data-count="4"] .coop-hero-figure{height:112px}.coop-battle[data-count="3"] .coop-hero img,.coop-battle[data-count="4"] .coop-hero img{height:112px}.coop-battle[data-count="3"] .coop-party,.coop-battle[data-count="4"] .coop-party{gap:4px}.coop-battle[data-count="3"] .coop-hero,.coop-battle[data-count="4"] .coop-hero{font-size:.62rem}}
 
 .normalized-face{display:block;position:relative;overflow:hidden}.jq-face{display:block;position:absolute;inset:0;overflow:hidden}.jq-face>img,.jq-kaede-blue{display:block;position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:cover;image-rendering:pixelated;transform-origin:0 0;transform:translate(var(--face-x),var(--face-y)) scale(var(--face-scale))}.jq-kaede-blue{background-repeat:no-repeat;background-size:154.6667% auto;background-position:73.17% 11.76%}.normalized-face .kaede-half .jq-face{width:100%;height:100%}
 #h-coop .medal{background-color:#423953} .hm-activities{gap:12px!important}@media(max-width:599px){.hm-activities{gap:7px!important}.hm-activities .hm-ic{gap:3px}.hm-activities .ribbon{font-size:.65rem}}
