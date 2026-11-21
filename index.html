@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-22-0012";
+  window.JQ_VER = "2026-11-22-0013";
   // 画像を変更していない更新では、再ダウンロードせず保存済みの画像を使う。
   window.JQ_ASSET_VER = "2026-11-08-0045";
   window.JQ_MOTION_VER = "2026-11-08-0044";
@@ -1318,7 +1318,7 @@ body.on-home .wrap { padding-top: 10px; }
 .kaede-half.red { clip-path:polygon(0 0,100% 0,0 100%); }
 .kaede-half.blue { clip-path:polygon(100% 0,100% 100%,0 100%); }
 .kaede-half .char-preview { position:absolute; width:230%; height:287.5%; left:-67.6%; top:-26.25%; }
-.kaede-face::after { content:""; position:absolute; z-index:1; left:50%; top:-21%; width:2px; height:142%; background:#f4d68b; transform:rotate(45deg); box-shadow:1px 0 #18213e; }
+.kaede-face::after { content:""; position:absolute; z-index:1; left:50%; top:-21%; width:1px; height:142%; background:#f4d68b; transform:rotate(45deg); }
 .kaede-home-controls { display:grid; gap:6px; padding-top:7px; border-top:1px solid #bda05b88; }
 .kaede-home-controls button { min-width:60px; min-height:36px; padding:5px 4px; border:2px solid #455172; border-radius:5px; background:#18213e; color:#e8d9b5; font:inherit; font-size:.68rem; cursor:pointer; }
 .kaede-home-controls button[aria-pressed="true"] { border-color:#f1d58b; box-shadow:inset 0 0 0 1px #f1d58b66; }
@@ -1387,9 +1387,9 @@ body.on-home .wrap { padding-top: 10px; }
 @media (max-width: 599px) { .pm-vs { grid-template-columns: 1fr; } .pm-x { justify-self: center; } }
 </style>
 <link rel="stylesheet" href="account.css?v=2026-11-16-0052">
-<link rel="stylesheet" href="quest.css?v=2026-11-22-0012">
-<link rel="stylesheet" href="coop.css?v=2026-11-22-0012">
-<link rel="stylesheet" href="home-layout.css?v=2026-11-22-0012">
+<link rel="stylesheet" href="quest.css?v=2026-11-22-0013">
+<link rel="stylesheet" href="coop.css?v=2026-11-22-0013">
+<link rel="stylesheet" href="home-layout.css?v=2026-11-22-0013">
 </head>
 <body>
 <!-- 起動画面：新しい版の確認と画像の読み込みが終わったら「タップしてはじめる」（ここで音も出せるようになる） -->
@@ -1744,6 +1744,7 @@ function setupFrames(a, set, base, widths) {
 }
 const hasImg = p => IMGS.has(p);
 const imgSrc = p => "img/" + p + ".png?v=" + (window.JQ_ASSET_VER || window.JQ_VER);
+window.JQPortraits.ready = window.JQPortraits.preload(imgSrc);
 function applyPhoto(a) {
   const ak = a._kind === "p" ? `c${a._key}` : a._key;
   const p = a._kind === "p" ? `chars/c${a._key}` : `enemies/${a._key}`;
@@ -3540,7 +3541,9 @@ function showReward(rw) {
 /* ---------- キャラ選択 ---------- */
 // キャラ選択：正位置で戦う5人と逆位置で戦う4人を、色の違う2つのグループに分けて並べる
 function renderChars() {
-  const box = $("chars"); box.innerHTML = "";
+  const box = $("chars");
+  if (box.querySelectorAll('button.card[id^="char-"]').length !== CHARS.length) {
+  box.innerHTML = "";
   const groups = [
     { rev: false, title: "▲ 正位置で戦うキャラ", sub: "カードを正しい向きで持つ。カードの「正位置」の効果が出る" },
     { rev: true, title: "▼ 逆位置で戦うキャラ", sub: "カードを逆さに持つ。カードの「逆位置」の効果が出る（負けの次・あいこ・反撃が得意）" },
@@ -3568,6 +3571,14 @@ function renderChars() {
       inner.appendChild(b);
     }
     box.appendChild(sec);
+  }
+  }
+  for (const c of CHARS) {
+    const button = $("char-" + c.id), selected = S.charId === c.id;
+    button.classList.toggle("sel", selected);button.setAttribute("aria-pressed", String(selected));
+    const mark = button.querySelector('.selmark');
+    if (!selected) mark?.remove();
+    else if (!mark) {const label=document.createElement('span');label.className='selmark';label.textContent='選択中';button.append(label);}
   }
   const c = charOf(S.charId);
   if (c) {
@@ -6116,6 +6127,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(startWithArt) : startWithArt
   // 全キャラ・全カード・フォントは起動を妨げず、裏で必要なものから読み込む。
   async function preload() {
     await Promise.all([window.JQ_GAME_READY, within(window.JQVisual?.ready, 1200, null)]);
+    await within(window.JQPortraits?.ready, 1200, null);
     window.JQ_BOOT?.prepareTitle();
     $b("boot-fill").style.width = "100%";
   }
