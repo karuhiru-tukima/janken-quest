@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-22-0021";
+  window.JQ_VER = "2026-11-22-0022";
   // 画像を変更していない更新では、再ダウンロードせず保存済みの画像を使う。
   window.JQ_ASSET_VER = "2026-11-08-0045";
   window.JQ_MOTION_VER = "2026-11-08-0044";
@@ -1388,11 +1388,11 @@ body.on-home .wrap { padding-top: 10px; }
 @media (max-width: 599px) { .pm-vs { grid-template-columns: 1fr; } .pm-x { justify-self: center; } }
 </style>
 <link rel="stylesheet" href="account.css?v=2026-11-16-0052">
-<link rel="stylesheet" href="quest.css?v=2026-11-22-0021">
-<link rel="stylesheet" href="game-select.css?v=2026-11-22-0021">
-<script defer src="game-select.js?v=2026-11-22-0021"></script>
-<link rel="stylesheet" href="coop.css?v=2026-11-22-0021">
-<link rel="stylesheet" href="home-layout.css?v=2026-11-22-0021">
+<link rel="stylesheet" href="quest.css?v=2026-11-22-0022">
+<link rel="stylesheet" href="game-select.css?v=2026-11-22-0022">
+<script defer src="game-select.js?v=2026-11-22-0022"></script>
+<link rel="stylesheet" href="coop.css?v=2026-11-22-0022">
+<link rel="stylesheet" href="home-layout.css?v=2026-11-22-0022">
 </head>
 <body>
 <!-- 起動画面：新しい版の確認と画像の読み込みが終わったら「タップしてはじめる」（ここで音も出せるようになる） -->
@@ -4720,12 +4720,13 @@ function fireAdapter(db, uid) {
           return me.set(state);
         },
         peers: () => peers,
+        async inspect() { const snap=await ref.once("value"),val=snap.val()||{};return Object.keys(val).map(peer=>({peer,presence:val[peer]||{}})); },
         onPeers(fn, onError) {
           fns.add(fn); if (onError) errs.add(onError);
           setTimeout(() => { if (fns.has(fn)) fn({ peers }); }, 0);
           return () => { fns.delete(fn); errs.delete(onError); };
         },
-        leave() { live = false; ref.off("value", onVal); fns.clear(); errs.clear(); me.onDisconnect().cancel(); return me.remove(); },
+        leave(options = {}) { live = false; ref.off("value", onVal); fns.clear(); errs.clear(); me.onDisconnect().cancel(); return options.keepPresence ? Promise.resolve() : me.remove(); },
       });
     },
   };

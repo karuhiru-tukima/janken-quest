@@ -2,6 +2,8 @@
 #coop-overlay .coop-battle.q-story-scene{height:auto;min-height:290px}#coop-overlay .coop-battle .coop-enemy .coop-boss-art{width:min(100%,190px)}@media(max-width:420px){#coop-overlay .coop-battle.q-story-scene{min-height:230px}#coop-overlay .coop-battle .coop-enemy .coop-boss-art{width:min(100%,150px)}}
 
 .coop-enemy .coop-boss-art{transform:scaleX(-1)}
+.coop-room-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.coop-room-buttons .btn{min-height:52px;font-size:1rem}
+@media(max-width:380px){.coop-room-buttons{gap:8px}.coop-room-buttons .btn{font-size:.85rem;padding:10px 5px}}
 .coop-wait-party{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .coop-wait-member{display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 6px;background:#252b49;border:2px solid #8e7b54;border-radius:5px;text-align:center;min-width:0;font-size:.8rem}
 .coop-wait-member>.normalized-face{width:64px;height:64px;border:2px solid #c19d60;border-radius:4px}

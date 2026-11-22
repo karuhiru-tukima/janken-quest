@@ -15,6 +15,7 @@
   }
   function hand(s,index,salts){const f=forecast(s,index),r=rng(s.seed+'|'+s.turn+'|'+salts.join('|')+'|'+index);if(f.pattern==='clues')return f.favored;return r()<.75?f.favored:Math.floor(r()*3);}
   function validPick(p){return !!p&&Number.isInteger(p.h)&&p.h>=0&&p.h<=2&&Object.hasOwn(C.actions,p.a)&&Number.isInteger(p.target)&&p.target>=0&&p.target<=1;}
+  function encodePick(value){if(!validPick(value?.p)||typeof value.s!=='string'||value.s.length!==32)throw Error('Invalid committed pick');return JSON.stringify([value.p.h,value.p.a,value.p.target,value.s]);}
   function step(prev,picks,salts,duel){const n=prev.players.length;if(prev.status!=='playing'||picks.length!==n||salts.length!==n||!picks.every(validPick))throw Error('Invalid turn');const s=copy(prev),scale=scaling(n),b={...find(s.id),atk:round(find(s.id).atk*scale.attack)},f=forecast(s,0),pat=f.pattern,logs=[],startHP=s.players.map(p=>p.hp),alive=startHP.map(h=>h>0),wins=Array(n).fill(false),damage=Array(n).fill(0),incoming=Array(n).fill(0);
     const same=new Set(picks.filter((p,i)=>alive[i]).map(p=>p.h)).size<=1,support=picks.map((p,i)=>alive[i]&&p.a==='support'),target=f.target;
     const heal=(i,n)=>{if(s.players[i].hp>0)s.players[i].hp=round(Math.min(s.players[i].max,s.players[i].hp+n));};
@@ -64,5 +65,5 @@
   function reward(cs,id,match){const b=find(id),q=progress(cs);if(!b||typeof match!=='string'||!match)throw Error('Invalid reward');if(q.receipts.includes(match))return false;q.receipts.push(match);q.receipts=q.receipts.slice(-100);q.medals+=b.medals;if(!q.cleared.includes(id))q.cleared.push(id);cs.coop=q;cs.coins=Math.max(0,Number(cs.coins)||0)+b.coins;return true;}
   function exchange(cs,id,type){const b=find(id),q=progress(cs),key=id+':'+type;if(!b||!['title','frame','background'].includes(type)||!q.cleared.includes(id)||q.owned.includes(key))return false;const cost=({title:3,frame:6,background:10}[type])*(b.tier+1);if(q.medals<cost)return false;q.medals-=cost;q.owned.push(key);if(type!=='title')q[type]=id;cs.coop=q;return true;}
   const titles=cs=>{const q=progress(cs);return C.bosses.filter(b=>q.owned.includes(b.id+':title')).map(b=>b.title).concat(q.cleared.length===15?[C.allTitle]:[]);};
-  window.JQCoopCore={find,rng,create,forecast,hand,step,progress,reward,exchange,titles,validPick,outcome,scaling};
+  window.JQCoopCore={find,rng,create,forecast,hand,step,progress,reward,exchange,titles,validPick,outcome,scaling,encodePick};
 })();

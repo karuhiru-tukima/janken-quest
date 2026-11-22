@@ -12,19 +12,26 @@
     function hide(){shown=false;root.hidden=true;root.innerHTML='';if($('wrap'))$('wrap').inert=false;api.afterClose?.();}
     async function leave(){const old=run;run=null;token++;clearInterval(tick);tick=0;if(old){old.unsubscribe?.();try{await old.room.leave();}catch{}}hide();}
     function error(message){if($('coop-error'))$('coop-error').textContent=message;}
-    const lobby=window.JQCoopLobby.create({api,shell,art,rewards,join:(id,ch,password)=>{selection=id;return join(password,ch);}});
+    const lobby=window.JQCoopLobby.create({api,shell,art,rewards,join:(id,ch,password,mode)=>{selection=id;return join(password,ch,mode);}});
     function open(){if(run){draw();return;}lobby.open();}
-    async function join(password,ch){if(joining)return;if(!password){error('あいことばを入力してください。');return;}joining=true;const attempt=++token;$('coop-join').disabled=true;
-      let room;try{const user=await api.onlineUser();if(attempt!==token)return;const hash=await api.sha('jq-coop-v2|'+password);room=await api.join('coop-v2-'+hash.slice(0,40),user.uid);if(attempt!==token){await room.leave();return;}
-        const r={room,uid:user.uid,epoch:attempt,peers:[],local:{v:2,ch,nick:api.nick().slice(0,12),coop:2,joinedAt:Date.now(),ready:false,boss:selection,nonce:nonce(),cards:api.cards(ch),rounds:{}},state:null,match:'',busy:false,again:false,deadline:0,computed:0,selectedAction:'attack',selectedTarget:0,stampAt:0,completed:false,missing:0};run=r;await room.presence(r.local);if(run!==r)return;
+    async function join(password,ch,mode='join'){if(joining)return;if(!password){error('あいことばを入力してください。');return;}joining=true;const attempt=++token;for(const id of ['coop-join','coop-create'])if($(id))$(id).disabled=true;
+      let room,ownedPresence=false;try{const user=await api.onlineUser();if(attempt!==token)return;const hash=await api.sha('jq-coop-v3|'+password);room=await api.join('coop-v3-'+hash.slice(0,40),user.uid);if(attempt!==token){await room.leave({keepPresence:true});return;}
+        const existing=(await room.inspect()).filter(p=>p.presence?.coop===3);
+        if(mode==='create'&&existing.length)throw Error('coop:そのあいことばの部屋はすでにあります。「部屋に参加」を選ぶか、別のあいことばで作成してください。');
+        if(mode!=='create'&&!existing.length)throw Error('coop:そのあいことばの部屋は見つかりません。先に「部屋を作る」を押してください。');
+        if(existing.some(p=>p.presence.boss!==selection))throw Error('coop:その部屋は別のボスを選んでいます。同じボスを選んで参加してください。');
+        if(existing.some(p=>p.presence.match||p.presence.start))throw Error('coop:この部屋は出撃済みです。次の部屋に参加してください。');
+        if(existing.length>=4)throw Error('coop:この部屋は4人で満員です。別の部屋に参加してください。');
+        if(attempt!==token){await room.leave({keepPresence:true});return;}
+        const r={room,uid:user.uid,epoch:attempt,peers:[],password,local:{v:3,ch,nick:api.nick().slice(0,12),coop:3,creator:mode==='create',joinedAt:Date.now(),ready:false,boss:selection,nonce:nonce(),cards:api.cards(ch),rounds:{}},state:null,match:'',busy:false,again:false,deadline:0,computed:0,selectedAction:'attack',selectedTarget:0,stampAt:0,completed:false,missing:0};run=r;ownedPresence=true;await room.presence(r.local);if(run!==r)return;
         r.unsubscribe=room.onPeers(({peers})=>{if(run!==r)return;r.peers=peers;pump(r);},()=>abort(r,'通信を確認できませんでした。退出して、もう一度参加してください。'));
         tick=setInterval(()=>{if(!ownerOK(r)){leave();return;}if(r.missing&&Date.now()-r.missing>30000){abort(r,'仲間との通信が戻らなかったため中止しました。報酬は発生しません。');return;}if(r.state?.status==='playing'&&r.deadline&&Date.now()>=r.deadline&&!r.local.rounds[r.state.turn])pick(r.state.players[r.side].hp<=0?{h:0,a:'guard',target:0}:{h:Math.floor(Math.random()*3),a:'guard',target:r.side%2});const timer=$('coop-timer');if(timer&&r.deadline)timer.textContent=String(Math.max(0,Math.ceil((r.deadline-Date.now())/1000)));},250);draw();
-      }catch(e){if(room&&(!run||run.room!==room))try{await room.leave();}catch{}error('部屋に入れませんでした。通信を確認して再試行してください。');if($('coop-join'))$('coop-join').disabled=false;}finally{joining=false;}
+      }catch(e){if(run?.room===room){run?.unsubscribe?.();run=null;clearInterval(tick);tick=0;}if(room)try{await room.leave({keepPresence:!ownedPresence});}catch{}error(e.message?.startsWith('coop:')?e.message.slice(5):'部屋に入れませんでした。通信を確認して再試行してください。');}finally{joining=false;if(!run)for(const id of ['coop-join','coop-create'])if($(id))$(id).disabled=false;}
     }
     async function publish(r,patch){if(!ownerOK(r))return;Object.assign(r.local,patch);await r.room.presence(r.local);}
     function abort(r,message){if(run!==r)return;r.failed=message;r.deadline=0;draw();}
-    const party=r=>r.peers.filter(p=>p.presence?.coop===2).map(p=>p.peer===r.uid&&p.presence.nonce===r.local.nonce?{...p,presence:r.local}:p).sort((a,b)=>(a.presence.joinedAt-b.presence.joinedAt)||(a.peer<b.peer?-1:a.peer>b.peer?1:0));
-    const compatible=(r,p)=>p.presence.v===2&&p.presence.boss===r.local.boss&&api.validChar(p.presence.ch)&&typeof p.presence.nonce==='string'&&Number.isFinite(p.presence.joinedAt);
+    const party=r=>r.peers.filter(p=>p.presence?.coop===3).map(p=>p.peer===r.uid&&p.presence.nonce===r.local.nonce?{...p,presence:r.local}:p).sort((a,b)=>(a.presence.joinedAt-b.presence.joinedAt)||(a.peer<b.peer?-1:a.peer>b.peer?1:0));
+    const compatible=(r,p)=>p.presence.v===3&&p.presence.boss===r.local.boss&&api.validChar(p.presence.ch)&&typeof p.presence.nonce==='string'&&Number.isFinite(p.presence.joinedAt);
     async function launch(r){
       if(!ownerOK(r)||r.state||r.launching)return;const slots=party(r).slice(0,4);
       if(slots.length<2||slots[0].peer!==r.uid||!slots.every(p=>p.presence.ready&&compatible(r,p)))return;
@@ -36,6 +43,8 @@
         if(own&&own.nonce!==r.local.nonce){abort(r,'同じアカウントが別の画面から参加しました。1人につき1画面で参加してください。');break;}
         const peers=party(r);
         if(!r.match){
+          const creators=peers.filter(p=>p.presence.creator);
+          if(r.local.creator&&creators.length>1&&creators[0].peer!==r.uid){abort(r,'同じあいことばで部屋が作成されました。別のあいことばで作成するか、退出して「部屋に参加」を選んでください。');await r.room.leave();break;}
           const proposal=peers.find(p=>p.presence.start)?.presence.start;
           if(!proposal){
             if(peers.some(p=>p.presence.match)){abort(r,'この部屋はすでに出撃しています。別のあいことばで参加してください。');break;}
@@ -71,14 +80,14 @@
         if(!mine.rv){await publish(r,{rounds:{...r.local.rounds,[turn]:{...mine,rv:r.secret}}});r.again=true;continue;}
         if(commits.some(p=>!p.rv)){draw();break;}
         const ordered=commits.map(p=>p.rv);
-        for(let i=0;i<ordered.length;i++){const v=ordered[i];if(!K.validPick(v?.p)||typeof v.s!=='string'||v.s.length!==32||await api.sha(r.match+'|'+turn+'|'+JSON.stringify(v))!==commits[i].c)throw Error('commit mismatch');}
+        for(let i=0;i<ordered.length;i++){const v=ordered[i];if(!K.validPick(v?.p)||typeof v.s!=='string'||v.s.length!==32||await api.sha(r.match+'|'+turn+'|'+K.encodePick(v))!==commits[i].c)throw Error('commit mismatch');}
         if(!ownerOK(r))break;r.state=K.step(r.state,ordered.map(v=>v.p),ordered.map(v=>v.s),api.duel);r.deadline=0;r.secret=null;r.digest=await api.sha(JSON.stringify(r.state));await publish(r,{ack:{turn,hash:r.digest}});r.again=true;draw();
       }while(r.again&&ownerOK(r));}catch(e){console.warn('共闘を中止',e);abort(r,'通信または行動情報を確認できませんでした。退出して再参加してください。');}finally{r.busy=false;if(r.again&&ownerOK(r)&&!r.failed)pump(r);}
     }
-    async function pick(p){const r=run;if(!r||r.failed||r.missing||!r.state||r.state.status!=='playing'||r.local.rounds[r.state.turn]||!r.deadline||r.picking)return;r.picking=true;try{const turn=r.state.turn,v={p,s:nonce()},c=await api.sha(r.match+'|'+turn+'|'+JSON.stringify(v));if(!ownerOK(r)||r.state.turn!==turn)return;r.secret=v;await publish(r,{rounds:{...r.local.rounds,[turn]:{c}}});pump(r);}catch{abort(r,'行動を送信できませんでした。通信を確認してください。');}finally{r.picking=false;draw();}}
+    async function pick(p){const r=run;if(!r||r.failed||r.missing||!r.state||r.state.status!=='playing'||r.local.rounds[r.state.turn]||!r.deadline||r.picking)return;r.picking=true;try{const turn=r.state.turn,v={p,s:nonce()},c=await api.sha(r.match+'|'+turn+'|'+K.encodePick(v));if(!ownerOK(r)||r.state.turn!==turn)return;r.secret=v;await publish(r,{rounds:{...r.local.rounds,[turn]:{c}}});pump(r);}catch{abort(r,'行動を送信できませんでした。通信を確認してください。');}finally{r.picking=false;draw();}}
     function waiting(r,b){
       const slots=party(r).slice(0,4),leader=slots[0]?.peer===r.uid,count=slots.length,scale=K.scaling(Math.max(2,count)),ready=count>=2&&slots.every(p=>p.presence.ready&&compatible(r,p));
-      shell('共闘の待合室',art(b)+'<h3>'+esc(b.name)+'</h3><p>参加 '+count+'/4人・2〜4人で挑戦</p><div class="coop-wait-party">'+Array.from({length:4},(_,i)=>{const p=slots[i];return p?'<div class="coop-wait-member">'+api.charPortrait(p.presence.ch)+'<b>'+esc(p.presence.nick||'仲間')+(p.peer===r.uid?'（あなた）':'')+'</b><span>'+(i===0?'リーダー・':'')+(p.presence.ready?'準備完了':'準備中')+'</span></div>':'<div class="coop-wait-member empty">仲間を募集中</div>';}).join('')+'</div><p class="coop-forecast">'+(count<2?'2人以上で出撃できます。2人時のボスHP ':count+'人で出撃時：ボスHP ')+Math.round(b.hp*scale.hp*100)/100+'／攻撃力 '+Math.round(scale.attack*100)+'%</p><p class="sub">人数に合わせてボスの強さが変わります。全員が準備完了したら、リーダーが出撃を選びます。</p><div class="row"><button class="btn primary" id="coop-ready">'+(r.local.ready?'準備を取り消す':'準備完了')+'</button>'+(leader?'<button class="btn primary" id="coop-launch"'+(!ready?' disabled':'')+'>'+(count<2?'仲間を待つ':'この'+count+'人で出撃')+'</button>':'<span class="sub">リーダーの出撃を待っています</span>')+'</div>');
+      shell('共闘の待合室',art(b)+'<h3>'+esc(b.name)+'</h3><p>あいことば：<b>'+esc(r.password)+'</b></p><p>参加 '+count+'/4人・2〜4人で挑戦</p><div class="coop-wait-party">'+Array.from({length:4},(_,i)=>{const p=slots[i];return p?'<div class="coop-wait-member">'+api.charPortrait(p.presence.ch)+'<b>'+esc(p.presence.nick||'仲間')+(p.peer===r.uid?'（あなた）':'')+'</b><span>'+(i===0?'リーダー・':'')+(p.presence.ready?'準備完了':'準備中')+'</span></div>':'<div class="coop-wait-member empty">仲間を募集中</div>';}).join('')+'</div><p class="coop-forecast">'+(count<2?'2人以上で出撃できます。2人時のボスHP ':count+'人で出撃時：ボスHP ')+Math.round(b.hp*scale.hp*100)/100+'／攻撃力 '+Math.round(scale.attack*100)+'%</p><p class="sub">人数に合わせてボスの強さが変わります。全員が準備完了したら、リーダーが出撃を選びます。</p><div class="row"><button class="btn primary" id="coop-ready">'+(r.local.ready?'準備を取り消す':'準備完了')+'</button>'+(leader?'<button class="btn primary" id="coop-launch"'+(!ready?' disabled':'')+'>'+(count<2?'仲間を待つ':'この'+count+'人で出撃')+'</button>':'<span class="sub">リーダーの出撃を待っています</span>')+'</div>');
       $('coop-ready').onclick=async()=>{try{await publish(r,{ready:!r.local.ready});pump(r);}catch{abort(r,'準備状態を送信できませんでした。');}};
       if($('coop-launch'))$('coop-launch').onclick=()=>launch(r);
     }
