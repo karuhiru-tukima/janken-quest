@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-22-0022";
+  window.JQ_VER = "2026-11-22-0023";
   // 画像を変更していない更新では、再ダウンロードせず保存済みの画像を使う。
   window.JQ_ASSET_VER = "2026-11-08-0045";
   window.JQ_MOTION_VER = "2026-11-08-0044";
@@ -1388,11 +1388,11 @@ body.on-home .wrap { padding-top: 10px; }
 @media (max-width: 599px) { .pm-vs { grid-template-columns: 1fr; } .pm-x { justify-self: center; } }
 </style>
 <link rel="stylesheet" href="account.css?v=2026-11-16-0052">
-<link rel="stylesheet" href="quest.css?v=2026-11-22-0022">
-<link rel="stylesheet" href="game-select.css?v=2026-11-22-0022">
-<script defer src="game-select.js?v=2026-11-22-0022"></script>
-<link rel="stylesheet" href="coop.css?v=2026-11-22-0022">
-<link rel="stylesheet" href="home-layout.css?v=2026-11-22-0022">
+<link rel="stylesheet" href="quest.css?v=2026-11-22-0023">
+<link rel="stylesheet" href="game-select.css?v=2026-11-22-0023">
+<script defer src="game-select.js?v=2026-11-22-0023"></script>
+<link rel="stylesheet" href="coop.css?v=2026-11-22-0023">
+<link rel="stylesheet" href="home-layout.css?v=2026-11-22-0023">
 </head>
 <body>
 <!-- 起動画面：新しい版の確認と画像の読み込みが終わったら「タップしてはじめる」（ここで音も出せるようになる） -->
@@ -1667,6 +1667,7 @@ const FIREBASE_CONFIG = {
   document.write('<script src="coop-content.js?v=' + window.JQ_VER + '"><\/script>');
   document.write('<script src="coop-core.js?v=' + window.JQ_VER + '"><\/script>');
   document.write('<script src="coop-lobby.js?v=' + window.JQ_VER + '"><\/script>');
+  document.write('<script src="coop-stage.js?v=' + window.JQ_VER + '"><\/script>');
   document.write('<script src="coop-system.js?v=' + window.JQ_VER + '"><\/script>');
   document.write('<script src="tower-ranking.js?v=' + window.JQ_VER + '"><\/script>');
   document.write('<script src="account-core.js?v=' + window.JQ_VER + '"><\/script>');
@@ -5966,7 +5967,9 @@ const Q=window.JQQuests.create({$,esc,getS:()=>S,getCS:()=>CS,saveCS,charOf,char
 });
 $("h-quest").onclick=()=>Q.open(S.charId);
 // Coop keeps its own progress and match receipts inside the account's jq-cards save.
+const coopStage=window.JQCoopStage.create({actor:(ch,mode)=>{const a=makeActor('p',charOf(ch));if(ch===KAEDE_CH)kaedeLook(a,mode);return a;},name:ch=>charOf(ch)?.name||'仲間',play:playFrames,hand:handImg,duration:FT});
 const COOP=window.JQCoop.create({$,esc,chars:CHARS,character:()=>S.charId,cs:()=>CS,save:saveCS,charPortrait:charFace,playEntryVoice,
+  mountStage:coopStage.mount,animateRound:coopStage.round,
   cardInfo:ch=>eqList(ch).map(x=>({name:CARD[x.c].name,rarity:RAR[x.r].name,level:x.l})),
   user:()=>firebase.auth().currentUser,onlineUser:()=>window.JQAccount.onlineUser(),
   sha,nick:profNick,validChar:id=>!!charOf(id),charName:id=>charOf(id)?.name||"仲間",
