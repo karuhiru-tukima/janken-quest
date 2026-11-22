@@ -23,7 +23,7 @@
       const figures=[...root.querySelectorAll('.coop-hero-figure')];
       const actors=figures.map((figure,i)=>{
         const player=state.players[i],actor=api.actor(player.ch,player.mode);
-        figure.replaceChildren(actor);actor.classList.add('coop-actor');
+        const mark=figure.querySelector('.coop-member-mark');figure.replaceChildren(actor);if(mark)figure.append(mark);actor.classList.add('coop-actor');
         actor.setAttribute('aria-label',api.name(player.ch));
         api.play(actor,player.hp<=0?'lose':state.status==='win'?'win':'idle',{loop:state.status==='win'});
         return actor;
@@ -31,7 +31,7 @@
       views.set(root,{figures,actors,enemy:root.querySelector('.coop-enemy'),battle:root.querySelector('.coop-battle')});
       fitBoss(root,state.id);
     }
-    async function round(root,previous,next,picks,bossHands,valid){
+    async function round(root,previous,next,picks,bossHands,valid,effects=[]){
       let view=views.get(root);if(!view?.battle?.isConnected)return;
       const {figures,actors,enemy,battle}=view;
       const wait=ms=>new Promise(resolve=>setTimeout(resolve,api.duration(ms)));
@@ -56,9 +56,12 @@
       if(!reduced)enemy?.animate?.([{translate:'0 0'},{translate:'-7px 0'},{translate:'0 0'}],{duration:api.duration(300),easing:'ease-out'});
       await wait(1050);
       if(!valid())return;call.textContent=next.status==='win'?'討伐！':'決着';
+      let activated=false;
+      effects.forEach((items,i)=>{const effect=items[0];if(!effect)return;activated=true;const pop=document.createElement('div');pop.className='coop-ability-pop';pop.dataset.kind=effect.kind;const label=document.createElement('small');label.textContent=effect.kind==='card'?'アルカナ':'能力発動';const name=document.createElement('b');name.textContent=effect.name;pop.append(label,name);figures[i].append(pop);});
+      if(activated)call.hidden=true;
       actors.forEach((actor,i)=>api.play(actor,next.players[i].hp<=0?'lose':next.status==='win'?'win':next.players[i].hp<previous.players[i].hp?'hurt':'idle',{then:'idle'}));
       if(!reduced&&next.hp<previous.hp)enemy?.animate?.([{translate:'0 0',filter:'brightness(1)'},{translate:'5px 0',filter:'brightness(1.8)'},{translate:'-4px 0',filter:'brightness(1)'},{translate:'0 0'}],{duration:api.duration(360)});
-      await wait(450);
+      await wait(activated?1250:450);
     }
     return {mount,round};
   }
