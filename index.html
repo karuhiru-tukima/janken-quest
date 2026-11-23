@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"><!-- 身内だけで遊ぶ間は、検索結果に出さない -->
 <script>
   // この版の番号。公開するたびに bump-version.ps1 で上げる（画像やファイルを版ごとに別のアドレスで読み、古い保存を使わないため）
-  window.JQ_VER = "2026-11-22-0024";
+  window.JQ_VER = "2026-11-23-0001";
   // 画像を変更していない更新では、再ダウンロードせず保存済みの画像を使う。
   window.JQ_ASSET_VER = "2026-11-08-0045";
   window.JQ_MOTION_VER = "2026-11-08-0044";
@@ -1388,11 +1388,11 @@ body.on-home .wrap { padding-top: 10px; }
 @media (max-width: 599px) { .pm-vs { grid-template-columns: 1fr; } .pm-x { justify-self: center; } }
 </style>
 <link rel="stylesheet" href="account.css?v=2026-11-16-0052">
-<link rel="stylesheet" href="quest.css?v=2026-11-22-0024">
-<link rel="stylesheet" href="game-select.css?v=2026-11-22-0024">
-<script defer src="game-select.js?v=2026-11-22-0024"></script>
-<link rel="stylesheet" href="coop.css?v=2026-11-22-0024">
-<link rel="stylesheet" href="home-layout.css?v=2026-11-22-0024">
+<link rel="stylesheet" href="quest.css?v=2026-11-23-0001">
+<link rel="stylesheet" href="game-select.css?v=2026-11-23-0001">
+<script defer src="game-select.js?v=2026-11-23-0001"></script>
+<link rel="stylesheet" href="coop.css?v=2026-11-23-0001">
+<link rel="stylesheet" href="home-layout.css?v=2026-11-23-0001">
 </head>
 <body>
 <!-- 起動画面：新しい版の確認と画像の読み込みが終わったら「タップしてはじめる」（ここで音も出せるようになる） -->
@@ -3792,7 +3792,7 @@ const EM = () => (S.battle ? echoMul(S.battle.p, S.battle.M) : 1); // 教皇（�
 const towerRule = r => !!(S.battle && S.battle.tower && S.battle.tower.rules.includes(r));
 const pRate = () => (towerRule("nostreak") ? 0 : (S.charId === 5 ? 0.5 * CB() * EM() : 0.1) + mz(BM(), "streakAdd"));
 const eRate = e => (towerRule("nostreak") ? 0 : (has(e, "king") ? 0.3 : has(e, "gale") ? 0.5 : 0.1) * (1 - Math.min(0.9, mz(BM(), "enemyStreakCut"))));
-const towerHandK = h => (towerRule(["handG", "handC", "handP"][h]) ? 1.5 : 1); // 試練の塔「〇〇の威力アップ」
+const towerEnemyHandK = h => (towerRule(["handG", "handC", "handP"][h]) ? 1.5 : 1); // 試練の塔の手の威力アップは敵の攻撃だけに適用
 const furyBonus = p => (S.charId === 7 ? Math.min(CB() * EM(), 0.2 * CB() * EM() * (p.losses || 0)) : S.charId === SCAR_CH ? scarBonus(p.hp, p.max, CB() * EM()) : 0);
 const furyName = () => (S.charId === SCAR_CH ? "傷の炎" : "逆境");
 const atkMods = p => { const M = BM(); return mz(M, "atk") + (p.streak >= 2 ? mz(M, "streak2Atk") : 0) + (p.hp <= p.max / 2 ? mz(M, "lowHpAtk") : 0) + arcAtk(p, M); };
@@ -4269,7 +4269,6 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
         // 敵の身構え（次の被ダメ半減）。アルカナの盾崩し・通りぬけは効かない
         dmg *= 0.5; e.shield = false; cut = true; nt2 += "（身構えで半減）";
       }
-      if (towerHandK(h) > 1) { dmg *= towerHandK(h); nt2 += `（塔：${HN[h]}×1.5）`; }
       dmg = r2(dmg); e.hp = r2(Math.max(0, e.hp - dmg));
       push(imp, k, { k: "hitE", amt: dmg, crit: charged || foolWin || N >= 2, cut });
       lines.push(`<span class="g">${T0}${nt}${HN[h]}で勝ち！ ${e.name}に${fmt(dmg)}ダメージ${nt2}</span>`);
@@ -4351,7 +4350,7 @@ function resolveGroup(b, h, res, group, lines, T0, note) {
       const steady = c === STEADY_CH && h === G_; // マサ：グーの負けは敵の強化（連勝・激昂・絆）を受けない
       const note2 = steady ? "（不動：強化を受けない）" : N > 0 ? `（敵${e.streak}連勝 ×${fmt(mult)}）` : "";
       if (blocked) { e.charged=false; push(imp, k, { k: "block" }); lines.push(`<span class="p">${T0}${nt}${HN[h]}で負け…でも無敵で${e.name}の攻撃は0！</span>`); continue; }
-      const { ev, dmg } = hurtPlayer(e, k, (steady ? e.atk * (1 - cbGuardOf(M)) : enemyAtk(e) * mult) * towerHandK((h + 2) % 3), "", false, def, "lose");
+      const { ev, dmg } = hurtPlayer(e, k, (steady ? e.atk * (1 - cbGuardOf(M)) : enemyAtk(e) * mult) * towerEnemyHandK((h + 2) % 3), "", false, def, "lose");
       e.charged=false;
       rctx.dmg += dmg;
       ev.crit = N >= 2;
@@ -5683,11 +5682,11 @@ function resumeBattle() {
    ========================================================= */
 const TOWER_KEY = "jq-tower";
 const TOWER_RULES = {
-  handG: { name: "グーの威力アップ", desc: "グーで勝つとダメージ×1.5（敵も同じ）" },
+  handG: { name: "敵のグー威力アップ", desc: "敵がグーで勝つと、その攻撃のダメージ×1.5。プレイヤーの攻撃は強化されない" },
   noheal: { name: "回復禁止", desc: "カード・能力の回復が効かない" },
-  handC: { name: "チョキの威力アップ", desc: "チョキで勝つとダメージ×1.5（敵も同じ）" },
+  handC: { name: "敵のチョキ威力アップ", desc: "敵がチョキで勝つと、その攻撃のダメージ×1.5。プレイヤーの攻撃は強化されない" },
   split: { name: "あいこで痛み分け", desc: "あいこになると、おたがい攻撃力の30%のダメージ" },
-  handP: { name: "パーの威力アップ", desc: "パーで勝つとダメージ×1.5（敵も同じ）" },
+  handP: { name: "敵のパー威力アップ", desc: "敵がパーで勝つと、その攻撃のダメージ×1.5。プレイヤーの攻撃は強化されない" },
   nostreak: { name: "連勝なし", desc: "連勝の倍率がかからない（敵も同じ）" },
   pair: { name: "敵2体", desc: "1階に敵が2体出る" },
 };
